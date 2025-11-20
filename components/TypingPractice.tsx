@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-type Mode = "time" | "words" | "quote" | "zen";
+type Mode = "time" | "words" | "quote" | "zen" | "preset";
 type Difficulty = "beginner" | "easy" | "medium" | "hard" | "extreme";
 
 type Quote = {
@@ -30,6 +30,8 @@ type SettingsState = {
   ghostWriterSpeed: number;
   ghostWriterEnabled: boolean;
   soundEnabled: boolean;
+  presetText: string;
+  presetModeType: "time" | "finish";
 };
 
 type Theme = {
@@ -177,6 +179,8 @@ export default function TypingPractice() {
     ghostWriterSpeed: 60,
     ghostWriterEnabled: false,
     soundEnabled: false,
+    presetText: "",
+    presetModeType: "finish",
   });
 
   const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
@@ -184,6 +188,8 @@ export default function TypingPractice() {
 
   const [linePreview, setLinePreview] = useState(3);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPresetInput, setShowPresetInput] = useState(false);
+  const [tempPresetText, setTempPresetText] = useState("");
   const [wordPool, setWordPool] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
@@ -202,6 +208,12 @@ export default function TypingPractice() {
 
   const [isRepeated, setIsRepeated] = useState(false);
   const [ghostCharIndex, setGhostCharIndex] = useState(0);
+
+  useEffect(() => {
+    if (showPresetInput) {
+      setTempPresetText(settings.presetText);
+    }
+  }, [showPresetInput, settings.presetText]);
 
   // Load word lists based on difficulty
   useEffect(() => {
@@ -278,6 +290,31 @@ export default function TypingPractice() {
     inputRef.current?.focus();
   }, []);
 
+  const sanitizeText = (text: string) => {
+    // Remove non-printable characters and excessive whitespace
+    return text.replace(/[^\x20-\x7E\n]/g, "").replace(/\s+/g, " ").trim();
+  };
+
+  const handlePresetSubmit = (text: string) => {
+    const sanitized = sanitizeText(text);
+    if (sanitized.length > 0) {
+      updateSettings({ presetText: sanitized });
+      setShowPresetInput(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      setTempPresetText(text);
+    };
+    reader.readAsText(file);
+  };
+
   // Generate words or select quote when settings change
   const generateTest = useCallback(() => {
     if (settings.mode === "quote") {
@@ -299,6 +336,17 @@ export default function TypingPractice() {
       return;
     }
 
+    if (settings.mode === "preset") {
+      if (!settings.presetText) {
+        setShowPresetInput(true);
+        return;
+      }
+      setWords(settings.presetText);
+      resetSession(false);
+      setScrollOffset(0);
+      return;
+    }
+
     if (wordPool.length === 0) return;
 
     const wordCount = settings.mode === "words" ? settings.wordTarget : 200;
@@ -308,7 +356,7 @@ export default function TypingPractice() {
     }));
     resetSession(false);
     setScrollOffset(0);
-  }, [settings.mode, settings.duration, settings.wordTarget, settings.punctuation, settings.numbers, settings.quoteLength, wordPool, quotes, resetSession]);
+  }, [settings.mode, settings.duration, settings.wordTarget, settings.punctuation, settings.numbers, settings.quoteLength, settings.presetText, wordPool, quotes, resetSession]);
 
   useEffect(() => {
     generateTest();
@@ -337,13 +385,13 @@ export default function TypingPractice() {
       const nextElapsed = Date.now() - startTime;
       setElapsedMs(nextElapsed);
 
-      if (settings.mode === "time" && nextElapsed >= settings.duration * 1000) {
+      if ((settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && nextElapsed >= settings.duration * 1000) {
         finishSession();
       }
     }, 100);
 
     return () => window.clearInterval(interval);
-  }, [finishSession, isRunning, settings.mode, settings.duration, startTime]);
+  }, [finishSession, isRunning, settings.mode, settings.duration, settings.presetModeType, startTime]);
 
   // Ghost Writer effect
   useEffect(() => {
@@ -400,8 +448,8 @@ export default function TypingPractice() {
     setTypedText(value);
     playClickSound();
 
-    // Check quote completion
-    if (settings.mode === "quote") {
+    // Check quote or preset completion
+    if (settings.mode === "quote" || settings.mode === "preset") {
       if (value.length === words.length) {
         finishSession();
       }
@@ -584,48 +632,58 @@ export default function TypingPractice() {
               </svg>
             </button>
 
-            <div className="mx-2 h-6 w-px bg-gray-700" />
+            {settings.mode !== "preset" && (
+              <>
+                <div className="mx-2 h-6 w-px bg-gray-700" />
 
-            {/* Punctuation toggle */}
-            <button
-              type="button"
-              onClick={() => updateSettings({ punctuation: !settings.punctuation })}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
-              style={{ color: settings.punctuation ? theme.buttonSelected : theme.buttonUnselected }}
-              title="punctuation"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
-              </svg>
-            </button>
+                {/* Punctuation toggle */}
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ punctuation: !settings.punctuation })}
+                  className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+                  style={{ color: settings.punctuation ? theme.buttonSelected : theme.buttonUnselected }}
+                  title="punctuation"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
+                  </svg>
+                </button>
 
-            {/* Numbers toggle */}
-            <button
-              type="button"
-              onClick={() => updateSettings({ numbers: !settings.numbers })}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
-              style={{ color: settings.numbers ? theme.buttonSelected : theme.buttonUnselected }}
-              title="numbers"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="4" x2="20" y1="9" y2="9" />
-                <line x1="4" x2="20" y1="15" y2="15" />
-                <line x1="10" x2="8" y1="3" y2="21" />
-                <line x1="16" x2="14" y1="3" y2="21" />
-              </svg>
-            </button>
+                {/* Numbers toggle */}
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ numbers: !settings.numbers })}
+                  className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+                  style={{ color: settings.numbers ? theme.buttonSelected : theme.buttonUnselected }}
+                  title="numbers"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="4" x2="20" y1="9" y2="9" />
+                    <line x1="4" x2="20" y1="15" y2="15" />
+                    <line x1="10" x2="8" y1="3" y2="21" />
+                    <line x1="16" x2="14" y1="3" y2="21" />
+                  </svg>
+                </button>
+              </>
+            )}
 
             <div className="mx-2 h-6 w-px bg-gray-700" />
 
             {/* Mode selector */}
             <div className="flex gap-2">
-              {(["time", "words", "quote", "zen"] as Mode[]).map((mode) => (
+              {(["time", "words", "quote", "zen", "preset"] as Mode[]).map((mode) => (
                 <button
                   type="button"
                   key={mode}
                   onClick={() => {
-                    if (settings.mode === mode) generateTest();
+                    if (settings.mode === mode) {
+                        if (mode === "preset") {
+                            setShowPresetInput(true);
+                        } else {
+                            generateTest();
+                        }
+                    }
                     else updateSettings({ mode });
                   }}
                   className="px-3 py-1 transition hover:opacity-75"
@@ -639,48 +697,64 @@ export default function TypingPractice() {
 
           {/* Bottom Row: Mode-specific options */}
           <div className="flex flex-wrap items-center justify-center gap-4">
-            {/* Difficulty/Quote Length selector */}
-            <div className="flex gap-2">
-              {settings.mode === "quote" ? (
-                (["all", "short", "medium", "long", "xl"] as QuoteLength[]).map((len) => (
-                  <button
-                    type="button"
-                    key={len}
-                    onClick={() => {
-                      if (settings.quoteLength === len) generateTest();
-                      else updateSettings({ quoteLength: len });
-                    }}
-                    className="px-3 py-1 transition hover:opacity-75"
-                    style={{ color: settings.quoteLength === len ? theme.buttonSelected : theme.buttonUnselected }}
-                  >
-                    {len}
-                  </button>
-                ))
-              ) : (
-                (["beginner", "easy", "medium", "hard", "extreme"] as Difficulty[]).map((diff) => (
-                  <button
-                    type="button"
-                    key={diff}
-                    onClick={() => {
-                      if (settings.difficulty === diff) generateTest();
-                      else updateSettings({ difficulty: diff });
-                    }}
-                    className="px-3 py-1 transition hover:opacity-75"
-                    style={{ color: settings.difficulty === diff ? theme.buttonSelected : theme.buttonUnselected }}
-                  >
-                    {diff === "extreme" ? "expert" : diff}
-                  </button>
-                ))
-              )}
-            </div>
+            {settings.mode === "preset" ? (
+               <div className="flex gap-2">
+                  {(["finish", "time"] as const).map((type) => (
+                    <button
+                        type="button"
+                        key={type}
+                        onClick={() => updateSettings({ presetModeType: type })}
+                        className="px-3 py-1 transition hover:opacity-75"
+                        style={{ color: settings.presetModeType === type ? theme.buttonSelected : theme.buttonUnselected }}
+                    >
+                        {type}
+                    </button>
+                  ))}
+               </div>
+            ) : (
+                /* Difficulty/Quote Length selector */
+                <div className="flex gap-2">
+                {settings.mode === "quote" ? (
+                    (["all", "short", "medium", "long", "xl"] as QuoteLength[]).map((len) => (
+                    <button
+                        type="button"
+                        key={len}
+                        onClick={() => {
+                        if (settings.quoteLength === len) generateTest();
+                        else updateSettings({ quoteLength: len });
+                        }}
+                        className="px-3 py-1 transition hover:opacity-75"
+                        style={{ color: settings.quoteLength === len ? theme.buttonSelected : theme.buttonUnselected }}
+                    >
+                        {len}
+                    </button>
+                    ))
+                ) : (
+                    (["beginner", "easy", "medium", "hard", "extreme"] as Difficulty[]).map((diff) => (
+                    <button
+                        type="button"
+                        key={diff}
+                        onClick={() => {
+                        if (settings.difficulty === diff) generateTest();
+                        else updateSettings({ difficulty: diff });
+                        }}
+                        className="px-3 py-1 transition hover:opacity-75"
+                        style={{ color: settings.difficulty === diff ? theme.buttonSelected : theme.buttonUnselected }}
+                    >
+                        {diff === "extreme" ? "expert" : diff}
+                    </button>
+                    ))
+                )}
+                </div>
+            )}
 
             {/* Separator and Presets (only if needed) */}
-            {(settings.mode === "time" || settings.mode === "words") && (
+            {(settings.mode === "time" || settings.mode === "words" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
               <>
                 <div className="mx-2 h-6 w-px bg-gray-700" />
 
                 {/* Time/Word presets */}
-                {settings.mode === "time" && (
+                {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
                   <div className="flex gap-2">
                     {TIME_PRESETS.map((duration) => (
                       <button
@@ -732,7 +806,7 @@ export default function TypingPractice() {
           <div>
             {Math.round(accuracy)}% <span className="text-sm text-gray-500">acc</span>
           </div>
-          {settings.mode === "time" && (
+          {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
             <div>
               {Math.max(0, settings.duration - Math.floor(elapsedMs / 1000))}s
             </div>
@@ -1162,6 +1236,105 @@ export default function TypingPractice() {
           </div>
         </div>
       )}
+      {/* Preset Input Modal */}
+      {showPresetInput && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => {
+             // If no text is set and they click away, maybe go back to previous mode?
+             // For simplicity, we just close it if there is text, otherwise we might want to force a mode change or stay open.
+             if (settings.presetText) {
+                setShowPresetInput(false);
+             } else {
+                 // If cancelled without text, maybe revert mode?
+                 // For now, just close. generateTest will handle empty text by showing it again if needed.
+                 // Better: switch to default mode if cancelling initial setup?
+                 // Let's just close for now.
+                 setShowPresetInput(false);
+                 if (!settings.presetText) {
+                     updateSettings({ mode: "time" }); // Fallback
+                 }
+             }
+          }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-lg bg-[#2c2e31] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-200">Custom Text</h2>
+              <button
+                type="button"
+                onClick={() => {
+                     setShowPresetInput(false);
+                     if (!settings.presetText) {
+                         updateSettings({ mode: "time" });
+                     }
+                }}
+                className="text-gray-400 hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="mb-2 block text-sm text-gray-400">
+                  Paste your text
+                </label>
+                <textarea
+                  className="w-full h-48 rounded bg-gray-700 p-4 text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono text-sm"
+                  placeholder="Paste your text here..."
+                  onChange={(e) => setTempPresetText(e.target.value)}
+                  value={tempPresetText}
+                />
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-gray-700" />
+                <span className="text-sm text-gray-500">OR</span>
+                <div className="h-px flex-1 bg-gray-700" />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm text-gray-400">
+                  Upload text file (.txt)
+                </label>
+                <input
+                  type="file"
+                  accept=".txt"
+                  onChange={handleFileUpload}
+                  className="block w-full text-sm text-gray-400 file:mr-4 file:rounded file:border-0 file:bg-gray-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-gray-200 hover:file:bg-gray-600"
+                />
+              </div>
+              
+              <div className="flex justify-end pt-4">
+                 <button
+                    type="button"
+                    onClick={() => {
+                        if (tempPresetText) {
+                            handlePresetSubmit(tempPresetText);
+                            // generateTest will be triggered by dependency on settings.presetText or we can call it explicitly?
+                            // handlePresetSubmit updates settings.presetText.
+                            // generateTest depends on settings.presetText.
+                            // So it should trigger automatically.
+                        }
+                    }}
+                    disabled={!tempPresetText}
+                    className={`px-6 py-2 rounded font-medium transition ${
+                        tempPresetText 
+                        ? "bg-yellow-500 text-gray-900 hover:opacity-90" 
+                        : "bg-gray-700 text-gray-500 cursor-not-allowed"
+                    }`}
+                 >
+                    Start
+                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
