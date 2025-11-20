@@ -33,6 +33,7 @@ export type SettingsState = {
   soundEnabled: boolean;
   presetText: string;
   presetModeType: "time" | "finish";
+  theme?: Theme;
 };
 
 export type Theme = {
@@ -47,7 +48,7 @@ export type Theme = {
   ghostCursor: string;
 };
 
-const DEFAULT_THEME: Theme = {
+export const DEFAULT_THEME: Theme = {
   cursor: "#eab308", // yellow-500
   defaultText: "#4b5563", // gray-600
   upcomingText: "#4b5563", // gray-600
@@ -236,7 +237,11 @@ export default function TypingPractice({
   // Connect Mode: Sync Settings
   useEffect(() => {
     if (connectMode && lockedSettings) {
-      setSettings((prev) => ({ ...prev, ...lockedSettings }));
+      const { theme: lockedTheme, ...otherSettings } = lockedSettings;
+      setSettings((prev) => ({ ...prev, ...otherSettings }));
+      if (lockedTheme) {
+        setTheme(lockedTheme);
+      }
     }
   }, [connectMode, lockedSettings]);
 
@@ -673,12 +678,11 @@ export default function TypingPractice({
           className={`fixed top-[10%] left-0 w-full flex flex-col items-center justify-center gap-4 transition-opacity duration-300 ${settings.mode === "zen" && isZenUIHidden ? "opacity-0 pointer-events-none" : "opacity-100"}`}
           style={{ fontSize: `${settings.iconFontSize}rem` }}
         >
-          {/* Top Row: Icons and Modes */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {/* Settings button */}
+           {/* Line 1: Toolbar */}
+           <div className="flex items-center gap-4 bg-[#2c2e31] px-6 py-2 rounded-full shadow-lg mb-2">
             <Link
               href="/connect_join"
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
               style={{ color: theme.buttonUnselected }}
               title="Connect (Multiplayer)"
             >
@@ -693,7 +697,7 @@ export default function TypingPractice({
             <button
               type="button"
               onClick={() => setShowSettings(true)}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
               style={{ color: theme.buttonUnselected }}
               title="settings"
             >
@@ -703,11 +707,10 @@ export default function TypingPractice({
               </svg>
             </button>
 
-            {/* Theme button */}
             <button
               type="button"
               onClick={() => setShowThemeModal(true)}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
               style={{ color: theme.buttonUnselected }}
               title="customize theme"
             >
@@ -720,11 +723,12 @@ export default function TypingPractice({
               </svg>
             </button>
 
-            {/* Sound toggle */}
+            <div className="w-px h-4 bg-gray-600"></div>
+
             <button
               type="button"
               onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
               style={{ color: settings.soundEnabled ? theme.buttonSelected : theme.buttonUnselected }}
               title="toggle sound"
             >
@@ -742,11 +746,10 @@ export default function TypingPractice({
               )}
             </button>
 
-            {/* Ghost Writer toggle */}
             <button
               type="button"
               onClick={() => updateSettings({ ghostWriterEnabled: !settings.ghostWriterEnabled })}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
               style={{ color: settings.ghostWriterEnabled ? theme.buttonSelected : theme.buttonUnselected }}
               title="toggle ghost writer"
             >
@@ -756,169 +759,173 @@ export default function TypingPractice({
                 <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z" />
               </svg>
             </button>
+           </div>
 
-            {settings.mode !== "preset" && (
-              <>
-                <div className="mx-2 h-6 w-px bg-gray-700" />
-
-                {/* Punctuation toggle */}
-                <button
-                  type="button"
-                  onClick={() => updateSettings({ punctuation: !settings.punctuation })}
-                  className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
-                  style={{ color: settings.punctuation ? theme.buttonSelected : theme.buttonUnselected }}
-                  title="punctuation"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="4" />
-                    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
-                  </svg>
-                </button>
-
-                {/* Numbers toggle */}
-                <button
-                  type="button"
-                  onClick={() => updateSettings({ numbers: !settings.numbers })}
-                  className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
-                  style={{ color: settings.numbers ? theme.buttonSelected : theme.buttonUnselected }}
-                  title="numbers"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="4" x2="20" y1="9" y2="9" />
-                    <line x1="4" x2="20" y1="15" y2="15" />
-                    <line x1="10" x2="8" y1="3" y2="21" />
-                    <line x1="16" x2="14" y1="3" y2="21" />
-                  </svg>
-                </button>
-              </>
-            )}
-
-            <div className="mx-2 h-6 w-px bg-gray-700" />
-
-            {/* Mode selector */}
-            <div className="flex gap-2">
-              {(["time", "words", "quote", "zen", "preset"] as Mode[]).map((mode) => (
-                <button
-                  type="button"
-                  key={mode}
-                  onClick={() => {
-                    if (settings.mode === mode) {
-                        if (mode === "preset") {
-                            setShowPresetInput(true);
-                        } else {
-                            generateTest();
-                        }
-                    }
-                    else updateSettings({ mode });
-                  }}
-                  className="px-3 py-1 transition hover:opacity-75"
-                  style={{ color: settings.mode === mode ? theme.buttonSelected : theme.buttonUnselected }}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Bottom Row: Mode-specific options */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {settings.mode === "preset" ? (
-               <div className="flex gap-2">
-                  {(["finish", "time"] as const).map((type) => (
-                    <button
-                        type="button"
-                        key={type}
-                        onClick={() => updateSettings({ presetModeType: type })}
-                        className="px-3 py-1 transition hover:opacity-75"
-                        style={{ color: settings.presetModeType === type ? theme.buttonSelected : theme.buttonUnselected }}
-                    >
-                        {type}
-                    </button>
-                  ))}
-               </div>
-            ) : (
-                /* Difficulty/Quote Length selector */
-                <div className="flex gap-2">
-                {settings.mode === "quote" ? (
-                    (["all", "short", "medium", "long", "xl"] as QuoteLength[]).map((len) => (
-                    <button
-                        type="button"
-                        key={len}
-                        onClick={() => {
-                        if (settings.quoteLength === len) generateTest();
-                        else updateSettings({ quoteLength: len });
-                        }}
-                        className="px-3 py-1 transition hover:opacity-75"
-                        style={{ color: settings.quoteLength === len ? theme.buttonSelected : theme.buttonUnselected }}
-                    >
-                        {len}
-                    </button>
-                    ))
-                ) : (
-                    (["beginner", "easy", "medium", "hard", "extreme"] as Difficulty[]).map((diff) => (
-                    <button
-                        type="button"
-                        key={diff}
-                        onClick={() => {
-                        if (settings.difficulty === diff) generateTest();
-                        else updateSettings({ difficulty: diff });
-                        }}
-                        className="px-3 py-1 transition hover:opacity-75"
-                        style={{ color: settings.difficulty === diff ? theme.buttonSelected : theme.buttonUnselected }}
-                    >
-                        {diff === "extreme" ? "expert" : diff}
-                    </button>
-                    ))
-                )}
-                </div>
-            )}
-
-            {/* Separator and Presets (only if needed) */}
-            {(settings.mode === "time" || settings.mode === "words" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
-              <>
-                <div className="mx-2 h-6 w-px bg-gray-700" />
-
-                {/* Time/Word presets */}
-                {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
-                  <div className="flex gap-2">
-                    {TIME_PRESETS.map((duration) => (
-                      <button
-                        type="button"
-                        key={duration}
-                        onClick={() => {
-                          if (settings.duration === duration) generateTest();
-                          else updateSettings({ duration });
-                        }}
-                        className="px-2 py-1 transition hover:opacity-75"
-                        style={{ color: settings.duration === duration ? theme.buttonSelected : theme.buttonUnselected }}
-                      >
-                        {duration}
-                      </button>
+           {/* Line 2: Modes & Toggles */}
+           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
+                 
+                 {/* Mode */}
+                 <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    {(["time", "words", "quote", "zen", "preset"] as Mode[]).map((m) => (
+                        <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                                if (settings.mode === m) {
+                                    if (m === "preset") {
+                                        setShowPresetInput(true);
+                                    } else {
+                                        generateTest();
+                                    }
+                                } else {
+                                    updateSettings({ mode: m });
+                                }
+                            }}
+                            className={`px-3 py-1 rounded transition ${settings.mode === m ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                            style={{ color: settings.mode === m ? theme.buttonSelected : undefined }}
+                        >
+                            {m}
+                        </button>
                     ))}
-                  </div>
-                )}
+                 </div>
 
-                {settings.mode === "words" && (
-                  <div className="flex gap-2">
-                    {WORD_PRESETS.map((wordTarget) => (
-                      <button
+                 <div className="w-px h-4 bg-gray-700"></div>
+
+                 {/* Toggles */}
+                 {settings.mode !== "preset" && (
+                     <div className="flex gap-4 bg-[#2c2e31] rounded-lg px-3 py-1.5">
+                        <button 
+                            type="button"
+                            onClick={() => updateSettings({ punctuation: !settings.punctuation })}
+                            className={`flex items-center gap-2 transition ${settings.punctuation ? "text-yellow-500" : "hover:text-gray-200"}`}
+                            style={{ color: settings.punctuation ? theme.buttonSelected : undefined }}
+                        >
+                            <span className={settings.punctuation ? "bg-yellow-500 text-gray-900 rounded px-1 text-xs font-bold" : "bg-gray-700 rounded px-1 text-xs"}>@</span>
+                             Punctuation
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => updateSettings({ numbers: !settings.numbers })}
+                            className={`flex items-center gap-2 transition ${settings.numbers ? "text-yellow-500" : "hover:text-gray-200"}`}
+                            style={{ color: settings.numbers ? theme.buttonSelected : undefined }}
+                        >
+                             <span className={settings.numbers ? "bg-yellow-500 text-gray-900 rounded px-1 text-xs font-bold" : "bg-gray-700 rounded px-1 text-xs"}>#</span>
+                             Numbers
+                        </button>
+                     </div>
+                 )}
+             </div>
+
+           {/* Line 3: Sub-settings */}
+           <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-gray-400">
+                 
+                 {/* Time/Word Presets */}
+                 {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
+                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                        {TIME_PRESETS.map(d => (
+                            <button
+                                key={d}
+                                type="button"
+                                onClick={() => {
+                                  if (settings.duration === d) generateTest();
+                                  else updateSettings({ duration: d });
+                                }}
+                                className={`px-3 py-1 rounded transition ${settings.duration === d ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                style={{ color: settings.duration === d ? theme.buttonSelected : undefined }}
+                            >
+                                {d}
+                            </button>
+                        ))}
+                    </div>
+                 )}
+
+                 {settings.mode === "words" && (
+                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                        {WORD_PRESETS.map(w => (
+                            <button
+                                key={w}
+                                type="button"
+                                onClick={() => {
+                                  if (settings.wordTarget === w) generateTest();
+                                  else updateSettings({ wordTarget: w });
+                                }}
+                                className={`px-3 py-1 rounded transition ${settings.wordTarget === w ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                style={{ color: settings.wordTarget === w ? theme.buttonSelected : undefined }}
+                            >
+                                {w}
+                            </button>
+                        ))}
+                    </div>
+                 )}
+
+                 {settings.mode === "quote" && (
+                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                        {(["all", "short", "medium", "long", "xl"] as QuoteLength[]).map(l => (
+                            <button
+                                key={l}
+                                type="button"
+                                onClick={() => {
+                                  if (settings.quoteLength === l) generateTest();
+                                  else updateSettings({ quoteLength: l });
+                                }}
+                                className={`px-3 py-1 rounded transition ${settings.quoteLength === l ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                style={{ color: settings.quoteLength === l ? theme.buttonSelected : undefined }}
+                            >
+                                {l}
+                            </button>
+                        ))}
+                    </div>
+                 )}
+
+                 {/* Difficulty (Non-Quote/Preset) */}
+                 {settings.mode !== "quote" && settings.mode !== "zen" && settings.mode !== "preset" && (
+                    <div className="flex bg-[#2c2e31] rounded-lg p-1 ml-2">
+                        {(["beginner", "easy", "medium", "hard", "extreme"] as Difficulty[]).map(d => (
+                            <button
+                                key={d}
+                                type="button"
+                                onClick={() => {
+                                  if (settings.difficulty === d) generateTest();
+                                  else updateSettings({ difficulty: d });
+                                }}
+                                className={`px-3 py-1 rounded transition ${settings.difficulty === d ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                style={{ color: settings.difficulty === d ? theme.buttonSelected : undefined }}
+                            >
+                                {d === "extreme" ? "expert" : d}
+                            </button>
+                        ))}
+                    </div>
+                 )}
+
+                 {/* Preset Type */}
+                 {settings.mode === "preset" && (
+                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                        {(["finish", "time"] as const).map(t => (
+                            <button
+                                key={t}
+                                type="button"
+                                onClick={() => updateSettings({ presetModeType: t })}
+                                className={`px-3 py-1 rounded transition ${settings.presetModeType === t ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                style={{ color: settings.presetModeType === t ? theme.buttonSelected : undefined }}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                 )}
+                 
+                 {/* Edit Preset Button */}
+                 {settings.mode === "preset" && (
+                     <button
                         type="button"
-                        key={wordTarget}
-                        onClick={() => {
-                          if (settings.wordTarget === wordTarget) generateTest();
-                          else updateSettings({ wordTarget });
-                        }}
-                        className="px-2 py-1 transition hover:opacity-75"
-                        style={{ color: settings.wordTarget === wordTarget ? theme.buttonSelected : theme.buttonUnselected }}
-                      >
-                        {wordTarget}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                        onClick={() => setShowPresetInput(true)}
+                        className="ml-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition flex items-center gap-2"
+                     >
+                         <span>✎</span> Edit Text
+                     </button>
+                 )}
+
+             </div>
         </div>
       )}
 
