@@ -60,6 +60,8 @@ export const DEFAULT_THEME: Theme = {
   ghostCursor: "#a855f7", // purple-500
 };
 
+const MAX_PRESET_LENGTH = 10000;
+
 const TIME_PRESETS = [15, 30, 60, 120, 300];
 const WORD_PRESETS = [10, 25, 50, 100, 500];
 
@@ -373,6 +375,10 @@ export default function TypingPractice({
   const handlePresetSubmit = (text: string) => {
     const sanitized = sanitizeText(text);
     if (sanitized.length > 0) {
+      if (sanitized.length > MAX_PRESET_LENGTH) {
+          alert(`Text exceeds ${MAX_PRESET_LENGTH} characters.`);
+          return;
+      }
       updateSettings({ presetText: sanitized });
       setShowPresetInput(false);
     }
@@ -385,6 +391,10 @@ export default function TypingPractice({
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
+      if (text.length > MAX_PRESET_LENGTH) {
+        alert(`File content exceeds ${MAX_PRESET_LENGTH} characters.`);
+        return;
+      }
       setTempPresetText(text);
     };
     reader.readAsText(file);
@@ -539,15 +549,17 @@ export default function TypingPractice({
     }
 
     // Infinite words generation for other modes
-    const currentWords = value.trim().split(/\s+/).length;
-    const totalWords = words.split(" ").length;
+    if (settings.mode !== "words" && settings.mode !== "quote" && settings.mode !== "preset") {
+      const currentWords = value.trim().split(/\s+/).length;
+      const totalWords = words.split(" ").length;
 
-    if (totalWords - currentWords < 20) {
-      const newWords = generateWords(20, wordPool, {
-        punctuation: settings.punctuation,
-        numbers: settings.numbers
-      });
-      setWords(prev => prev + " " + newWords);
+      if (totalWords - currentWords < 20) {
+        const newWords = generateWords(20, wordPool, {
+          punctuation: settings.punctuation,
+          numbers: settings.numbers
+        });
+        setWords(prev => prev + " " + newWords);
+      }
     }
 
     // Check word mode completion
@@ -942,6 +954,11 @@ export default function TypingPractice({
             <div>
               {Math.max(0, settings.duration - Math.floor(elapsedMs / 1000))}s
             </div>
+          )}
+          {settings.mode === "words" && (
+             <div>
+               {Math.min(typedText.trim() === "" ? 0 : typedText.trim().split(/\s+/).length, settings.wordTarget)}/{settings.wordTarget}
+             </div>
           )}
         </div>
       )}
