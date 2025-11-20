@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-type Mode = "time" | "words" | "quote" | "zen" | "preset";
-type Difficulty = "beginner" | "easy" | "medium" | "hard" | "extreme";
+export type Mode = "time" | "words" | "quote" | "zen" | "preset";
+export type Difficulty = "beginner" | "easy" | "medium" | "hard" | "extreme";
 
-type Quote = {
+export type Quote = {
   quote: string;
   author: string;
   source: string;
@@ -13,9 +14,9 @@ type Quote = {
   date: string;
 };
 
-type QuoteLength = "all" | "short" | "medium" | "long" | "xl";
+export type QuoteLength = "all" | "short" | "medium" | "long" | "xl";
 
-type SettingsState = {
+export type SettingsState = {
   mode: Mode;
   duration: number;
   wordTarget: number;
@@ -34,7 +35,7 @@ type SettingsState = {
   presetModeType: "time" | "finish";
 };
 
-type Theme = {
+export type Theme = {
   cursor: string;
   defaultText: string;
   upcomingText: string;
@@ -163,7 +164,30 @@ const computeStats = (typed: string, reference: string) => {
 
 const LINE_HEIGHT = 1.6;
 
-export default function TypingPractice() {
+interface TypingPracticeProps {
+  connectMode?: boolean;
+  lockedSettings?: Partial<SettingsState>;
+  isTestActive?: boolean; // For connect mode: true = start/allow typing, false = wait/stop
+  onStatsUpdate?: (stats: { 
+    wpm: number; 
+    accuracy: number; 
+    progress: number; 
+    wordsTyped: number; 
+    timeElapsed: number; 
+    isFinished: boolean; 
+  }) => void;
+  onLeave?: () => void;
+  sessionId?: string | number;
+}
+
+export default function TypingPractice({
+  connectMode = false,
+  lockedSettings,
+  isTestActive = true,
+  onStatsUpdate,
+  onLeave,
+  sessionId,
+}: TypingPracticeProps) {
   const [settings, setSettings] = useState<SettingsState>({
     mode: "time",
     duration: 30,
@@ -208,6 +232,52 @@ export default function TypingPractice() {
 
   const [isRepeated, setIsRepeated] = useState(false);
   const [ghostCharIndex, setGhostCharIndex] = useState(0);
+
+  // Connect Mode: Sync Settings
+  useEffect(() => {
+    if (connectMode && lockedSettings) {
+      setSettings((prev) => ({ ...prev, ...lockedSettings }));
+    }
+  }, [connectMode, lockedSettings]);
+
+  // Connect Mode: Handle Start/Stop
+  useEffect(() => {
+    if (!connectMode) return;
+
+    if (isTestActive && !isRunning && !isFinished) {
+      // Remote start signal received (or we are allowed to start)
+      // Actually, for synchronized start, we probably want to focus input and maybe countdown?
+      // For now, just allowing input is handled by the input check.
+      // But if we want to FORCE start (e.g. timer starts on server), we need to simulate start.
+      // However, usually typing tests start on first keystroke.
+      // If the Host starts the test, does it mean "users can now type" or "timer starts now"?
+      // PRD says "Host starts the test (synchronized start) or allows async start".
+      // If sync start, we might need to trigger start.
+      // For MVP, let's assume "isTestActive" just means "Input is unlocked".
+      // But if the host forces a reset, we need to handle that.
+      inputRef.current?.focus();
+    } else if (!isTestActive) {
+      // Remote stop/wait signal
+       if (isRunning) {
+           finishSession(); // Or just reset?
+       }
+    }
+  }, [connectMode, isTestActive, isRunning, isFinished]); // Dependencies might need tuning
+
+  // Connect Mode: Emit Stats
+  useEffect(() => {
+      if (connectMode && onStatsUpdate && isFinished) {
+           onStatsUpdate({
+              ...latestStatsRef.current,
+              isFinished: true
+           });
+      }
+  }, [connectMode, onStatsUpdate, isFinished]);
+
+  // Better Stats Emission:
+  // We calculate stats in the render loop (memoized). We can use a `useEffect` to emit them.
+  // We should throttle it.
+
 
   useEffect(() => {
     if (showPresetInput) {
@@ -337,7 +407,13 @@ export default function TypingPractice() {
     }
 
     if (settings.mode === "preset") {
-      if (!settings.presetText) {
+      // In connect mode, we wait for the host to provide text via settings
+      if (connectMode) {
+        if (!settings.presetText) {
+            // Wait for text...
+            return;
+        }
+      } else if (!settings.presetText) {
         setShowPresetInput(true);
         return;
       }
@@ -360,7 +436,7 @@ export default function TypingPractice() {
 
   useEffect(() => {
     generateTest();
-  }, [generateTest]);
+  }, [generateTest, sessionId]);
 
 
 
@@ -430,6 +506,7 @@ export default function TypingPractice() {
 
   const handleInput = (value: string) => {
     if (isFinished) return;
+    if (connectMode && !isTestActive) return;
 
     if (!isRunning) {
       setIsRunning(true);
@@ -546,6 +623,40 @@ export default function TypingPractice() {
   const raw = wpm;
   const net = wpm * (accuracy / 100);
 
+  useEffect(() => {
+    if (connectMode && onStatsUpdate && isRunning) {
+      const interval = setInterval(() => {
+        // Use the latest values from the scope (closure capture might be an issue if dependencies aren't right)
+        // But we can't put everything in dependency array or we recreate interval constantly.
+        // Solution: Use a functional update or a ref for the callback, OR just rely on React 18's automatic batching / fast re-renders not being an issue?
+        // Better: Use a ref to store latest stats, update ref in render, read ref in interval.
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, [connectMode, onStatsUpdate, isRunning]);
+
+  // Keep track of latest stats in a ref for the interval
+  const latestStatsRef = useRef({ wpm, accuracy, progress: 0, wordsTyped: 0, timeElapsed: 0, isFinished: false });
+  useEffect(() => {
+    latestStatsRef.current = { 
+      wpm: wpm || 0, 
+      accuracy: accuracy || 0, 
+      progress: words.length > 0 ? (typedText.length / words.length) * 100 : 0,
+      wordsTyped: typedText.length / 5, // Standard word definition
+      timeElapsed: elapsedMs,
+      isFinished: isFinished
+    };
+  }, [wpm, accuracy, typedText.length, words.length, elapsedMs, isFinished]);
+
+  useEffect(() => {
+    if (connectMode && onStatsUpdate && isRunning) {
+        const interval = setInterval(() => {
+             onStatsUpdate(latestStatsRef.current);
+        }, 500); // Update every 500ms
+        return () => clearInterval(interval);
+    }
+  }, [connectMode, onStatsUpdate, isRunning]);
+
   // Split words into array for rendering
   const wordArray = words.split(" ");
   const typedArray = typedText.split(" ");
@@ -557,7 +668,7 @@ export default function TypingPractice() {
       style={{ backgroundColor: theme.backgroundColor }}
     >
       {/* Settings bar */}
-      {!isRunning && !isFinished && (
+      {!connectMode && !isRunning && !isFinished && (
         <div
           className={`fixed top-[10%] left-0 w-full flex flex-col items-center justify-center gap-4 transition-opacity duration-300 ${settings.mode === "zen" && isZenUIHidden ? "opacity-0 pointer-events-none" : "opacity-100"}`}
           style={{ fontSize: `${settings.iconFontSize}rem` }}
@@ -565,6 +676,20 @@ export default function TypingPractice() {
           {/* Top Row: Icons and Modes */}
           <div className="flex flex-wrap items-center justify-center gap-4">
             {/* Settings button */}
+            <Link
+              href="/connect_join"
+              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75"
+              style={{ color: theme.buttonUnselected }}
+              title="Connect (Multiplayer)"
+            >
+               <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+               </svg>
+            </Link>
+
             <button
               type="button"
               onClick={() => setShowSettings(true)}
@@ -993,13 +1118,26 @@ export default function TypingPractice() {
               </div>
             </div>
 
+            <div className="flex gap-4 justify-center mt-8">
+            {!connectMode && (
             <button
               type="button"
               onClick={() => generateTest()}
-              className="mt-8 rounded px-6 py-2 text-sm text-gray-400 transition hover:text-gray-200"
+              className="rounded px-6 py-2 text-sm text-gray-400 transition hover:text-gray-200"
             >
               next test
             </button>
+            )}
+            {connectMode && onLeave && (
+                <button
+                type="button"
+                onClick={onLeave}
+                className="rounded px-6 py-2 text-sm text-red-400 transition hover:text-red-200"
+              >
+                leave room
+              </button>
+            )}
+            </div>
           </div>
         )}
       </div>
@@ -1016,6 +1154,22 @@ export default function TypingPractice() {
           <div>Click on the text area and start typing</div>
           <div className="mt-1">Press Tab + Shift to restart</div>
         </div>
+      )}
+
+      {/* Waiting Overlay for Connect Mode */}
+      {connectMode && !isTestActive && !isFinished && (
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm text-white">
+              <div className="text-2xl font-bold mb-2">Waiting for Host...</div>
+              <div className="text-gray-300 animate-pulse">Prepare to type</div>
+              {onLeave && (
+                   <button
+                    onClick={onLeave}
+                    className="mt-8 px-4 py-2 text-sm text-red-400 hover:text-red-300"
+                   >
+                       Leave Room
+                   </button>
+              )}
+          </div>
       )}
 
       {/* Settings Modal */}
