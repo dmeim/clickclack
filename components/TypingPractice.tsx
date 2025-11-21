@@ -198,7 +198,7 @@ export default function TypingPractice({
     punctuation: false,
     numbers: false,
     typingFontSize: 3.5,
-    iconFontSize: 1.25,
+    iconFontSize: 1,
     helpFontSize: 1,
     difficulty: "beginner",
     quoteLength: "all",
@@ -774,7 +774,7 @@ export default function TypingPractice({
            </div>
 
            {/* Line 2: Modes & Toggles */}
-           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
+           <div className="flex flex-wrap items-center justify-center gap-4 text-gray-400">
                  
                  {/* Mode */}
                  <div className="flex bg-[#2c2e31] rounded-lg p-1">
@@ -812,7 +812,7 @@ export default function TypingPractice({
                             className={`flex items-center gap-2 transition ${settings.punctuation ? "text-yellow-500" : "hover:text-gray-200"}`}
                             style={{ color: settings.punctuation ? theme.buttonSelected : undefined }}
                         >
-                            <span className={settings.punctuation ? "bg-yellow-500 text-gray-900 rounded px-1 text-xs font-bold" : "bg-gray-700 rounded px-1 text-xs"}>@</span>
+                            <span className={settings.punctuation ? "bg-yellow-500 text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}>@</span>
                              Punctuation
                         </button>
                         <button 
@@ -821,7 +821,7 @@ export default function TypingPractice({
                             className={`flex items-center gap-2 transition ${settings.numbers ? "text-yellow-500" : "hover:text-gray-200"}`}
                             style={{ color: settings.numbers ? theme.buttonSelected : undefined }}
                         >
-                             <span className={settings.numbers ? "bg-yellow-500 text-gray-900 rounded px-1 text-xs font-bold" : "bg-gray-700 rounded px-1 text-xs"}>#</span>
+                             <span className={settings.numbers ? "bg-yellow-500 text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}>#</span>
                              Numbers
                         </button>
                      </div>
@@ -829,7 +829,7 @@ export default function TypingPractice({
              </div>
 
            {/* Line 3: Sub-settings */}
-           <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-gray-400">
+           <div className="flex flex-wrap items-center justify-center gap-2 text-gray-400">
                  
                  {/* Time/Word Presets */}
                  {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
@@ -1329,11 +1329,11 @@ export default function TypingPractice({
                 </label>
                 <div className="flex gap-2">
                   {[
-                    { label: "xs", value: 0.75 },
-                    { label: "s", value: 1 },
-                    { label: "m", value: 1.25 },
-                    { label: "l", value: 1.5 },
-                    { label: "xl", value: 2 },
+                    { label: "xs", value: 0.5 },
+                    { label: "s", value: 0.75 },
+                    { label: "m", value: 1. },
+                    { label: "l", value: 1.25 },
+                    { label: "xl", value: 1.5 },
                   ].map(({ label, value }) => (
                     <button
                       key={label}
