@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import { SettingsState, Mode, Difficulty, QuoteLength, Theme, DEFAULT_THEME } from "@/components/TypingPractice";
@@ -27,6 +28,9 @@ const WORD_PRESETS = [10, 25, 50, 100, 200];
 const MAX_PRESET_LENGTH = 10000;
 
 export default function ConnectHost() {
+  const searchParams = useSearchParams();
+  const hostName = searchParams.get("name") || "Host";
+  
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [settings, setSettings] = useState<Partial<SettingsState>>({
@@ -65,7 +69,7 @@ export default function ConnectHost() {
   const theme = settings.theme || DEFAULT_THEME;
 
   const createRoom = () => {
-      socket.emit("create_room", ({ code }: { code: string }) => {
+      socket.emit("create_room", { name: hostName }, ({ code }: { code: string }) => {
         setRoomCode(code);
         localStorage.setItem("hostRoomCode", code);
       });

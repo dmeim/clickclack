@@ -181,6 +181,7 @@ interface TypingPracticeProps {
   }) => void;
   onLeave?: () => void;
   sessionId?: string | number;
+  hostName?: string;
 }
 
 export default function TypingPractice({
@@ -190,6 +191,7 @@ export default function TypingPractice({
   onStatsUpdate,
   onLeave,
   sessionId,
+  hostName,
 }: TypingPracticeProps) {
   const [settings, setSettings] = useState<SettingsState>({
     mode: "time",
@@ -1220,18 +1222,24 @@ export default function TypingPractice({
 
       {/* Waiting Overlay for Connect Mode */}
       {connectMode && !isTestActive && !isFinished && (
-          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm text-white">
-              <div className="text-2xl font-bold mb-2">Waiting for Host...</div>
-              <div className="text-gray-300 animate-pulse">Prepare to type</div>
-              {onLeave && (
-                   <button
-                    onClick={onLeave}
-                    className="mt-8 px-4 py-2 text-sm text-red-400 hover:text-red-300"
-                   >
-                       Leave Room
-                   </button>
-              )}
-          </div>
+        <div 
+            className="fixed inset-0 z-40 flex flex-col items-center justify-center"
+            style={{ backgroundColor: theme.backgroundColor }}
+        >
+            <div className="w-full max-w-md rounded-2xl bg-[#2c2e31] p-10 flex flex-col items-center justify-center border border-gray-800 shadow-2xl text-center animate-fade-in">
+                <h2 className="text-2xl font-bold text-yellow-500 mb-4">Waiting for {hostName || "Host"} to start...</h2>
+                <div className="text-gray-400 animate-pulse mb-8">Prepare to type</div>
+                
+                {onLeave && (
+                    <button
+                        onClick={onLeave}
+                        className="px-8 py-3 bg-gray-700 hover:bg-red-900/20 hover:text-red-400 text-gray-300 font-medium rounded-lg transition border border-transparent hover:border-red-900/50"
+                    >
+                        Leave Room
+                    </button>
+                )}
+            </div>
+        </div>
       )}
 
       {/* Settings Modal */}

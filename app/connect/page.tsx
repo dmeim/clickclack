@@ -6,13 +6,22 @@ import Link from "next/link";
 
 export default function ConnectPage() {
   const [code, setCode] = useState("");
+  const [joinName, setJoinName] = useState("");
+  const [hostName, setHostName] = useState("");
   const router = useRouter();
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.trim()) {
-      router.push(`/connect/${code.trim().toUpperCase()}`);
+    if (code.trim() && joinName.trim()) {
+      router.push(`/connect/${code.trim().toUpperCase()}?name=${encodeURIComponent(joinName.trim())}`);
     }
+  };
+
+  const handleHost = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (hostName.trim()) {
+          router.push(`/connect/host?name=${encodeURIComponent(hostName.trim())}`);
+      }
   };
 
   return (
@@ -29,12 +38,23 @@ export default function ConnectPage() {
             <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6">Create Room</div>
             <h2 className="text-5xl font-black text-yellow-500 mb-8">HOST</h2>
             
-            <Link 
-                href="/connect/host"
-                className="px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold rounded-lg transition shadow-lg shadow-yellow-500/20 z-10"
-            >
-                Start Hosting
-            </Link>
+            <form onSubmit={handleHost} className="w-full max-w-xs flex flex-col gap-4 z-10">
+                <input
+                  type="text"
+                  value={hostName}
+                  onChange={(e) => setHostName(e.target.value)}
+                  placeholder="YOUR NAME"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:border-yellow-500 focus:outline-none text-white placeholder-gray-600"
+                  maxLength={15}
+                />
+                <button 
+                    type="submit"
+                    disabled={!hostName.trim()}
+                    className="w-full px-8 py-3 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-bold rounded-lg transition shadow-lg shadow-yellow-500/20"
+                >
+                    Start Hosting
+                </button>
+            </form>
 
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -49,6 +69,14 @@ export default function ConnectPage() {
             <form onSubmit={handleJoin} className="w-full max-w-xs flex flex-col gap-4 z-10">
                 <input
                   type="text"
+                  value={joinName}
+                  onChange={(e) => setJoinName(e.target.value)}
+                  placeholder="YOUR NAME"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:border-yellow-500 focus:outline-none text-white placeholder-gray-600"
+                  maxLength={15}
+                />
+                <input
+                  type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   placeholder="ENTER CODE"
@@ -57,7 +85,7 @@ export default function ConnectPage() {
                 />
                 <button
                     type="submit"
-                    disabled={!code.trim()}
+                    disabled={!code.trim() || !joinName.trim()}
                     className="w-full px-8 py-3 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition"
                 >
                     Join Room

@@ -29,22 +29,38 @@ app.prepare().then(() => {
     io.on('connection', (socket) => {
     // console.log('Client connected', socket.id);
 
-    socket.on('create_room', (callback) => {
-      const code = generateRoomCode();
-      rooms.set(code, {
+    socket.on('create_room', ({ code: requestedCode, name } = {}, callback) => {
+      // Handle optional arguments correctly if only callback is passed (legacy check)
+      // But simpler to assume object is passed now.
+      // The previous signature was (callback). The new one should be ({ name }, callback).
+      // Wait, the previous code used callback as first arg?
+      // No: socket.emit('create_room', ({ code }) => { ... })
+      // Client side: socket.emit("create_room", ({ code }: { code: string }) => { ... });
+      // Wait, client emits callback as the LAST argument. The data is the first argument?
+      // Client: socket.emit("create_room", ({ code: ... }) => ...)
+      // Actually, in client: `socket.emit("create_room", ({ code }: { code: string }) => {`
+      // This looks like the client expects the callback to receive an object with code.
+      // But what does the client SEND?
+      // socket.emit("event", arg1, callback)
+      // In `app/connect/host/page.tsx`: `socket.emit("create_room", ({ code }: { code: string }) => { ... });`
+      // This means it's emitting NO data, just a callback.
+      
+      // So I need to change the client to emit `{ name }` and the server to receive it.
+      
+      const roomCode = generateRoomCode();
+      rooms.set(roomCode, {
         hostId: socket.id,
-        users: [], // { id, name, stats: {} }
+        hostName: name || "Host", // Store host name
+        users: [],
         settings: {
             mode: 'time',
             duration: 30,
             difficulty: 'medium',
-            // Add other default settings here
         },
-        status: 'waiting' // waiting, active
+        status: 'waiting'
       });
-      socket.join(code);
-      // console.log(`Room created: ${code} by ${socket.id}`);
-      callback({ code });
+      socket.join(roomCode);
+      if (typeof callback === 'function') callback({ code: roomCode });
     });
 
     socket.on('claim_host', ({ code }, callback) => {
@@ -85,7 +101,7 @@ app.prepare().then(() => {
       io.to(room.hostId).emit('user_joined', newUser);
       
       // Send current state to joiner
-      callback({ settings: room.settings, status: room.status });
+      callback({ settings: room.settings, status: room.status, hostName: room.hostName });
       
       // console.log(`User ${name} joined room ${code}`);
     });
