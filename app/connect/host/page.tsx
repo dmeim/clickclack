@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
@@ -27,7 +27,7 @@ const WORD_PRESETS = [10, 25, 50, 100, 200];
 
 const MAX_PRESET_LENGTH = 10000;
 
-export default function ConnectHost() {
+function ConnectHostContent() {
   const searchParams = useSearchParams();
   const hostName = searchParams.get("name") || "Host";
   
@@ -932,5 +932,13 @@ export default function ConnectHost() {
            <Link href="/" className="hover:text-gray-400 transition">← Back to Main Menu</Link>
       </div>
     </div>
+  );
+}
+
+export default function ConnectHost() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#323437] text-gray-200">Loading...</div>}>
+      <ConnectHostContent />
+    </Suspense>
   );
 }
