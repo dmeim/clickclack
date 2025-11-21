@@ -93,7 +93,7 @@ export default function ConnectRoom() {
       return (
           <div className="min-h-screen flex flex-col items-center justify-center bg-[#323437] text-gray-200 gap-4">
               <div className="text-xl text-red-500">{error}</div>
-              <button onClick={() => router.push("/connect_join")} className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600">
+              <button onClick={() => router.push("/connect")} className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600">
                   Go Back
               </button>
           </div>

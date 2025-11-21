@@ -524,7 +524,7 @@ export default function ConnectHost() {
                 <div className="text-xl mb-2">Waiting for users to join...</div>
                 <button
                     onClick={() => {
-                        const link = `${window.location.origin}/connect_join/${roomCode}`;
+                        const link = `${window.location.origin}/connect/${roomCode}`;
                         navigator.clipboard.writeText(link);
                     }}
                     className="hover:opacity-80 transition-opacity cursor-pointer"

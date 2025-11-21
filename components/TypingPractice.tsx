@@ -693,7 +693,7 @@ export default function TypingPractice({
            {/* Line 1: Toolbar */}
            <div className="flex items-center gap-4 bg-[#2c2e31] px-6 py-2 rounded-full shadow-lg mb-2">
             <Link
-              href="/connect_join"
+              href="/connect"
               className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
               style={{ color: theme.buttonUnselected }}
               title="Connect (Multiplayer)"

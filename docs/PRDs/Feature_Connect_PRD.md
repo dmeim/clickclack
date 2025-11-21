@@ -5,9 +5,9 @@
 
 ## 2. Architecture & Routing
 *   **Routes**:
-    *   `/connect_host`: The Host's command center.
-    *   `/connect_join`: The Joiner's entry page (enter code).
-    *   `/connect_join/[code]`: The Joiner's active room view.
+    *   `/connect`: The landing page (Host/Join).
+    *   `/connect/host`: The Host's command center.
+    *   `/connect/[code]`: The Joiner's active room view.
 *   **Room Management** (Note: Terminology is "Room", not "Session"):
     *   Unique alphanumeric room codes (e.g., `TR4X9`).
     *   Real-time state synchronization (WebSockets or similar).
@@ -15,13 +15,12 @@
 ## 3. User Flows
 
 ### 3.1. Entry Point
-*   **Connect Button**: Located in the top row of the main UI.
-*   **Modal**:
-    *   **Create Code**: Redirects to `/connect_host`.
-    *   **Join Code**: Input field for code -> Redirects to `/connect_join/[code]`.
-    *   **Direct Navigation**: Users can visit `/connect_join` to enter a code manually (useful if the host hasn't created the room yet).
+*   **Connect Button**: Located in the top row of the main UI. Redirects to `/connect`.
+*   **Connect Page** (`/connect`):
+    *   **Host Card**: "Start Hosting" button -> Redirects to `/connect/host`.
+    *   **Join Card**: Input field for code -> Redirects to `/connect/[code]`.
 
-### 3.2. Host Experience (`/connect_host`)
+### 3.2. Host Experience (`/connect/host`)
 *   **Admin Panel**:
     *   **Settings Control**: Host has exclusive control over all test settings:
         *   Mode (Time, Words, Quote, Preset).
@@ -38,7 +37,7 @@
 *   **Flow Control**:
     *   Host starts the test (synchronized start) or allows async start.
 
-### 3.3. Joiner Experience (`/connect_join/[code]`)
+### 3.3. Joiner Experience (`/connect/[code]`)
 *   **Onboarding**:
     *   Enter Name OR "Skip" (generates random name like "Anonymous Axolotl").
 *   **Waiting Room**:
