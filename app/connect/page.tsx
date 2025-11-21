@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { GLOBAL_COLORS } from "@/lib/colors";
 
 export default function ConnectPage() {
   const [code, setCode] = useState("");
@@ -25,18 +26,24 @@ export default function ConnectPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#323437] text-gray-200 font-mono px-4">
+    <div 
+      className="min-h-screen flex items-center justify-center font-mono px-4 transition-colors duration-300"
+      style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
+    >
       <div className="w-full max-w-4xl mx-auto animate-fade-in">
          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-yellow-500 mb-2">Multiplayer</h1>
-            <p className="text-gray-400">Compete with friends in real-time</p>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: GLOBAL_COLORS.brand.primary }}>Multiplayer</h1>
+            <p style={{ color: GLOBAL_COLORS.text.secondary }}>Compete with friends in real-time</p>
          </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Host Card */}
-          <div className="relative overflow-hidden rounded-2xl bg-[#2c2e31] p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors h-96">
-            <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6">Create Room</div>
-            <h2 className="text-5xl font-black text-yellow-500 mb-8">HOST</h2>
+          <div 
+            className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors h-96"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
+          >
+            <div className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: GLOBAL_COLORS.text.secondary }}>Create Room</div>
+            <h2 className="text-5xl font-black mb-8" style={{ color: GLOBAL_COLORS.brand.primary }}>HOST</h2>
             
             <form onSubmit={handleHost} className="w-full max-w-xs flex flex-col gap-4 z-10">
                 <input
@@ -44,13 +51,20 @@ export default function ConnectPage() {
                   value={hostName}
                   onChange={(e) => setHostName(e.target.value)}
                   placeholder="YOUR NAME"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:border-yellow-500 focus:outline-none text-white placeholder-gray-600"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:outline-none text-white placeholder-gray-600"
+                  style={{ borderColor: "transparent" }} // Override border
+                  onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
+                  onBlur={(e) => e.target.style.borderColor = "transparent"}
                   maxLength={15}
                 />
                 <button 
                     type="submit"
                     disabled={!hostName.trim()}
-                    className="w-full px-8 py-3 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-bold rounded-lg transition shadow-lg shadow-yellow-500/20"
+                    className="w-full px-8 py-3 text-gray-900 font-bold rounded-lg transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                    style={{ 
+                      backgroundColor: GLOBAL_COLORS.brand.primary,
+                      boxShadow: `0 10px 15px -3px ${GLOBAL_COLORS.brand.primary}33`
+                    }}
                 >
                     Start Hosting
                 </button>
@@ -62,9 +76,12 @@ export default function ConnectPage() {
           </div>
 
           {/* Join Card */}
-          <div className="relative overflow-hidden rounded-2xl bg-[#2c2e31] p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors h-96">
-            <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6">Join Room</div>
-            <h2 className="text-5xl font-black text-yellow-500 mb-8">JOIN</h2>
+          <div 
+            className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors h-96"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
+          >
+            <div className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: GLOBAL_COLORS.text.secondary }}>Join Room</div>
+            <h2 className="text-5xl font-black mb-8" style={{ color: GLOBAL_COLORS.brand.primary }}>JOIN</h2>
             
             <form onSubmit={handleJoin} className="w-full max-w-xs flex flex-col gap-4 z-10">
                 <input
@@ -72,7 +89,10 @@ export default function ConnectPage() {
                   value={joinName}
                   onChange={(e) => setJoinName(e.target.value)}
                   placeholder="YOUR NAME"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:border-yellow-500 focus:outline-none text-white placeholder-gray-600"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:outline-none text-white placeholder-gray-600"
+                  style={{ borderColor: "transparent" }}
+                  onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
+                  onBlur={(e) => e.target.style.borderColor = "transparent"}
                   maxLength={15}
                 />
                 <input
@@ -80,7 +100,10 @@ export default function ConnectPage() {
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   placeholder="ENTER CODE"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-xl font-bold tracking-widest uppercase focus:border-yellow-500 focus:outline-none text-white placeholder-gray-600"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-xl font-bold tracking-widest uppercase focus:outline-none text-white placeholder-gray-600"
+                  style={{ borderColor: "transparent" }}
+                  onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
+                  onBlur={(e) => e.target.style.borderColor = "transparent"}
                   maxLength={6}
                 />
                 <button
@@ -99,7 +122,7 @@ export default function ConnectPage() {
         </div>
 
         <div className="text-center mt-12">
-             <Link href="/" className="text-gray-500 hover:text-gray-300 transition text-sm">
+             <Link href="/" className="transition text-sm hover:text-white" style={{ color: GLOBAL_COLORS.text.secondary }}>
                 ← Back to Typing
             </Link>
         </div>

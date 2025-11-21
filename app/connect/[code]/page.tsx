@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import TypingPractice, { SettingsState } from "@/components/TypingPractice";
+import { GLOBAL_COLORS } from "@/lib/colors";
 
 let socket: Socket;
 
@@ -96,8 +97,11 @@ export default function ConnectRoom() {
 
   if (error) {
       return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#323437] text-gray-200 gap-4">
-          <div className="text-xl text-red-500">{error}</div>
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center gap-4 transition-colors duration-300"
+        style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
+      >
+          <div className="text-xl" style={{ color: GLOBAL_COLORS.text.error }}>{error}</div>
           <button onClick={() => router.push("/connect")} className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600">
               Go Back
           </button>
@@ -107,10 +111,16 @@ export default function ConnectRoom() {
 
   if (!name) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#323437] text-gray-200 px-4">
-          <div className="w-full max-w-md bg-[#2c2e31] p-8 rounded-2xl border border-gray-800 shadow-2xl text-center animate-fade-in">
-              <h2 className="text-2xl font-bold text-yellow-500 mb-2">Join Room</h2>
-              <p className="text-gray-400 mb-8">Enter your name to join the room</p>
+      <div 
+        className="min-h-screen flex items-center justify-center px-4 transition-colors duration-300"
+        style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
+      >
+          <div 
+            className="w-full max-w-md p-8 rounded-2xl border border-gray-800 shadow-2xl text-center animate-fade-in"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
+          >
+              <h2 className="text-2xl font-bold mb-2" style={{ color: GLOBAL_COLORS.brand.primary }}>Join Room</h2>
+              <p className="mb-8" style={{ color: GLOBAL_COLORS.text.secondary }}>Enter your name to join the room</p>
               
               <form onSubmit={(e) => {
                   e.preventDefault();
@@ -123,20 +133,27 @@ export default function ConnectRoom() {
                       value={inputName}
                       onChange={(e) => setInputName(e.target.value)}
                       placeholder="YOUR NAME"
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:border-yellow-500 focus:outline-none text-white placeholder-gray-600"
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:outline-none text-white placeholder-gray-600"
+                      style={{ borderColor: "transparent" }}
+                      onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
+                      onBlur={(e) => e.target.style.borderColor = "transparent"}
                       maxLength={15}
                       autoFocus
                   />
                   <button
                       type="submit"
                       disabled={!inputName.trim()}
-                      className="w-full px-8 py-3 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-bold rounded-lg transition shadow-lg shadow-yellow-500/20"
+                      className="w-full px-8 py-3 text-gray-900 font-bold rounded-lg transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      style={{ 
+                        backgroundColor: GLOBAL_COLORS.brand.primary,
+                        boxShadow: `0 10px 15px -3px ${GLOBAL_COLORS.brand.primary}33`
+                      }}
                   >
                       Enter Room
                   </button>
               </form>
               <div className="mt-6">
-                 <button onClick={() => router.push("/connect")} className="text-sm text-gray-500 hover:text-gray-300 transition">
+                 <button onClick={() => router.push("/connect")} className="text-sm transition hover:text-white" style={{ color: GLOBAL_COLORS.text.secondary }}>
                     Cancel
                  </button>
               </div>
@@ -147,7 +164,10 @@ export default function ConnectRoom() {
 
   if (!connected || !lockedSettings) {
        return (
-          <div className="min-h-screen flex items-center justify-center bg-[#323437] text-gray-200">
+          <div 
+            className="min-h-screen flex items-center justify-center transition-colors duration-300"
+            style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
+          >
               Connecting to room {code}...
           </div>
       );

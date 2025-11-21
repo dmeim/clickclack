@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import { SettingsState, Mode, Difficulty, QuoteLength, Theme, DEFAULT_THEME } from "@/components/TypingPractice";
+import { GLOBAL_COLORS } from "@/lib/colors";
 
 let socket: Socket;
 
@@ -202,20 +203,27 @@ function ConnectHostContent() {
   }, [users, sortBy]);
 
   if (!roomCode) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#323437] text-gray-200">Creating room...</div>;
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center transition-colors duration-300"
+        style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
+      >
+        Creating room...
+      </div>
+    );
   }
 
   return (
     <div 
-        className="min-h-screen text-gray-200 p-8 font-mono flex flex-col transition-colors duration-300"
-        style={{ backgroundColor: theme.backgroundColor }}
+        className="min-h-screen p-8 font-mono flex flex-col transition-colors duration-300"
+        style={{ backgroundColor: theme.backgroundColor, color: GLOBAL_COLORS.text.primary }}
     >
       
       {/* Header & Controls */}
       <div className="flex flex-col items-center mb-8 space-y-6">
           <div className="text-center">
              <h1 className="text-3xl font-bold mb-2" style={{ color: theme.buttonSelected }}>Host Panel</h1>
-             <div className="text-gray-400">Room Code: <span className="text-2xl font-bold text-white bg-gray-700 px-3 py-1 rounded ml-2 tracking-widest">{roomCode}</span></div>
+             <div style={{ color: GLOBAL_COLORS.text.secondary }}>Room Code: <span className="text-2xl font-bold text-white bg-gray-700 px-3 py-1 rounded ml-2 tracking-widest">{roomCode}</span></div>
           </div>
 
           {/* Action Buttons */}
@@ -229,15 +237,23 @@ function ConnectHostContent() {
               {status === "waiting" ? (
               <button
                   onClick={startTest}
-                  className="px-8 py-2 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold rounded transition shadow-lg shadow-yellow-500/20"
-                  style={{ backgroundColor: theme.buttonSelected, color: theme.backgroundColor }}
+                  className="px-8 py-2 font-bold rounded transition shadow-lg"
+                  style={{ 
+                    backgroundColor: theme.buttonSelected, 
+                    color: theme.backgroundColor,
+                    boxShadow: `0 10px 15px -3px ${theme.buttonSelected}33`
+                  }}
               >
                   Start Test
               </button>
               ) : (
               <button
                   onClick={stopTest}
-                  className="px-8 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded transition shadow-lg shadow-red-500/20"
+                  className="px-8 py-2 font-bold rounded transition shadow-lg text-white"
+                  style={{ 
+                    backgroundColor: GLOBAL_COLORS.text.error,
+                    boxShadow: `0 10px 15px -3px ${GLOBAL_COLORS.text.error}33`
+                  }}
               >
                   Stop Test
               </button>
@@ -246,8 +262,8 @@ function ConnectHostContent() {
 
           {/* Toolbar (Copied from TypingPractice) */}
           <div 
-            className="flex items-center gap-4 bg-[#2c2e31] px-6 py-2 rounded-full shadow-lg"
-            style={{ fontSize: `${settings.iconFontSize || 1.25}rem` }}
+            className="flex items-center gap-4 px-6 py-2 rounded-full shadow-lg"
+            style={{ fontSize: `${settings.iconFontSize || 1.25}rem`, backgroundColor: GLOBAL_COLORS.surface }}
           >
             {/* Settings Button */}
             <button
@@ -326,7 +342,7 @@ function ConnectHostContent() {
          <div className="flex flex-col items-center gap-4">
              {/* Top Row: Modes */}
              <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
-                 <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                 <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                     {(["time", "words", "quote", "zen", "preset"] as Mode[]).map((m) => (
                         <button
                             key={m}
@@ -349,7 +365,7 @@ function ConnectHostContent() {
 
                  {/* Toggles */}
                  {settings.mode !== "preset" && (
-                     <div className="flex gap-4 bg-[#2c2e31] rounded-lg px-3 py-1.5">
+                     <div className="flex gap-4 rounded-lg px-3 py-1.5" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         <button 
                             onClick={() => updateSettings({ punctuation: !settings.punctuation })}
                             className={`flex items-center gap-2 transition ${settings.punctuation ? "" : "hover:text-gray-200"}`}
@@ -375,7 +391,7 @@ function ConnectHostContent() {
                  
                  {/* Time/Word Presets */}
                  {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {TIME_PRESETS.map(d => (
                             <button
                                 key={d}
@@ -390,7 +406,7 @@ function ConnectHostContent() {
                  )}
 
                  {settings.mode === "words" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {WORD_PRESETS.map(w => (
                             <button
                                 key={w}
@@ -405,7 +421,7 @@ function ConnectHostContent() {
                  )}
 
                  {settings.mode === "quote" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {(["all", "short", "medium", "long", "xl"] as QuoteLength[]).map(l => (
                             <button
                                 key={l}
@@ -421,7 +437,7 @@ function ConnectHostContent() {
 
                  {/* Difficulty (Non-Quote/Preset) */}
                  {settings.mode !== "quote" && settings.mode !== "zen" && settings.mode !== "preset" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1 ml-2">
+                    <div className="flex rounded-lg p-1 ml-2" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {(["beginner", "easy", "medium", "hard", "extreme"] as Difficulty[]).map(d => (
                             <button
                                 key={d}
@@ -437,7 +453,7 @@ function ConnectHostContent() {
 
                  {/* Preset Type */}
                  {settings.mode === "preset" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {(["finish", "time"] as const).map(t => (
                             <button
                                 key={t}
@@ -464,13 +480,14 @@ function ConnectHostContent() {
              </div>
              
              {/* View Options (Moved below third row) */}
-             <div className="flex items-center gap-6 text-sm bg-[#2c2e31] px-6 py-2 rounded-full shadow-lg mt-2">
+             <div className="flex items-center gap-6 text-sm px-6 py-2 rounded-full shadow-lg mt-2" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                 <div className="flex items-center gap-2">
                     <span className="text-gray-500">Sort:</span>
                     <select 
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
-                        className="bg-gray-800 border-none rounded px-2 py-1 text-gray-200 cursor-pointer focus:ring-1 focus:ring-yellow-500"
+                        className="bg-gray-800 border-none rounded px-2 py-1 text-gray-200 cursor-pointer focus:ring-1"
+                        style={{ "--tw-ring-color": theme.buttonSelected } as any}
                     >
                         <option value="join">Joined</option>
                         <option value="wpm">WPM</option>
@@ -512,7 +529,8 @@ function ConnectHostContent() {
                                 step="0.1" 
                                 value={cardSize}
                                 onChange={(e) => setCardSize(parseFloat(e.target.value))}
-                                className="w-24 accent-yellow-500"
+                                className="w-24"
+                                style={{ accentColor: theme.buttonSelected }}
                             />
                         </div>
                     </>
@@ -522,9 +540,9 @@ function ConnectHostContent() {
       </div>
 
       {/* Connected Users Area */}
-      <div className={`flex-1 overflow-y-auto p-4 rounded-xl bg-[#27292c] ${users.length === 0 ? "flex items-center justify-center" : ""}`}>
+      <div className={`flex-1 overflow-y-auto p-4 rounded-xl ${users.length === 0 ? "flex items-center justify-center" : ""}`} style={{ backgroundColor: "rgba(0,0,0,0.2)" }}>
         {users.length === 0 ? (
-            <div className="text-center text-gray-500">
+            <div className="text-center" style={{ color: GLOBAL_COLORS.text.secondary }}>
                 <div className="text-xl mb-2">Waiting for users to join...</div>
                 <button
                     onClick={() => {
@@ -564,8 +582,11 @@ function ConnectHostContent() {
                         progressDisplay = (
                             <div className="h-full bg-gray-700 overflow-hidden rounded-full relative">
                                 <div 
-                                    className={`absolute top-0 left-0 h-full transition-all duration-500 ${isFinished ? "bg-green-500" : ""}`}
-                                    style={{ width: `${isFinished ? 100 : progressPct}%`, backgroundColor: isFinished ? undefined : theme.buttonSelected }}
+                                    className="absolute top-0 left-0 h-full transition-all duration-500"
+                                    style={{ 
+                                      width: `${isFinished ? 100 : progressPct}%`, 
+                                      backgroundColor: isFinished ? GLOBAL_COLORS.text.success : theme.buttonSelected 
+                                    }}
                                 />
                             </div>
                         );
@@ -579,8 +600,11 @@ function ConnectHostContent() {
                         progressDisplay = (
                             <div className="h-full bg-gray-700 overflow-hidden rounded-full relative">
                                 <div 
-                                    className={`absolute top-0 left-0 h-full transition-all duration-500 ${isFinished ? "bg-green-500" : ""}`}
-                                    style={{ width: `${isFinished ? 100 : progressPct}%`, backgroundColor: isFinished ? undefined : theme.buttonSelected }}
+                                    className="absolute top-0 left-0 h-full transition-all duration-500"
+                                    style={{ 
+                                      width: `${isFinished ? 100 : progressPct}%`, 
+                                      backgroundColor: isFinished ? GLOBAL_COLORS.text.success : theme.buttonSelected 
+                                    }}
                                 />
                             </div>
                         );
@@ -592,8 +616,11 @@ function ConnectHostContent() {
                          progressDisplay = (
                             <div className="h-full bg-gray-700 overflow-hidden rounded-full relative">
                                 <div 
-                                    className={`absolute top-0 left-0 h-full transition-all duration-500 ${isFinished ? "bg-green-500" : ""}`}
-                                    style={{ width: `${progress}%`, backgroundColor: isFinished ? undefined : theme.buttonSelected }}
+                                    className="absolute top-0 left-0 h-full transition-all duration-500"
+                                    style={{ 
+                                      width: `${progress}%`, 
+                                      backgroundColor: isFinished ? GLOBAL_COLORS.text.success : theme.buttonSelected 
+                                    }}
                                 />
                             </div>
                         );
@@ -602,7 +629,7 @@ function ConnectHostContent() {
 
                     if (viewMode === "list") {
                         return (
-                            <div key={user.id} className="bg-[#2c2e31] p-4 rounded flex items-center justify-between hover:bg-[#323437] transition border-l-4 border-transparent hover:border-current group" style={{ color: theme.defaultText }}>
+                            <div key={user.id} className="p-4 rounded flex items-center justify-between transition border-l-4 border-transparent hover:border-current group" style={{ backgroundColor: GLOBAL_COLORS.surface, color: theme.defaultText }}>
                                 <div className="flex items-center gap-4 w-1/3">
                                     <div className="font-bold text-lg truncate">{user.name}</div>
                                     <div className="text-xs opacity-70 font-mono">{user.id.slice(0, 4)}</div>
@@ -612,31 +639,33 @@ function ConnectHostContent() {
                                      <div className="h-2 w-full rounded-full overflow-hidden bg-gray-800">
                                         {progressDisplay}
                                      </div>
-                                     <div className="text-xs text-right text-gray-500 mt-1">{progressText}</div>
+                                     <div className="text-xs text-right mt-1" style={{ color: GLOBAL_COLORS.text.secondary }}>{progressText}</div>
                                 </div>
 
                                 <div className="flex gap-4 w-1/3 justify-end items-center">
                                     <div className="text-right w-16">
                                         <div className="text-xl font-bold" style={{ color: theme.buttonSelected }}>{Math.round(user.stats?.wpm || 0)}</div>
-                                        <div className="text-xs text-gray-500">WPM</div>
+                                        <div className="text-xs" style={{ color: GLOBAL_COLORS.text.secondary }}>WPM</div>
                                     </div>
                                     <div className="text-right w-16">
                                         <div className="text-xl font-bold opacity-80">{Math.round(user.stats?.accuracy || 0)}%</div>
-                                        <div className="text-xs text-gray-500">ACC</div>
+                                        <div className="text-xs" style={{ color: GLOBAL_COLORS.text.secondary }}>ACC</div>
                                     </div>
                                     
                                     {/* Actions (Visible on Hover) */}
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button 
                                             onClick={() => resetUser(user.id)}
-                                            className="p-1.5 rounded hover:bg-gray-600 text-yellow-500 transition"
+                                            className="p-1.5 rounded hover:bg-gray-600 transition"
+                                            style={{ color: GLOBAL_COLORS.brand.primary }}
                                             title="Reset User"
                                         >
                                             ↺
                                         </button>
                                         <button 
                                             onClick={() => kickUser(user.id)}
-                                            className="p-1.5 rounded hover:bg-gray-600 text-red-500 transition"
+                                            className="p-1.5 rounded hover:bg-gray-600 transition"
+                                            style={{ color: GLOBAL_COLORS.text.error }}
                                             title="Kick User"
                                         >
                                             ✕
@@ -651,8 +680,8 @@ function ConnectHostContent() {
                     return (
                         <div 
                             key={user.id} 
-                            className="bg-[#2c2e31] rounded-lg p-6 flex flex-col gap-4 hover:shadow-lg transition border-t-4 border-transparent hover:border-current group relative"
-                            style={{ fontSize: `${cardSize}rem`, color: theme.defaultText }}
+                            className="rounded-lg p-6 flex flex-col gap-4 hover:shadow-lg transition border-t-4 border-transparent hover:border-current group relative"
+                            style={{ fontSize: `${cardSize}rem`, color: theme.defaultText, backgroundColor: GLOBAL_COLORS.surface }}
                         >
                             <div className="flex justify-between items-start">
                                 <div className="font-bold text-[1.2em] truncate w-3/4" title={user.name}>{user.name}</div>
@@ -663,14 +692,16 @@ function ConnectHostContent() {
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button 
                                     onClick={() => resetUser(user.id)}
-                                    className="p-1 rounded hover:bg-gray-600 text-yellow-500 transition text-sm"
+                                    className="p-1 rounded hover:bg-gray-600 transition text-sm"
+                                    style={{ color: GLOBAL_COLORS.brand.primary }}
                                     title="Reset User"
                                 >
                                     ↺
                                 </button>
                                 <button 
                                     onClick={() => kickUser(user.id)}
-                                    className="p-1 rounded hover:bg-gray-600 text-red-500 transition text-sm"
+                                    className="p-1 rounded hover:bg-gray-600 transition text-sm"
+                                    style={{ color: GLOBAL_COLORS.text.error }}
                                     title="Kick User"
                                 >
                                     ✕
@@ -678,7 +709,7 @@ function ConnectHostContent() {
                             </div>
 
                             <div className="space-y-2">
-                                <div className="flex justify-between text-[0.8em] text-gray-500">
+                                <div className="flex justify-between text-[0.8em]" style={{ color: GLOBAL_COLORS.text.secondary }}>
                                     <span>Progress</span>
                                     <span>{progressText}</span>
                                 </div>
@@ -690,11 +721,11 @@ function ConnectHostContent() {
                             <div className="grid grid-cols-2 gap-4 mt-2">
                                 <div className="bg-gray-800 rounded p-3 text-center">
                                     <div className="text-[1.5em] font-bold leading-none" style={{ color: theme.buttonSelected }}>{Math.round(user.stats?.wpm || 0)}</div>
-                                    <div className="text-[0.6em] text-gray-500 mt-1">WPM</div>
+                                    <div className="text-[0.6em] mt-1" style={{ color: GLOBAL_COLORS.text.secondary }}>WPM</div>
                                 </div>
                                 <div className="bg-gray-800 rounded p-3 text-center">
                                     <div className="text-[1.5em] font-bold opacity-80 leading-none">{Math.round(user.stats?.accuracy || 0)}%</div>
-                                    <div className="text-[0.6em] text-gray-500 mt-1">Accuracy</div>
+                                    <div className="text-[0.6em] mt-1" style={{ color: GLOBAL_COLORS.text.secondary }}>Accuracy</div>
                                 </div>
                             </div>
                         </div>
@@ -711,7 +742,8 @@ function ConnectHostContent() {
           onClick={() => setShowSettings(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-[#2c2e31] p-6 shadow-xl"
+            className="w-full max-w-md rounded-lg p-6 shadow-xl"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
@@ -740,7 +772,8 @@ function ConnectHostContent() {
                   step="0.1"
                   value={settings.typingFontSize || 3.5}
                   onChange={(e) => updateSettings({ typingFontSize: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
                 />
               </div>
 
@@ -755,9 +788,10 @@ function ConnectHostContent() {
                       key={align}
                       onClick={() => updateSettings({ textAlign: align })}
                       className={`rounded px-3 py-1 text-sm capitalize transition ${settings.textAlign === align
-                        ? "bg-yellow-500 text-gray-900"
+                        ? "font-medium bg-gray-800"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                         }`}
+                      style={{ color: settings.textAlign === align ? theme.buttonSelected : undefined }}
                     >
                       {align}
                     </button>
@@ -777,7 +811,8 @@ function ConnectHostContent() {
                   step="5"
                   value={settings.ghostWriterSpeed || 60}
                   onChange={(e) => updateSettings({ ghostWriterSpeed: parseInt(e.target.value) || 0 })}
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
                 />
               </div>
             </div>
@@ -792,7 +827,8 @@ function ConnectHostContent() {
           onClick={() => setShowThemeModal(false)}
         >
           <div
-            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg bg-[#2c2e31] p-6 shadow-xl"
+            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg p-6 shadow-xl"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
@@ -860,7 +896,8 @@ function ConnectHostContent() {
           onClick={() => setShowPresetInput(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-lg bg-[#2c2e31] p-6 shadow-xl border border-gray-700"
+            className="w-full max-w-2xl rounded-lg p-6 shadow-xl border border-gray-700"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
@@ -876,7 +913,8 @@ function ConnectHostContent() {
             <div className="space-y-6">
               <div>
                 <textarea
-                  className="w-full h-48 rounded bg-gray-700 p-4 text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono text-sm"
+                  className="w-full h-48 rounded bg-gray-700 p-4 text-gray-200 focus:outline-none focus:ring-2 font-mono text-sm"
+                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
                   placeholder="Paste your text here..."
                   onChange={(e) => setTempPresetText(e.target.value)}
                   value={tempPresetText}
@@ -916,9 +954,13 @@ function ConnectHostContent() {
                     disabled={!tempPresetText}
                     className={`px-6 py-2 rounded font-medium transition ${
                         tempPresetText 
-                        ? "bg-yellow-500 text-gray-900 hover:bg-yellow-400 shadow-lg shadow-yellow-500/20" 
+                        ? "text-gray-900 hover:opacity-90 shadow-lg" 
                         : "bg-gray-700 text-gray-500 cursor-not-allowed"
                     }`}
+                    style={{ 
+                      backgroundColor: tempPresetText ? theme.buttonSelected : undefined,
+                      boxShadow: tempPresetText ? `0 10px 15px -3px ${theme.buttonSelected}33` : undefined
+                    }}
                  >
                     Set Text
                  </button>
@@ -937,7 +979,12 @@ function ConnectHostContent() {
 
 export default function ConnectHost() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#323437] text-gray-200">Loading...</div>}>
+    <Suspense fallback={<div 
+      className="min-h-screen flex items-center justify-center transition-colors duration-300"
+      style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
+    >
+      Loading...
+    </div>}>
       <ConnectHostContent />
     </Suspense>
   );

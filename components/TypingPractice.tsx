@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { GLOBAL_COLORS } from "@/lib/colors";
 
 export type Mode = "time" | "words" | "quote" | "zen" | "preset";
 export type Difficulty = "beginner" | "easy" | "medium" | "hard" | "extreme";
@@ -49,15 +50,15 @@ export type Theme = {
 };
 
 export const DEFAULT_THEME: Theme = {
-  cursor: "#3cb5ee", // yellow-500
-  defaultText: "#4b5563", // gray-600
-  upcomingText: "#4b5563", // gray-600
-  correctText: "#d1d5db", // gray-300
-  incorrectText: "#ef4444", // red-500
-  buttonUnselected: "#3cb5ee", // gray-600
-  buttonSelected: "#0097b2", // yellow-500
-  backgroundColor: "#323437", // gray-800/900ish
-  ghostCursor: "#a855f7", // purple-500
+  cursor: GLOBAL_COLORS.brand.primary,      // Sky Blue - Primary brand color
+  defaultText: GLOBAL_COLORS.text.secondary, // Muted Gray - Neutral text for upcoming words
+  upcomingText: GLOBAL_COLORS.text.secondary,// Muted Gray - Consistent with default text
+  correctText: GLOBAL_COLORS.text.primary,   // Light Gray - High contrast for correct inputs
+  incorrectText: GLOBAL_COLORS.text.error,   // Vibrant Red - distinct error state
+  buttonUnselected: GLOBAL_COLORS.brand.primary, // Sky Blue - Matches cursor for consistency
+  buttonSelected: GLOBAL_COLORS.brand.secondary, // Teal - distinct active state
+  backgroundColor: GLOBAL_COLORS.background,     // Deep Charcoal - Reduces eye strain
+  ghostCursor: GLOBAL_COLORS.brand.accent,       // Purple - Distinct from user cursor
 };
 
 const MAX_PRESET_LENGTH = 10000;
@@ -199,12 +200,12 @@ export default function TypingPractice({
     wordTarget: 25,
     punctuation: false,
     numbers: false,
-    typingFontSize: 3.5,
+    typingFontSize: 3.25,
     iconFontSize: 1,
     helpFontSize: 1,
     difficulty: "beginner",
     quoteLength: "all",
-    textAlign: "left",
+    textAlign: "center",
     ghostWriterSpeed: 60,
     ghostWriterEnabled: false,
     soundEnabled: false,
@@ -237,6 +238,12 @@ export default function TypingPractice({
 
   const [isRepeated, setIsRepeated] = useState(false);
   const [ghostCharIndex, setGhostCharIndex] = useState(0);
+
+  const finishSession = useCallback(() => {
+    if (isFinished) return;
+    setIsFinished(true);
+    setIsRunning(false);
+  }, [isFinished]);
 
   // Connect Mode: Sync Settings
   useEffect(() => {
@@ -464,12 +471,6 @@ export default function TypingPractice({
     []
   );
 
-  const finishSession = useCallback(() => {
-    if (isFinished) return;
-    setIsFinished(true);
-    setIsRunning(false);
-  }, [isFinished]);
-
   // Timer effect
   useEffect(() => {
     if (!isRunning || !startTime) return;
@@ -693,7 +694,10 @@ export default function TypingPractice({
           style={{ fontSize: `${settings.iconFontSize}rem` }}
         >
            {/* Line 1: Toolbar */}
-           <div className="flex items-center gap-4 bg-[#2c2e31] px-6 py-2 rounded-full shadow-lg mb-2">
+           <div 
+             className="flex items-center gap-4 px-6 py-2 rounded-full shadow-lg mb-2"
+             style={{ backgroundColor: GLOBAL_COLORS.surface }}
+           >
             <Link
               href="/connect"
               className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
@@ -779,7 +783,7 @@ export default function TypingPractice({
            <div className="flex flex-wrap items-center justify-center gap-4 text-gray-400">
                  
                  {/* Mode */}
-                 <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                 <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                     {(["time", "words", "quote", "zen", "preset"] as Mode[]).map((m) => (
                         <button
                             key={m}
@@ -795,7 +799,7 @@ export default function TypingPractice({
                                     updateSettings({ mode: m });
                                 }
                             }}
-                            className={`px-3 py-1 rounded transition ${settings.mode === m ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                            className={`px-3 py-1 rounded transition ${settings.mode === m ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                             style={{ color: settings.mode === m ? theme.buttonSelected : undefined }}
                         >
                             {m}
@@ -807,23 +811,23 @@ export default function TypingPractice({
 
                  {/* Toggles */}
                  {settings.mode !== "preset" && (
-                     <div className="flex gap-4 bg-[#2c2e31] rounded-lg px-3 py-1.5">
+                     <div className="flex gap-4 rounded-lg px-3 py-1.5" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         <button 
                             type="button"
                             onClick={() => updateSettings({ punctuation: !settings.punctuation })}
-                            className={`flex items-center gap-2 transition ${settings.punctuation ? "text-yellow-500" : "hover:text-gray-200"}`}
+                            className={`flex items-center gap-2 transition ${settings.punctuation ? "" : "hover:text-gray-200"}`}
                             style={{ color: settings.punctuation ? theme.buttonSelected : undefined }}
                         >
-                            <span className={settings.punctuation ? "bg-yellow-500 text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}>@</span>
+                            <span className={settings.punctuation ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"} style={{ backgroundColor: settings.punctuation ? theme.buttonSelected : undefined }}>@</span>
                              Punctuation
                         </button>
                         <button 
                             type="button"
                             onClick={() => updateSettings({ numbers: !settings.numbers })}
-                            className={`flex items-center gap-2 transition ${settings.numbers ? "text-yellow-500" : "hover:text-gray-200"}`}
+                            className={`flex items-center gap-2 transition ${settings.numbers ? "" : "hover:text-gray-200"}`}
                             style={{ color: settings.numbers ? theme.buttonSelected : undefined }}
                         >
-                             <span className={settings.numbers ? "bg-yellow-500 text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}>#</span>
+                             <span className={settings.numbers ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"} style={{ backgroundColor: settings.numbers ? theme.buttonSelected : undefined }}>#</span>
                              Numbers
                         </button>
                      </div>
@@ -835,7 +839,7 @@ export default function TypingPractice({
                  
                  {/* Time/Word Presets */}
                  {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {TIME_PRESETS.map(d => (
                             <button
                                 key={d}
@@ -844,7 +848,7 @@ export default function TypingPractice({
                                   if (settings.duration === d) generateTest();
                                   else updateSettings({ duration: d });
                                 }}
-                                className={`px-3 py-1 rounded transition ${settings.duration === d ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                className={`px-3 py-1 rounded transition ${settings.duration === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                                 style={{ color: settings.duration === d ? theme.buttonSelected : undefined }}
                             >
                                 {d}
@@ -854,7 +858,7 @@ export default function TypingPractice({
                  )}
 
                  {settings.mode === "words" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {WORD_PRESETS.map(w => (
                             <button
                                 key={w}
@@ -863,7 +867,7 @@ export default function TypingPractice({
                                   if (settings.wordTarget === w) generateTest();
                                   else updateSettings({ wordTarget: w });
                                 }}
-                                className={`px-3 py-1 rounded transition ${settings.wordTarget === w ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                className={`px-3 py-1 rounded transition ${settings.wordTarget === w ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                                 style={{ color: settings.wordTarget === w ? theme.buttonSelected : undefined }}
                             >
                                 {w}
@@ -873,7 +877,7 @@ export default function TypingPractice({
                  )}
 
                  {settings.mode === "quote" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {(["all", "short", "medium", "long", "xl"] as QuoteLength[]).map(l => (
                             <button
                                 key={l}
@@ -882,7 +886,7 @@ export default function TypingPractice({
                                   if (settings.quoteLength === l) generateTest();
                                   else updateSettings({ quoteLength: l });
                                 }}
-                                className={`px-3 py-1 rounded transition ${settings.quoteLength === l ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                className={`px-3 py-1 rounded transition ${settings.quoteLength === l ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                                 style={{ color: settings.quoteLength === l ? theme.buttonSelected : undefined }}
                             >
                                 {l}
@@ -893,7 +897,7 @@ export default function TypingPractice({
 
                  {/* Difficulty (Non-Quote/Preset) */}
                  {settings.mode !== "quote" && settings.mode !== "zen" && settings.mode !== "preset" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1 ml-2">
+                    <div className="flex rounded-lg p-1 ml-2" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {(["beginner", "easy", "medium", "hard", "extreme"] as Difficulty[]).map(d => (
                             <button
                                 key={d}
@@ -902,7 +906,7 @@ export default function TypingPractice({
                                   if (settings.difficulty === d) generateTest();
                                   else updateSettings({ difficulty: d });
                                 }}
-                                className={`px-3 py-1 rounded transition ${settings.difficulty === d ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                className={`px-3 py-1 rounded transition ${settings.difficulty === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                                 style={{ color: settings.difficulty === d ? theme.buttonSelected : undefined }}
                             >
                                 {d === "extreme" ? "expert" : d}
@@ -913,13 +917,13 @@ export default function TypingPractice({
 
                  {/* Preset Type */}
                  {settings.mode === "preset" && (
-                    <div className="flex bg-[#2c2e31] rounded-lg p-1">
+                    <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                         {(["finish", "time"] as const).map(t => (
                             <button
                                 key={t}
                                 type="button"
                                 onClick={() => updateSettings({ presetModeType: t })}
-                                className={`px-3 py-1 rounded transition ${settings.presetModeType === t ? "text-yellow-500 font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                                className={`px-3 py-1 rounded transition ${settings.presetModeType === t ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                                 style={{ color: settings.presetModeType === t ? theme.buttonSelected : undefined }}
                             >
                                 {t}
@@ -948,21 +952,30 @@ export default function TypingPractice({
         <div className="fixed top-[20%] left-0 w-full flex justify-center gap-4 pointer-events-none select-none z-10 transition-all duration-300">
           
           {/* WPM Pill */}
-          <div className="flex items-baseline gap-2 px-6 py-3 bg-[#2c2e31]/90 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center">
-            <span className="text-3xl font-bold text-yellow-500 tabular-nums leading-none">{Math.round(wpm)}</span>
+          <div 
+            className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+            style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
+          >
+            <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>{Math.round(wpm)}</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">wpm</span>
           </div>
 
           {/* Accuracy Pill */}
-          <div className="flex items-baseline gap-2 px-6 py-3 bg-[#2c2e31]/90 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center">
-            <span className="text-3xl font-bold text-yellow-500 tabular-nums leading-none">{Math.round(accuracy)}%</span>
+          <div 
+            className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+            style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
+          >
+            <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>{Math.round(accuracy)}%</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">acc</span>
           </div>
 
           {/* Timer / Word Counter Pill */}
           {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
-            <div className="flex items-baseline gap-2 px-6 py-3 bg-[#2c2e31]/90 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center">
-              <span className={`text-3xl font-bold tabular-nums leading-none ${Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)) < 10 ? "text-red-500" : "text-gray-200"}`}>
+            <div 
+              className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+              style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
+            >
+              <span className={`text-3xl font-bold tabular-nums leading-none ${Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)) < 10 ? "" : "text-gray-200"}`} style={{ color: Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)) < 10 ? GLOBAL_COLORS.text.error : undefined }}>
                 {Math.max(0, settings.duration - Math.floor(elapsedMs / 1000))}
               </span>
               <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">sec</span>
@@ -970,7 +983,10 @@ export default function TypingPractice({
           )}
           
           {settings.mode === "words" && (
-             <div className="flex items-baseline gap-2 px-6 py-3 bg-[#2c2e31]/90 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center">
+             <div 
+                className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+                style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
+             >
                <span className="text-3xl font-bold text-gray-200 tabular-nums leading-none">
                  {Math.min(typedText.trim() === "" ? 0 : typedText.trim().split(/\s+/).length, settings.wordTarget)}
                </span>
@@ -986,11 +1002,16 @@ export default function TypingPractice({
       {/* Quote Info */}
       {settings.mode === "quote" && currentQuote && !isFinished && (
         <div className="mb-8 flex flex-col items-center text-center animate-fade-in">
-          <div className="text-xl font-medium text-yellow-500">{currentQuote.author}</div>
+          <div className="text-xl font-medium" style={{ color: theme.buttonSelected }}>{currentQuote.author}</div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm text-gray-400">{currentQuote.source}, {currentQuote.date}</span>
             <div className="group relative">
-              <div className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-600 text-[10px] text-gray-500 hover:border-yellow-500 hover:text-yellow-500">
+              <div 
+                className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-600 text-[10px] text-gray-500 hover:border-current hover:text-current"
+                style={{ "--hover-color": theme.buttonSelected } as any}
+                onMouseEnter={(e) => { e.currentTarget.style.color = theme.buttonSelected; e.currentTarget.style.borderColor = theme.buttonSelected; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = ""; e.currentTarget.style.borderColor = ""; }}
+              >
                 i
               </div>
               {/* Tooltip */}
@@ -1131,9 +1152,9 @@ export default function TypingPractice({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               {/* Primary Stats */}
-              <div className="relative overflow-hidden rounded-2xl bg-[#2c2e31] p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors">
+              <div className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                 <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Words Per Minute</div>
-                <div className="text-8xl font-black text-yellow-500 tabular-nums leading-none tracking-tight">
+                <div className="text-8xl font-black tabular-nums leading-none tracking-tight" style={{ color: theme.buttonSelected }}>
                   {Math.round(wpm)}
                 </div>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -1141,9 +1162,9 @@ export default function TypingPractice({
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl bg-[#2c2e31] p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors">
+              <div className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                 <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Accuracy</div>
-                <div className="text-8xl font-black text-yellow-500 tabular-nums leading-none tracking-tight">
+                <div className="text-8xl font-black tabular-nums leading-none tracking-tight" style={{ color: theme.buttonSelected }}>
                   {Math.round(accuracy)}<span className="text-4xl align-top ml-1 opacity-50">%</span>
                 </div>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -1154,19 +1175,19 @@ export default function TypingPractice({
 
             {/* Secondary Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              <div className="bg-[#2c2e31]/50 rounded-xl p-4 border border-gray-800/50 flex flex-col items-center">
+              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
                 <div className="text-3xl font-bold text-gray-200 mb-1">{stats.correct}</div>
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Correct</div>
               </div>
-              <div className="bg-[#2c2e31]/50 rounded-xl p-4 border border-gray-800/50 flex flex-col items-center">
-                <div className="text-3xl font-bold text-red-500 mb-1">{stats.incorrect}</div>
+              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
+                <div className="text-3xl font-bold mb-1" style={{ color: GLOBAL_COLORS.text.error }}>{stats.incorrect}</div>
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Errors</div>
               </div>
-              <div className="bg-[#2c2e31]/50 rounded-xl p-4 border border-gray-800/50 flex flex-col items-center">
+              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
                 <div className="text-3xl font-bold text-gray-400 mb-1">{stats.missed}</div>
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Missed</div>
               </div>
-              <div className="bg-[#2c2e31]/50 rounded-xl p-4 border border-gray-800/50 flex flex-col items-center">
+              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
                 <div className="text-3xl font-bold text-gray-400 mb-1">{stats.extra}</div>
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Extra</div>
               </div>
@@ -1180,11 +1201,12 @@ export default function TypingPractice({
                   onClick={() => generateTest()}
                   className="group relative inline-flex items-center justify-center px-8 py-3 font-medium text-white transition-all duration-200 bg-gray-700 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                 >
-                  <span className="mr-2 transition-transform group-hover:rotate-180">↻</span>
+                   <span className="mr-2 transition-transform group-hover:rotate-180">↻</span>
                   Next Test
-                  <div className="absolute bottom-0 left-0 h-1 w-full scale-x-0 bg-yellow-500 transition-transform duration-200 group-hover:scale-x-100 rounded-b-lg"></div>
+                  <div className="absolute bottom-0 left-0 h-1 w-full scale-x-0 transition-transform duration-200 group-hover:scale-x-100 rounded-b-lg" style={{ backgroundColor: theme.buttonSelected }}></div>
                 </button>
               )}
+
               
               {connectMode && onLeave && (
                 <button
@@ -1196,12 +1218,19 @@ export default function TypingPractice({
                 </button>
               )}
             </div>
-            
-            {!connectMode && (
+
+            <div> 
+              {!connectMode && (
                 <div className="mt-6 text-center text-sm text-gray-600">
-                    Press <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400 font-sans">Tab</kbd> + <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400 font-sans">Enter</kbd> to restart quickly
+                    Press <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400 font-sans">Enter</kbd> to start another test
                 </div>
-            )}
+              )}
+              {!connectMode && (
+                <div className="mt-6 text-center text-sm text-gray-600">
+                    Press <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400 font-sans">Tab</kbd> + <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400 font-sans">Enter</kbd> to repeat this test
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1215,8 +1244,8 @@ export default function TypingPractice({
           {isRepeated && (
             <div className="mb-2 text-red-500 font-medium">REPEATED</div>
           )}
-          <div>Click on the text area and start typing</div>
           <div className="mt-1">Press <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400 font-sans">Tab</kbd> + <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400 font-sans">Shift</kbd> to restart</div>
+          <div>Click on the text area and start typing</div>
         </div>
       )}
 
@@ -1226,8 +1255,8 @@ export default function TypingPractice({
             className="fixed inset-0 z-40 flex flex-col items-center justify-center"
             style={{ backgroundColor: theme.backgroundColor }}
         >
-            <div className="w-full max-w-md rounded-2xl bg-[#2c2e31] p-10 flex flex-col items-center justify-center border border-gray-800 shadow-2xl text-center animate-fade-in">
-                <h2 className="text-2xl font-bold text-yellow-500 mb-4">Waiting for {hostName || "Host"} to start...</h2>
+            <div className="w-full max-w-md rounded-2xl p-10 flex flex-col items-center justify-center border border-gray-800 shadow-2xl text-center animate-fade-in" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
+                <h2 className="text-2xl font-bold mb-4" style={{ color: theme.buttonSelected }}>Waiting for {hostName || "Host"} to start...</h2>
                 <div className="text-gray-400 animate-pulse mb-8">Prepare to type</div>
                 
                 {onLeave && (
@@ -1249,7 +1278,8 @@ export default function TypingPractice({
           onClick={() => setShowSettings(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg bg-[#2c2e31] p-6 shadow-xl"
+            className="w-full max-w-md rounded-lg p-6 shadow-xl"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
@@ -1275,9 +1305,10 @@ export default function TypingPractice({
                       key={num}
                       onClick={() => setLinePreview(num)}
                       className={`rounded px-4 py-2 text-sm transition ${linePreview === num
-                        ? "bg-yellow-500 text-gray-900"
+                        ? "text-gray-900"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                         }`}
+                      style={{ backgroundColor: linePreview === num ? theme.buttonSelected : undefined }}
                     >
                       {num}
                     </button>
@@ -1298,14 +1329,15 @@ export default function TypingPractice({
                 <label className="mb-2 block text-xs text-gray-400">
                   Typing Text Size (rem)
                 </label>
-                <input
+                   <input
                   type="number"
                   min="1"
                   max="10"
                   step="0.1"
                   value={settings.typingFontSize}
                   onChange={(e) => updateSettings({ typingFontSize: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
                 />
               </div>
 
@@ -1320,14 +1352,16 @@ export default function TypingPractice({
                       key={align}
                       onClick={() => updateSettings({ textAlign: align })}
                       className={`rounded px-3 py-1 text-sm capitalize transition ${settings.textAlign === align
-                        ? "bg-yellow-500 text-gray-900"
+                        ? "text-gray-900"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                         }`}
+                      style={{ backgroundColor: settings.textAlign === align ? theme.buttonSelected : undefined }}
                     >
                       {align}
                     </button>
                   ))}
                 </div>
+
               </div>
 
               {/* Icon Size */}
@@ -1347,9 +1381,10 @@ export default function TypingPractice({
                       key={label}
                       onClick={() => updateSettings({ iconFontSize: value })}
                       className={`rounded px-3 py-1 text-sm transition ${settings.iconFontSize === value
-                        ? "bg-yellow-500 text-gray-900"
+                        ? "text-gray-900"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                         }`}
+                      style={{ backgroundColor: settings.iconFontSize === value ? theme.buttonSelected : undefined }}
                     >
                       {label}
                     </button>
@@ -1369,7 +1404,8 @@ export default function TypingPractice({
                   step="0.1"
                   value={settings.helpFontSize}
                   onChange={(e) => updateSettings({ helpFontSize: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
                 />
               </div>
 
@@ -1385,7 +1421,8 @@ export default function TypingPractice({
                   step="5"
                   value={settings.ghostWriterSpeed}
                   onChange={(e) => updateSettings({ ghostWriterSpeed: parseInt(e.target.value) || 0 })}
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
                 />
               </div>
             </div>
@@ -1400,7 +1437,8 @@ export default function TypingPractice({
           onClick={() => setShowThemeModal(false)}
         >
           <div
-            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg bg-[#2c2e31] p-6 shadow-xl"
+            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg p-6 shadow-xl"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
@@ -1482,7 +1520,8 @@ export default function TypingPractice({
           }}
         >
           <div
-            className="w-full max-w-2xl rounded-lg bg-[#2c2e31] p-6 shadow-xl"
+            className="w-full max-w-2xl rounded-lg p-6 shadow-xl"
+            style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
@@ -1507,10 +1546,11 @@ export default function TypingPractice({
                   Paste your text
                 </label>
                 <textarea
-                  className="w-full h-48 rounded bg-gray-700 p-4 text-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono text-sm"
+                  className="w-full h-48 rounded bg-gray-700 p-4 text-gray-200 focus:outline-none focus:ring-2 font-mono text-sm"
                   placeholder="Paste your text here..."
                   onChange={(e) => setTempPresetText(e.target.value)}
                   value={tempPresetText}
+                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
                 />
               </div>
 
@@ -1545,14 +1585,16 @@ export default function TypingPractice({
                         }
                     }}
                     disabled={!tempPresetText}
-                    className={`px-6 py-2 rounded font-medium transition ${
+                     className={`px-6 py-2 rounded font-medium transition ${
                         tempPresetText 
-                        ? "bg-yellow-500 text-gray-900 hover:opacity-90" 
+                        ? "text-gray-900 hover:opacity-90" 
                         : "bg-gray-700 text-gray-500 cursor-not-allowed"
                     }`}
-                 >
-                    Start
-                 </button>
+                    style={{ backgroundColor: tempPresetText ? theme.buttonSelected : undefined }}
+                  >
+                     Start
+                  </button>
+
               </div>
             </div>
           </div>

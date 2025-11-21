@@ -1,4 +1,4 @@
-![TypeSetGo Banner](/public/assets/banner.png)
+![TypeSetGo Banner](/public/assets/Banner-Color.png)
 
 # TypeSetGo
 
