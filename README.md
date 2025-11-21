@@ -1,85 +1,98 @@
+![TypeSetGo Banner](/public/assets/banner.png)
+
 # TypeSetGo
 
-TypeSetGo is a minimalistic, feature-rich typing test application inspired by Monkeytype. It offers a distraction-free environment to improve your typing speed and accuracy, with robust features for customization, statistics, and multiplayer competition.
+**TypeSetGo** is a modern, open-source typing platform designed for enthusiasts who want to improve their speed and accuracy. Inspired by the best tools in the community, it offers a clean, distraction-free environment with powerful features for both solo practice and competitive multiplayer racing.
 
-## Features
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-### ⌨️ Typing Modes
-- **Time**: Type as many words as possible in a fixed time (15s, 30s, 60s, etc.).
-- **Words**: Type a set number of random words.
-- **Quotes**: Practice with real quotes from books, movies, and history. Filter by length (Short, Medium, Long, XL).
-- **Zen**: Infinite typing practice with no timers or counters.
-- **Preset**: Create or load custom text for specialized practice.
+---
 
-### 🎨 Customization & UX
-- **Themes**: Switch between various visual themes to suit your preference.
-- **Ghost Writer**: Practice against a ghost cursor moving at a set speed to pace yourself.
-- **Sound Effects**: Satisfying mechanical keyboard sounds (optional).
-- **Clean UI**: A focused interface designed to minimize distractions.
+## ✨ Features
+
+### 🚀 Core Typing Experience
+Master your keyboard with a highly responsive engine.
+- **Versatile Modes**: Practice with **Time** (15s/30s/60s), **Word counts**, **Quotes** (Short to XL), or go infinite with **Zen** mode.
+- **Ghost Writer**: Race against a ghost cursor set to your target WPM to push your limits.
+- **Deep Statistics**: Track your progress with real-time charts for WPM, Accuracy, Raw vs. Net speed, and consistency.
 
 ### 🌐 Connect (Multiplayer)
-Race against friends or colleagues in real-time!
-- **Create Rooms**: Hosts can create private rooms with custom settings.
-- **Live Dashboard**: See real-time WPM and progress of all participants.
-- **Synced Start**: The host controls when the race begins, ensuring a fair start.
+Challenge friends or colleagues in real-time.
+- **Live Racing**: Create a room and race simultaneously.
+- **Host Control**: Hosts have full control over the test settings (difficulty, duration, etc.).
+- **Real-time Dashboard**: Watch everyone's progress bar, WPM, and accuracy update live as they type.
+- **Fair Play**: Synchronized start timers ensure every race is fair.
 
-### 📊 Statistics
-- **Real-time Metrics**: WPM (Words Per Minute) and Accuracy updated as you type.
-- **Raw vs Net**: See your gross speed versus your error-adjusted speed.
-- **Consistency**: Track how stable your typing rhythm is.
+### 🎨 Customization
+- **Themes**: Toggle between different visual themes to find your perfect contrast.
+- **Sound Effects**: Optional mechanical keyboard sounds for auditory feedback.
+- **Content**: A rich library of quotes and word lists ranging from "Beginner" to "Extreme".
 
-## Getting Started
+---
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
+## 📸 Screenshots
 
-### Installation
+![Interface Preview](/public/assets/preview-interface.png)
+*The clean, focused typing interface.*
 
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/dmeim/typesetgo.git
-    cd typesetgo
-    ```
+![Multiplayer Preview](/public/assets/preview-multiplayer.png)
+*Real-time multiplayer dashboard.*
 
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
+---
 
-3.  Run the development server:
-    ```bash
-    npm run dev
-    ```
+## 🛠 Getting Started
 
-4.  Open [http://localhost:3000](http://localhost:3000) with your browser.
-
-## Deployment
-
-TypeSetGo is optimized for Docker deployment.
-
-### Docker
-
-Build and run the container locally:
+### 🐳 Quick Start (Docker)
+The fastest way to run TypeSetGo is with Docker.
 
 ```bash
 docker build -t typesetgo-app .
 docker run -d -p 3000:3000 --name typesetgo typesetgo-app
 ```
+Visit `http://localhost:3000` to start typing!
 
-For detailed deployment instructions, including using GitHub Container Registry, see the [Docker Deployment Guide](./docs/deployment/DOCKER_GUIDE.md).
+### 💻 Development Setup
 
-## Documentation
+If you want to contribute or run it locally without Docker:
 
-Comprehensive documentation is available in the `docs/` directory:
+**Prerequisites**: Node.js 18+
 
--   [**Core Typing Engine**](./docs/features/Core_Typing_Engine.md): How the typing logic works.
--   [**Connect (Multiplayer)**](./docs/features/Connect_Multiplayer.md): Architecture of the real-time features.
--   [**Content Management**](./docs/features/Content_Management.md): How to add new words and quotes.
+1.  **Clone the repo**
+    ```bash
+    git clone https://github.com/dmeim/typesetgo.git
+    cd typesetgo
+    ```
 
-## Contributing
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-Contributions are welcome! Please check out the issues tab or submit a Pull Request.
+3.  **Run the dev server**
+    ```bash
+    npm run dev
+    ```
+
+4.  **Open your browser**
+    Navigate to [http://localhost:3000](http://localhost:3000).
+
+---
+
+## 📖 Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- [**Release Notes (v1.0.0)**](./docs/release-notes/v1.0.0.md)
+- [**Core Typing Engine**](./docs/features/Core_Typing_Engine.md)
+- [**Connect Multiplayer**](./docs/features/Connect_Multiplayer.md)
+- [**Docker Guide**](./docs/deployment/DOCKER_GUIDE.md)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Whether it's fixing a bug, adding a new theme, or improving the documentation, feel free to open a Pull Request.
 
 1.  Fork the Project
 2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
