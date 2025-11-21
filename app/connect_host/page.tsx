@@ -23,6 +23,9 @@ type User = {
 const TIME_PRESETS = [15, 30, 60, 120, 300];
 const WORD_PRESETS = [10, 25, 50, 100, 200];
 
+
+const MAX_PRESET_LENGTH = 10000;
+
 export default function ConnectHost() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -61,15 +64,38 @@ export default function ConnectHost() {
   // Derived theme for UI usage (defaulting if missing)
   const theme = settings.theme || DEFAULT_THEME;
 
+  const createRoom = () => {
+      socket.emit("create_room", ({ code }: { code: string }) => {
+        setRoomCode(code);
+        localStorage.setItem("hostRoomCode", code);
+      });
+  };
+
   useEffect(() => {
     // Connect to socket
     socket = io();
 
     socket.on("connect", () => {
       console.log("Connected to server");
-      socket.emit("create_room", ({ code }: { code: string }) => {
-        setRoomCode(code);
-      });
+      const savedCode = localStorage.getItem("hostRoomCode");
+      
+      if (savedCode) {
+          socket.emit("claim_host", { code: savedCode }, (response: any) => {
+              if (response.success) {
+                  console.log("Reconnected to room", savedCode);
+                  setRoomCode(savedCode);
+                  setUsers(response.users || []);
+                  setSettings(prev => ({ ...prev, ...response.settings }));
+                  setStatus(response.status);
+              } else {
+                  console.log("Failed to claim room, creating new one");
+                  localStorage.removeItem("hostRoomCode");
+                  createRoom();
+              }
+          });
+      } else {
+          createRoom();
+      }
     });
 
     socket.on("user_joined", (user: User) => {
@@ -139,10 +165,27 @@ export default function ConnectHost() {
     if (file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-            setTempPresetText(ev.target?.result as string);
+            const text = ev.target?.result as string;
+            if (text.length > MAX_PRESET_LENGTH) {
+                alert(`File content exceeds ${MAX_PRESET_LENGTH} characters.`);
+                return;
+            }
+            setTempPresetText(text);
         };
         reader.readAsText(file);
     }
+  };
+
+  const kickUser = (userId: string) => {
+      if (confirm("Are you sure you want to kick this user?")) {
+          socket.emit("kick_user", { code: roomCode, userId });
+      }
+  };
+
+  const resetUser = (userId: string) => {
+      if (confirm("Reset this user's progress?")) {
+          socket.emit("reset_user", { code: roomCode, userId });
+      }
   };
 
   const sortedUsers = useMemo(() => {
@@ -479,7 +522,16 @@ export default function ConnectHost() {
         {users.length === 0 ? (
             <div className="text-center text-gray-500">
                 <div className="text-xl mb-2">Waiting for users to join...</div>
-                <div>Share code <span className="font-bold" style={{ color: theme.buttonSelected }}>{roomCode}</span></div>
+                <button
+                    onClick={() => {
+                        const link = `${window.location.origin}/connect_join/${roomCode}`;
+                        navigator.clipboard.writeText(link);
+                    }}
+                    className="hover:opacity-80 transition-opacity cursor-pointer"
+                    title="Click to copy direct link"
+                >
+                    Share code <span className="font-bold" style={{ color: theme.buttonSelected }}>{roomCode}</span>
+                </button>
             </div>
         ) : (
             <div 
@@ -546,7 +598,7 @@ export default function ConnectHost() {
 
                     if (viewMode === "list") {
                         return (
-                            <div key={user.id} className="bg-[#2c2e31] p-4 rounded flex items-center justify-between hover:bg-[#323437] transition border-l-4 border-transparent hover:border-current" style={{ color: theme.defaultText }}>
+                            <div key={user.id} className="bg-[#2c2e31] p-4 rounded flex items-center justify-between hover:bg-[#323437] transition border-l-4 border-transparent hover:border-current group" style={{ color: theme.defaultText }}>
                                 <div className="flex items-center gap-4 w-1/3">
                                     <div className="font-bold text-lg truncate">{user.name}</div>
                                     <div className="text-xs opacity-70 font-mono">{user.id.slice(0, 4)}</div>
@@ -559,7 +611,7 @@ export default function ConnectHost() {
                                      <div className="text-xs text-right text-gray-500 mt-1">{progressText}</div>
                                 </div>
 
-                                <div className="flex gap-8 w-1/3 justify-end">
+                                <div className="flex gap-4 w-1/3 justify-end items-center">
                                     <div className="text-right w-16">
                                         <div className="text-xl font-bold" style={{ color: theme.buttonSelected }}>{Math.round(user.stats?.wpm || 0)}</div>
                                         <div className="text-xs text-gray-500">WPM</div>
@@ -567,6 +619,24 @@ export default function ConnectHost() {
                                     <div className="text-right w-16">
                                         <div className="text-xl font-bold opacity-80">{Math.round(user.stats?.accuracy || 0)}%</div>
                                         <div className="text-xs text-gray-500">ACC</div>
+                                    </div>
+                                    
+                                    {/* Actions (Visible on Hover) */}
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={() => resetUser(user.id)}
+                                            className="p-1.5 rounded hover:bg-gray-600 text-yellow-500 transition"
+                                            title="Reset User"
+                                        >
+                                            ↺
+                                        </button>
+                                        <button 
+                                            onClick={() => kickUser(user.id)}
+                                            className="p-1.5 rounded hover:bg-gray-600 text-red-500 transition"
+                                            title="Kick User"
+                                        >
+                                            ✕
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -577,12 +647,30 @@ export default function ConnectHost() {
                     return (
                         <div 
                             key={user.id} 
-                            className="bg-[#2c2e31] rounded-lg p-6 flex flex-col gap-4 hover:shadow-lg transition border-t-4 border-transparent hover:border-current"
+                            className="bg-[#2c2e31] rounded-lg p-6 flex flex-col gap-4 hover:shadow-lg transition border-t-4 border-transparent hover:border-current group relative"
                             style={{ fontSize: `${cardSize}rem`, color: theme.defaultText }}
                         >
                             <div className="flex justify-between items-start">
                                 <div className="font-bold text-[1.2em] truncate w-3/4" title={user.name}>{user.name}</div>
                                 <div className="text-[0.6em] opacity-70 font-mono mt-1">{user.id.slice(0, 4)}</div>
+                            </div>
+
+                            {/* Actions (Absolute Top Right) */}
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={() => resetUser(user.id)}
+                                    className="p-1 rounded hover:bg-gray-600 text-yellow-500 transition text-sm"
+                                    title="Reset User"
+                                >
+                                    ↺
+                                </button>
+                                <button 
+                                    onClick={() => kickUser(user.id)}
+                                    className="p-1 rounded hover:bg-gray-600 text-red-500 transition text-sm"
+                                    title="Kick User"
+                                >
+                                    ✕
+                                </button>
                             </div>
 
                             <div className="space-y-2">
@@ -813,6 +901,10 @@ export default function ConnectHost() {
                  <button
                     onClick={() => {
                         if (tempPresetText) {
+                            if (tempPresetText.length > MAX_PRESET_LENGTH) {
+                                alert(`Text exceeds ${MAX_PRESET_LENGTH} characters.`);
+                                return;
+                            }
                             updateSettings({ presetText: tempPresetText.trim() });
                             setShowPresetInput(false);
                         }

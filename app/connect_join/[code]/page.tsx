@@ -64,6 +64,15 @@ export default function ConnectRoom() {
         setConnected(false);
     });
 
+    socket.on("kicked", () => {
+        setError("You have been kicked from the room.");
+        setConnected(false);
+        socket.disconnect();
+        setTimeout(() => {
+            router.push("/");
+        }, 3000);
+    });
+
     return () => {
       socket.disconnect();
     };

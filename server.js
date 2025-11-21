@@ -22,9 +22,11 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl);
   });
 
+  const roomTimeouts = new Map(); // code -> Timeout
+
   const io = new Server(httpServer);
 
-  io.on('connection', (socket) => {
+    io.on('connection', (socket) => {
     // console.log('Client connected', socket.id);
 
     socket.on('create_room', (callback) => {
@@ -43,6 +45,30 @@ app.prepare().then(() => {
       socket.join(code);
       // console.log(`Room created: ${code} by ${socket.id}`);
       callback({ code });
+    });
+
+    socket.on('claim_host', ({ code }, callback) => {
+        const room = rooms.get(code);
+        if (room) {
+            // Check if there is an active host? Or just override?
+            // Since we are handling reconnection, we assume the old socket is dead or this is the same person.
+            // If we had a timeout pending, clear it.
+            if (roomTimeouts.has(code)) {
+                clearTimeout(roomTimeouts.get(code));
+                roomTimeouts.delete(code);
+            }
+            
+            room.hostId = socket.id;
+            socket.join(code);
+            callback({ 
+                success: true, 
+                users: room.users, 
+                settings: room.settings, 
+                status: room.status 
+            });
+        } else {
+            callback({ success: false, error: 'Room not found' });
+        }
     });
 
     socket.on('join_room', ({ code, name }, callback) => {
@@ -93,8 +119,43 @@ app.prepare().then(() => {
         if (room && room.hostId === socket.id) {
              room.status = 'waiting';
             // Reset stats for all users?
-             room.users.forEach(u => u.stats = { wpm: 0, accuracy: 0, progress: 0 });
+             room.users.forEach(u => u.stats = { wpm: 0, accuracy: 0, progress: 0, wordsTyped: 0, timeElapsed: 0, isFinished: false });
             io.to(code).emit('test_reset');
+        }
+    });
+
+    socket.on('kick_user', ({ code, userId }) => {
+        const room = rooms.get(code);
+        if (room && room.hostId === socket.id) {
+            const index = room.users.findIndex(u => u.id === userId);
+            if (index !== -1) {
+                room.users.splice(index, 1);
+                // Notify the user they were kicked
+                io.to(userId).emit('kicked');
+                
+                // Notify host to update list
+                io.to(room.hostId).emit('user_left', { userId });
+                
+                // Make the user leave the socket room
+                const userSocket = io.sockets.sockets.get(userId);
+                if (userSocket) {
+                    userSocket.leave(code);
+                }
+            }
+        }
+    });
+
+    socket.on('reset_user', ({ code, userId }) => {
+        const room = rooms.get(code);
+        if (room && room.hostId === socket.id) {
+            const user = room.users.find(u => u.id === userId);
+            if (user) {
+                user.stats = { wpm: 0, accuracy: 0, progress: 0, wordsTyped: 0, timeElapsed: 0, isFinished: false };
+                io.to(userId).emit('test_reset'); // Reuse test_reset event or specific one? test_reset usually implies global reset.
+                // Let's use the same event since it triggers sessionId change.
+                // But we only send it to THAT user.
+                io.to(room.hostId).emit('stats_update', { userId, stats: user.stats });
+            }
         }
     });
 
@@ -115,11 +176,15 @@ app.prepare().then(() => {
       // Handle user disconnect
         rooms.forEach((room, code) => {
             if (room.hostId === socket.id) {
-                // Host left - destroy room or handle migration? PRD says "Users MUST be able to refresh and rejoin".
-                // If host disconnects, maybe keep room alive for a bit?
-                // For now, let's just notify.
-                io.to(code).emit('host_disconnected');
-                rooms.delete(code);
+                // Host left - set timeout to destroy room
+                // Give them 2 minutes to reconnect
+                const timeout = setTimeout(() => {
+                    io.to(code).emit('host_disconnected');
+                    rooms.delete(code);
+                    roomTimeouts.delete(code);
+                    // console.log(`Room ${code} destroyed due to host inactivity`);
+                }, 2 * 60 * 1000);
+                roomTimeouts.set(code, timeout);
             } else {
                 const index = room.users.findIndex(u => u.id === socket.id);
                 if (index !== -1) {
