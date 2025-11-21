@@ -49,13 +49,13 @@ export type Theme = {
 };
 
 export const DEFAULT_THEME: Theme = {
-  cursor: "#eab308", // yellow-500
+  cursor: "#3cb5ee", // yellow-500
   defaultText: "#4b5563", // gray-600
   upcomingText: "#4b5563", // gray-600
   correctText: "#d1d5db", // gray-300
   incorrectText: "#ef4444", // red-500
-  buttonUnselected: "#4b5563", // gray-600
-  buttonSelected: "#eab308", // yellow-500
+  buttonUnselected: "#3cb5ee", // gray-600
+  buttonSelected: "#0097b2", // yellow-500
   backgroundColor: "#323437", // gray-800/900ish
   ghostCursor: "#a855f7", // purple-500
 };
