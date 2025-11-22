@@ -1,7 +1,5 @@
 ![TypeSetGo Banner](/public/assets/Banner-Color.png)
 
-# TypeSetGo
-
 **TypeSetGo** is a modern, open-source typing platform designed for enthusiasts who want to improve their speed and accuracy. Inspired by the best tools in the community, it offers a clean, distraction-free environment with powerful features for both solo practice and competitive multiplayer racing.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
