@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 import { GLOBAL_COLORS } from "@/lib/colors";
 
@@ -14,9 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TypeSetGo - Typing Test",
+  title: "TypeSetGo",
   description:
-    "A minimalistic typing test inspired by Monkeytype.",
+    "minimalistic typing test",
+  icons: {
+    icon: "/assets/Icon-Color.svg",
+  },
 };
 
 export default function RootLayout({
@@ -43,6 +47,15 @@ export default function RootLayout({
           } as React.CSSProperties
         }
       >
+        <header className="fixed top-0 left-0 p-6 z-50">
+          <Image
+            src="/assets/Banner-Color.svg"
+            alt="TypeSetGo"
+            width={400}
+            height={50}
+            priority
+          />
+        </header>
         {children}
       </body>
     </html>
