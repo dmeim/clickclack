@@ -47,14 +47,17 @@ export default function RootLayout({
           } as React.CSSProperties
         }
       >
-        <header className="fixed top-0 left-0 p-6 z-50">
-          <Image
-            src="/assets/Banner-Color.svg"
-            alt="TypeSetGo"
-            width={400}
-            height={50}
-            priority
-          />
+        <header className="relative md:fixed top-0 left-0 w-full md:w-auto p-4 md:p-6 z-50 flex justify-center md:block">
+          <div className="w-[200px] md:w-[400px]">
+            <Image
+              src="/assets/Banner-Color.svg"
+              alt="TypeSetGo"
+              width={400}
+              height={50}
+              priority
+              className="w-full h-auto"
+            />
+          </div>
         </header>
         {children}
       </body>

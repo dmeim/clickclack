@@ -25,6 +25,7 @@ export default function ConnectRoom() {
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState(0);
   const [hostName, setHostName] = useState<string>("Host");
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     if (!code || !name) return;
@@ -98,7 +99,7 @@ export default function ConnectRoom() {
   if (error) {
       return (
       <div 
-        className="min-h-screen flex flex-col items-center justify-center gap-4 transition-colors duration-300"
+        className="min-h-[100dvh] flex flex-col items-center justify-center gap-4 transition-colors duration-300"
         style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
       >
           <div className="text-xl" style={{ color: GLOBAL_COLORS.text.error }}>{error}</div>
@@ -112,7 +113,7 @@ export default function ConnectRoom() {
   if (!name) {
     return (
       <div 
-        className="min-h-screen flex items-center justify-center px-4 transition-colors duration-300"
+        className={`min-h-[100dvh] flex items-center justify-center px-4 transition-all duration-300 ${isFocused && window.innerWidth < 768 ? "items-start pt-20" : ""}`}
         style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
       >
           <div 
@@ -135,8 +136,14 @@ export default function ConnectRoom() {
                       placeholder="YOUR NAME"
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:outline-none text-white placeholder-gray-600"
                       style={{ borderColor: "transparent" }}
-                      onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
-                      onBlur={(e) => e.target.style.borderColor = "transparent"}
+                      onFocus={(e) => {
+                          e.target.style.borderColor = GLOBAL_COLORS.brand.primary;
+                          if (window.innerWidth < 768) setIsFocused(true);
+                      }}
+                      onBlur={(e) => {
+                          e.target.style.borderColor = "transparent";
+                          setIsFocused(false);
+                      }}
                       maxLength={15}
                       autoFocus
                   />
@@ -165,7 +172,7 @@ export default function ConnectRoom() {
   if (!connected || !lockedSettings) {
        return (
           <div 
-            className="min-h-screen flex items-center justify-center transition-colors duration-300"
+            className="min-h-[100dvh] flex items-center justify-center transition-colors duration-300"
             style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
           >
               Connecting to room {code}...

@@ -6,6 +6,7 @@ import { GLOBAL_COLORS } from "@/lib/colors";
 
 export default function HostCard() {
   const [hostName, setHostName] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
 
   const handleHost = (e: React.FormEvent) => {
@@ -17,7 +18,7 @@ export default function HostCard() {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center group border border-gray-800 hover:border-gray-700 transition-colors h-96"
+      className={`relative overflow-hidden rounded-2xl p-10 flex flex-col items-center group border border-gray-800 hover:border-gray-700 transition-all duration-300 h-96 ${isFocused ? "justify-start pt-10" : "justify-center"}`}
       style={{ backgroundColor: GLOBAL_COLORS.surface }}
     >
       <div className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: GLOBAL_COLORS.text.secondary }}>Create Room</div>
@@ -31,9 +32,15 @@ export default function HostCard() {
             placeholder="YOUR NAME"
             className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:outline-none text-white placeholder-gray-600"
             style={{ borderColor: "transparent" }} // Override border
-            onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
-            onBlur={(e) => e.target.style.borderColor = "transparent"}
             maxLength={15}
+            onFocus={(e) => {
+              e.target.style.borderColor = GLOBAL_COLORS.brand.primary;
+              if (window.innerWidth < 768) setIsFocused(true);
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "transparent";
+              setIsFocused(false);
+            }}
           />
           <button 
               type="submit"

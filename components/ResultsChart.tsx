@@ -87,7 +87,7 @@ export default function ResultsChart({ data, errors, theme }: ResultsChartProps)
 
   return (
     // Applied Card Design
-    <div className="relative overflow-hidden rounded-2xl bg-[#2c2e31] p-6 mb-8 border border-gray-800 hover:border-gray-700 transition-colors flex flex-col animate-fade-in h-[400px]">
+    <div className="relative overflow-hidden rounded-2xl bg-[#2c2e31] p-6 mb-8 border border-gray-800 hover:border-gray-700 transition-colors flex flex-col animate-fade-in h-[300px] md:h-[400px]">
        <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 self-start ml-2">Performance Over Time</div>
        <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">

@@ -8,6 +8,7 @@ function JoinCardContent() {
   const searchParams = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code") || "");
   const [joinName, setJoinName] = useState(searchParams.get("name") || "");
+  const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
 
   const handleJoin = (e: React.FormEvent) => {
@@ -19,7 +20,7 @@ function JoinCardContent() {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center group border border-gray-800 hover:border-gray-700 transition-colors h-96"
+      className={`relative overflow-hidden rounded-2xl p-10 flex flex-col items-center group border border-gray-800 hover:border-gray-700 transition-all duration-300 h-96 ${isFocused ? "justify-start pt-10" : "justify-center"}`}
       style={{ backgroundColor: GLOBAL_COLORS.surface }}
     >
       <div className="text-xs font-bold uppercase tracking-widest mb-6" style={{ color: GLOBAL_COLORS.text.secondary }}>Join Room</div>
@@ -33,8 +34,16 @@ function JoinCardContent() {
             placeholder="YOUR NAME"
             className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-lg font-bold tracking-wide focus:outline-none text-white placeholder-gray-600"
             style={{ borderColor: "transparent" }}
-            onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
-            onBlur={(e) => e.target.style.borderColor = "transparent"}
+            onFocus={(e) => {
+               e.target.style.borderColor = GLOBAL_COLORS.brand.primary;
+               if (window.innerWidth < 768) setIsFocused(true);
+            }}
+            onBlur={(e) => {
+               e.target.style.borderColor = "transparent";
+               // Only unfocus if neither is focused? Actually blur fires before focus of next element usually.
+               // Simple timeout or just set false is fine for now, user taps outside or hits "Join"
+               setTimeout(() => setIsFocused(false), 100);
+            }}
             maxLength={15}
           />
           <input
@@ -44,8 +53,14 @@ function JoinCardContent() {
             placeholder="ENTER CODE"
             className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded text-center text-xl font-bold tracking-widest uppercase focus:outline-none text-white placeholder-gray-600"
             style={{ borderColor: "transparent" }}
-            onFocus={(e) => e.target.style.borderColor = GLOBAL_COLORS.brand.primary}
-            onBlur={(e) => e.target.style.borderColor = "transparent"}
+            onFocus={(e) => {
+               e.target.style.borderColor = GLOBAL_COLORS.brand.primary;
+               if (window.innerWidth < 768) setIsFocused(true);
+            }}
+            onBlur={(e) => {
+               e.target.style.borderColor = "transparent";
+               setTimeout(() => setIsFocused(false), 100);
+            }}
             maxLength={6}
           />
           <button

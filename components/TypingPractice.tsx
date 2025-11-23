@@ -220,12 +220,37 @@ export default function TypingPractice({
     difficulty: "beginner",
     quoteLength: "all",
     textAlign: "center",
-    ghostWriterSpeed: 60,
+    ghostWriterSpeed: 40,
     ghostWriterEnabled: false,
     soundEnabled: false,
     presetText: "",
     presetModeType: "finish",
   });
+
+  // Mobile detection for default settings
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSettings(prev => ({
+          ...prev,
+          typingFontSize: 1.75, // Smaller font for mobile
+          iconFontSize: 0.8,
+          helpFontSize: 0.8,
+        }));
+        // setLinePreview(2); // Reverted per user request: too little context
+      }
+    };
+    
+    // Only run on mount to set initial mobile state
+    // We don't want to constantly reset if user changes window size
+    handleResize();
+    
+    // Optional: listen for resize if we want to support orientation changes dynamically
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -254,6 +279,8 @@ export default function TypingPractice({
 
   const [isRepeated, setIsRepeated] = useState(false);
   const [ghostCharIndex, setGhostCharIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const finishSession = useCallback(() => {
     if (isFinished) return;
@@ -389,6 +416,7 @@ export default function TypingPractice({
     setScrollOffset(0);
     setGhostCharIndex(0);
     setIsRepeated(isRepeat);
+    setIsFocused(true); // Assuming reset means we want to type
     inputRef.current?.focus();
   }, []);
 
@@ -700,13 +728,21 @@ export default function TypingPractice({
 
   return (
     <div
-      className="relative flex min-h-screen flex-col items-center justify-center px-4 py-8 transition-colors duration-300"
+      className={`relative flex min-h-[100dvh] flex-col items-center px-4 pb-8 transition-colors duration-300 
+        ${isMobile 
+          ? (isFocused ? "justify-start pt-40" : isFinished ? "justify-start pt-0" : "justify-center pt-8") 
+          : "justify-center pt-8"
+        }`}
       style={{ backgroundColor: theme.backgroundColor }}
     >
       {/* Settings bar */}
       {!connectMode && !isRunning && !isFinished && (
         <div
-          className={`fixed top-[10%] left-0 w-full flex flex-col items-center justify-center gap-4 transition-opacity duration-300 ${settings.mode === "zen" && isZenUIHidden ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+          className={`fixed top-[100px] md:top-[10%] left-0 w-full flex flex-col items-center justify-center gap-4 transition-all duration-300 ${
+            (settings.mode === "zen" && isZenUIHidden) || (isFocused && isMobile) 
+              ? "opacity-0 pointer-events-none translate-y-[-20px]" 
+              : "opacity-100 translate-y-0"
+          }`}
           style={{ fontSize: `${settings.iconFontSize}rem` }}
         >
            {/* Line 1: Toolbar */}
@@ -987,33 +1023,33 @@ export default function TypingPractice({
 
       {/* Live stats (moved to top) */}
       {isRunning && !isFinished && settings.mode !== "zen" && (
-        <div className="fixed top-[20%] left-0 w-full flex justify-center gap-4 pointer-events-none select-none z-10 transition-all duration-300">
+        <div className="fixed top-[80px] md:top-[20%] left-0 w-full flex flex-row flex-nowrap items-center justify-center gap-2 md:gap-4 pointer-events-none select-none z-10 transition-all duration-300">
           
           {/* WPM Pill */}
           <div 
-            className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+            className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[70px] md:min-w-[100px] justify-center"
             style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
           >
-            <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>{Math.round(wpm)}</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">wpm</span>
+            <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>{Math.round(wpm)}</span>
+            <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-gray-500">wpm</span>
           </div>
 
           {/* Accuracy Pill */}
           <div 
-            className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+            className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[70px] md:min-w-[100px] justify-center"
             style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
           >
-            <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>{Math.round(accuracy)}%</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">acc</span>
+            <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>{Math.round(accuracy)}%</span>
+            <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-gray-500">acc</span>
           </div>
 
           {/* Timer / Word Counter Pill */}
           {(settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && (
             <div 
-              className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+              className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[70px] md:min-w-[100px] justify-center"
               style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
             >
-              <span className={`text-3xl font-bold tabular-nums leading-none ${settings.duration > 0 && Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)) < 10 ? "" : "text-gray-200"}`} style={{ color: settings.duration > 0 && Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)) < 10 ? GLOBAL_COLORS.text.error : undefined }}>
+              <span className={`text-xl md:text-3xl font-bold tabular-nums leading-none ${settings.duration > 0 && Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)) < 10 ? "" : "text-gray-200"}`} style={{ color: settings.duration > 0 && Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)) < 10 ? GLOBAL_COLORS.text.error : undefined }}>
                 {settings.duration === 0 
                   ? formatTime(Math.floor(elapsedMs / 1000))
                   : formatTime(Math.max(0, settings.duration - Math.floor(elapsedMs / 1000)))
@@ -1024,28 +1060,39 @@ export default function TypingPractice({
           
           {settings.mode === "words" && (
              <div 
-                className="flex items-baseline gap-2 px-6 py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[100px] justify-center"
+                className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg border border-gray-700/50 min-w-[70px] md:min-w-[100px] justify-center"
                 style={{ backgroundColor: `${GLOBAL_COLORS.surface}E6` }}
              >
-               <span className="text-3xl font-bold text-gray-200 tabular-nums leading-none">
+               <span className="text-xl md:text-3xl font-bold text-gray-200 tabular-nums leading-none">
                  {Math.min(typedText.trim() === "" ? 0 : typedText.trim().split(/\s+/).length, settings.wordTarget === 0 ? Infinity : settings.wordTarget)}
                </span>
                {settings.wordTarget > 0 && (
                  <>
                    <span className="text-sm text-gray-500 font-medium">/</span>
-                   <span className="text-xl font-semibold text-gray-500 tabular-nums leading-none">
+                   <span className="text-lg md:text-xl font-semibold text-gray-500 tabular-nums leading-none">
                      {settings.wordTarget}
                    </span>
                  </>
                )}
              </div>
           )}
+
+          {/* Mobile Stop Button */}
+          <button
+            onClick={finishSession}
+            className="md:hidden flex items-center justify-center w-10 h-10 backdrop-blur-md rounded-full shadow-lg border border-red-500/30 text-red-400 bg-red-900/20 active:scale-95 transition-all pointer-events-auto"
+            aria-label="Stop Test"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            </svg>
+          </button>
         </div>
       )}
 
       {/* Quote Info */}
       {settings.mode === "quote" && currentQuote && !isFinished && (
-        <div className="mb-8 flex flex-col items-center text-center animate-fade-in">
+        <div className={`mb-8 flex flex-col items-center text-center animate-fade-in transition-opacity duration-300 ${isFocused && isMobile ? "opacity-0 h-0 overflow-hidden mb-0" : "opacity-100"}`}>
           <div className="text-xl font-medium" style={{ color: theme.buttonSelected }}>{currentQuote.author}</div>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm text-gray-400">{currentQuote.source}, {currentQuote.date}</span>
@@ -1069,7 +1116,7 @@ export default function TypingPractice({
       )}
 
       {/* Typing area */}
-      <div className="w-[80%] max-w-none">
+      <div className="w-[95%] md:w-[80%] max-w-none">
         {!isFinished ? (
           <div className="relative">
             <input
@@ -1079,12 +1126,15 @@ export default function TypingPractice({
               value={typedText}
               onChange={(e) => handleInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               autoFocus
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
               data-lpignore="true"
               className="absolute left-0 top-0 -z-10 opacity-0"
+              style={{ caretColor: "transparent", color: "transparent", appearance: "none" }}
             />
 
             <div
@@ -1196,9 +1246,9 @@ export default function TypingPractice({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               {/* Primary Stats */}
-              <div className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
+              <div className="relative overflow-hidden rounded-2xl p-6 md:p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                 <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Words Per Minute</div>
-                <div className="text-8xl font-black tabular-nums leading-none tracking-tight" style={{ color: theme.buttonSelected }}>
+                <div className="text-6xl md:text-8xl font-black tabular-nums leading-none tracking-tight" style={{ color: theme.buttonSelected }}>
                   {Math.round(wpm)}
                 </div>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -1206,10 +1256,10 @@ export default function TypingPractice({
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
+              <div className="relative overflow-hidden rounded-2xl p-6 md:p-10 flex flex-col items-center justify-center group border border-gray-800 hover:border-gray-700 transition-colors" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                 <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Accuracy</div>
-                <div className="text-8xl font-black tabular-nums leading-none tracking-tight" style={{ color: theme.buttonSelected }}>
-                  {Math.round(accuracy)}<span className="text-4xl align-top ml-1 opacity-50">%</span>
+                <div className="text-6xl md:text-8xl font-black tabular-nums leading-none tracking-tight" style={{ color: theme.buttonSelected }}>
+                  {Math.round(accuracy)}<span className="text-2xl md:text-4xl align-top ml-1 opacity-50">%</span>
                 </div>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                   <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -1299,8 +1349,8 @@ export default function TypingPractice({
             className="fixed inset-0 z-40 flex flex-col items-center justify-center"
             style={{ backgroundColor: theme.backgroundColor }}
         >
-            <div className="w-full max-w-md rounded-2xl p-10 flex flex-col items-center justify-center border border-gray-800 shadow-2xl text-center animate-fade-in" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
-                <h2 className="text-2xl font-bold mb-4" style={{ color: theme.buttonSelected }}>Waiting for {hostName || "Host"} to start...</h2>
+            <div className="w-full max-w-md rounded-2xl p-6 md:p-10 flex flex-col items-center justify-center border border-gray-800 shadow-2xl text-center animate-fade-in mx-4 md:mx-0" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
+                <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: theme.buttonSelected }}>Waiting for {hostName || "Host"} to start...</h2>
                 <div className="text-gray-400 animate-pulse mb-8">Prepare to type</div>
                 
                 {onLeave && (
@@ -1322,7 +1372,7 @@ export default function TypingPractice({
           onClick={() => setShowSettings(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg p-6 shadow-xl"
+            className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1481,7 +1531,7 @@ export default function TypingPractice({
           onClick={() => setShowThemeModal(false)}
         >
           <div
-            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg p-6 shadow-xl"
+            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg p-6 shadow-xl mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1564,7 +1614,7 @@ export default function TypingPractice({
           }}
         >
           <div
-            className="w-full max-w-2xl rounded-lg p-6 shadow-xl"
+            className="w-full max-w-2xl rounded-lg p-6 shadow-xl mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1652,7 +1702,7 @@ export default function TypingPractice({
           onClick={() => setShowCustomModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-lg p-6 shadow-xl"
+            className="w-full max-w-sm rounded-lg p-6 shadow-xl mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >

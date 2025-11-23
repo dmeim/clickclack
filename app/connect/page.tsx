@@ -8,7 +8,7 @@ import JoinCard from "@/components/connect/JoinCard";
 export default function ConnectPage() {
   return (
     <div 
-      className="min-h-screen flex items-center justify-center font-mono px-4 transition-colors duration-300"
+      className="min-h-[100dvh] flex items-center justify-center font-mono px-4 transition-colors duration-300"
       style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
     >
       <div className="w-full max-w-4xl mx-auto animate-fade-in">

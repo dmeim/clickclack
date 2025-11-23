@@ -75,6 +75,17 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   const [sortBy, setSortBy] = useState<"join" | "wpm" | "accuracy" | "progress" | "name" | "custom">("join");
   const [cardSize, setCardSize] = useState(1); // 0.5 to 2
   const [customOrder, setCustomOrder] = useState<string[]>([]);
+  
+  // Mobile check
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+        setSettings(prev => ({
+            ...prev,
+            iconFontSize: 0.8
+        }));
+        setCardSize(0.8);
+    }
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -266,7 +277,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   if (!roomCode) {
     return (
       <div 
-        className="min-h-screen flex items-center justify-center transition-colors duration-300"
+        className="min-h-[100dvh] flex items-center justify-center transition-colors duration-300"
         style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
       >
         Creating room...
@@ -276,7 +287,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
 
   return (
     <div 
-        className="min-h-screen p-8 font-mono flex flex-col transition-colors duration-300"
+        className="min-h-[100dvh] p-8 font-mono flex flex-col transition-colors duration-300"
         style={{ backgroundColor: theme.backgroundColor, color: GLOBAL_COLORS.text.primary }}
     >
       
@@ -291,14 +302,14 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
           <div className="flex gap-4">
               <button 
                   onClick={resetTest}
-                  className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white transition font-medium"
+                  className="px-4 md:px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white transition font-medium text-sm md:text-base"
               >
                   Reset
               </button>
               {status === "waiting" ? (
               <button
                   onClick={startTest}
-                  className="px-8 py-2 font-bold rounded transition shadow-lg"
+                  className="px-4 md:px-8 py-2 font-bold rounded transition shadow-lg text-sm md:text-base"
                   style={{ 
                     backgroundColor: theme.buttonSelected, 
                     color: theme.backgroundColor,
@@ -310,7 +321,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
               ) : (
               <button
                   onClick={stopTest}
-                  className="px-8 py-2 font-bold rounded transition shadow-lg text-white"
+                  className="px-4 md:px-8 py-2 font-bold rounded transition shadow-lg text-white text-sm md:text-base"
                   style={{ 
                     backgroundColor: GLOBAL_COLORS.text.error,
                     boxShadow: `0 10px 15px -3px ${GLOBAL_COLORS.text.error}33`
@@ -323,7 +334,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
 
           {/* Toolbar (Copied from TypingPractice) */}
           <div 
-            className="flex items-center gap-4 px-6 py-2 rounded-full shadow-lg"
+            className="flex items-center gap-4 px-6 py-2 rounded-full shadow-lg overflow-x-auto max-w-[90vw] md:max-w-none scrollbar-hide"
             style={{ fontSize: `${settings.iconFontSize || 1.25}rem`, backgroundColor: GLOBAL_COLORS.surface }}
           >
             {/* Settings Button */}
@@ -682,7 +693,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
           onClick={() => setShowSettings(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg p-6 shadow-xl"
+            className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -767,7 +778,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
           onClick={() => setShowThemeModal(false)}
         >
           <div
-            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg p-6 shadow-xl"
+            className="w-full max-w-md max-h-[80vh] overflow-y-auto rounded-lg p-6 shadow-xl mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -836,7 +847,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
           onClick={() => setShowCustomModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-lg p-6 shadow-xl"
+            className="w-full max-w-sm rounded-lg p-6 shadow-xl mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -930,7 +941,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
           onClick={() => setShowPresetInput(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-lg p-6 shadow-xl border border-gray-700"
+            className="w-full max-w-2xl rounded-lg p-6 shadow-xl border border-gray-700 mx-4 md:mx-0"
             style={{ backgroundColor: GLOBAL_COLORS.surface }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1018,7 +1029,7 @@ function ConnectHostContent() {
   if (!nameParam) {
       return (
         <div 
-            className="min-h-screen flex items-center justify-center font-mono px-4 transition-colors duration-300"
+            className="min-h-[100dvh] flex items-center justify-center font-mono px-4 transition-colors duration-300"
             style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
         >
             <div className="w-full max-w-md animate-fade-in">
@@ -1039,7 +1050,7 @@ function ConnectHostContent() {
 export default function ConnectHost() {
   return (
     <Suspense fallback={<div 
-      className="min-h-screen flex items-center justify-center transition-colors duration-300"
+      className="min-h-[100dvh] flex items-center justify-center transition-colors duration-300"
       style={{ backgroundColor: GLOBAL_COLORS.background, color: GLOBAL_COLORS.text.primary }}
     >
       Loading...
