@@ -29,28 +29,29 @@ Build a fast, classroom-ready typing platform with a clean, Monkeytype-style UI 
 ### Phase 1: Foundation (MVP)
 * **Focus**: Core typing experience, basic teacher tools, PWA.
 * **Key Features**:
-    * Practice modes (Time, Word, Text).
-    * Teacher presets & share links.
-    * Basic analytics & dashboard.
-    * Anti-cheat signals (lightweight).
-    * Supabase Auth & RLS.
+    * [x] Practice modes (Time, Word, Quote, Zen).
+    * [x] Connect Mode (Live Multiplayer/Classroom).
+    * [x] Preset Mode (Custom text).
+    * [ ] Basic analytics & dashboard (Historical).
+    * [ ] Anti-cheat signals (lightweight).
+    * [ ] Supabase Auth & RLS.
 
 ### Phase 2: Guided Classrooms
 * **Focus**: Assignments, content management, org controls.
 * **Key Features**:
-    * Assignments with due dates.
-    * Content packs & discovery.
-    * Organization management & roster import.
-    * Longitudinal analytics.
+    * [ ] Assignments with due dates.
+    * [ ] Content packs & discovery.
+    * [ ] Organization management & roster import.
+    * [ ] Longitudinal analytics.
 
 ### Phase 3: Global Scale
 * **Focus**: Internationalization, enterprise integrations, gamification.
 * **Key Features**:
-    * Multilingual support (ES/FR).
-    * Keyboard layout personalization.
-    * Advanced anti-cheat & proctoring.
-    * Leaderboards & events.
-    * LMS Integrations (Google Classroom, Clever).
+    * [ ] Multilingual support (ES/FR).
+    * [ ] Keyboard layout personalization.
+    * [ ] Advanced anti-cheat & proctoring.
+    * [ ] Leaderboards & events.
+    * [ ] LMS Integrations (Google Classroom, Clever).
 
 ---
 
