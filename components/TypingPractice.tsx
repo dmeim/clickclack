@@ -836,7 +836,11 @@ export default function TypingPractice({
   const currentWordIndex = typedArray.length - 1;
 
   // Virtualization: Only render a window of words around the cursor to improve performance
-  const RENDER_WINDOW_START = Math.max(0, currentWordIndex - 30);
+  // We use chunking to prevent layout instability/shifting on every keystroke
+  // We keeps a large buffer (50) and only update the window every 50 words
+  const BUFFER = 50;
+  const CHUNK_SIZE = 50;
+  const RENDER_WINDOW_START = Math.floor(Math.max(0, currentWordIndex - BUFFER) / CHUNK_SIZE) * CHUNK_SIZE;
   const RENDER_WINDOW_END = currentWordIndex + 100;
   const visibleWords = wordArray.slice(RENDER_WINDOW_START, RENDER_WINDOW_END);
 
