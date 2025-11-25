@@ -78,6 +78,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   // View Options
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [sortBy, setSortBy] = useState<"join" | "wpm" | "accuracy" | "progress" | "name" | "custom">("join");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [cardSize, setCardSize] = useState(1); // 0.5 to 2
   const [customOrder, setCustomOrder] = useState<string[]>([]);
   
@@ -238,11 +239,23 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
 
   const sortedUsers = useMemo(() => {
       let sorted = [...users];
-      if (sortBy === "wpm") sorted.sort((a, b) => (b.stats?.wpm || 0) - (a.stats?.wpm || 0));
-      else if (sortBy === "accuracy") sorted.sort((a, b) => (b.stats?.accuracy || 0) - (a.stats?.accuracy || 0));
-      else if (sortBy === "progress") sorted.sort((a, b) => (b.stats?.progress || 0) - (a.stats?.progress || 0));
-      else if (sortBy === "name") sorted.sort((a, b) => a.name.localeCompare(b.name));
-      else if (sortBy === "custom") {
+      
+      const multiplier = sortDirection === "asc" ? 1 : -1;
+
+      if (sortBy === "wpm") {
+          sorted.sort((a, b) => ((a.stats?.wpm || 0) - (b.stats?.wpm || 0)) * multiplier);
+      } else if (sortBy === "accuracy") {
+          sorted.sort((a, b) => ((a.stats?.accuracy || 0) - (b.stats?.accuracy || 0)) * multiplier);
+      } else if (sortBy === "progress") {
+          sorted.sort((a, b) => ((a.stats?.progress || 0) - (b.stats?.progress || 0)) * multiplier);
+      } else if (sortBy === "name") {
+          sorted.sort((a, b) => a.name.localeCompare(b.name) * multiplier);
+      } else if (sortBy === "join") {
+          // default order is join order (asc). For desc, we reverse.
+          if (sortDirection === "desc") {
+              sorted.reverse();
+          }
+      } else if (sortBy === "custom") {
           sorted.sort((a, b) => {
               const indexA = customOrder.indexOf(a.id);
               const indexB = customOrder.indexOf(b.id);
@@ -251,9 +264,11 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
               if (indexB === -1) return -1;
               return indexA - indexB;
           });
+          // For custom, we might ignore sortDirection or maybe reverse the custom order? 
+          // Usually custom sort ignores direction flags in simple UIs, let's keep it ignored to avoid confusion with DND.
       }
       return sorted;
-  }, [users, sortBy, customOrder]);
+  }, [users, sortBy, customOrder, sortDirection]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -634,19 +649,31 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
              <div className="flex items-center gap-6 text-sm px-6 py-2 rounded-full shadow-lg mt-2" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
                 <div className="flex items-center gap-2">
                     <span className="text-gray-500">Sort:</span>
-                    <select 
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as any)}
-                        className="bg-gray-800 border-none rounded px-2 py-1 text-gray-200 cursor-pointer focus:ring-1"
-                        style={{ "--tw-ring-color": theme.buttonSelected } as any}
-                    >
-                        <option value="join">Joined</option>
-                        <option value="wpm">WPM</option>
-                        <option value="accuracy">Accuracy</option>
-                        <option value="progress">Progress</option>
-                        <option value="name">Name</option>
-                        <option value="custom">Custom</option>
-                    </select>
+                    <div className="flex bg-gray-800 rounded p-1">
+                        <select 
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value as any)}
+                            className="bg-transparent border-none text-gray-200 cursor-pointer focus:outline-none text-sm appearance-none pr-6 pl-2 relative z-10"
+                            style={{ 
+                                backgroundImage: 'none' // remove default arrow
+                            }}
+                        >
+                            <option value="join">Joined</option>
+                            <option value="wpm">WPM</option>
+                            <option value="accuracy">Accuracy</option>
+                            <option value="progress">Progress</option>
+                            <option value="name">Name</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <button
+                            onClick={() => setSortDirection(prev => prev === "asc" ? "desc" : "asc")}
+                            disabled={sortBy === "custom"}
+                            className={`px-2 hover:bg-gray-700 rounded transition ${sortBy === "custom" ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                            title={sortDirection === "asc" ? "Ascending" : "Descending"}
+                        >
+                            {sortDirection === "asc" ? "↑" : "↓"}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="w-px h-4 bg-gray-600"></div>
