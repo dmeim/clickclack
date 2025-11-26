@@ -102,6 +102,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
 
   const [showPresetInput, setShowPresetInput] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
   const [tempPresetText, setTempPresetText] = useState("");
   
   const [showSettings, setShowSettings] = useState(false);
@@ -345,7 +346,16 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
       <div className="flex flex-col items-center mb-8 space-y-6">
           <div className="text-center">
              <h1 className="text-3xl font-bold mb-2" style={{ color: theme.buttonSelected }}>Host Panel</h1>
-             <div style={{ color: GLOBAL_COLORS.text.secondary }}>Room Code: <span className="text-2xl font-bold text-white bg-gray-700 px-3 py-1 rounded ml-2 tracking-widest">{roomCode}</span></div>
+             <div style={{ color: GLOBAL_COLORS.text.secondary }} className="flex items-center justify-center gap-2">
+                 Room Code: 
+                 <button 
+                    onClick={() => setShowCodeModal(true)}
+                    className="text-2xl font-bold text-white bg-gray-700 px-3 py-1 rounded tracking-widest hover:bg-gray-600 transition hover:scale-105 active:scale-95"
+                    title="Click to expand"
+                 >
+                    {roomCode}
+                 </button>
+             </div>
           </div>
 
           {/* Action Buttons */}
@@ -785,6 +795,30 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
             </DndContext>
         )}
       </div>
+
+      {/* Full Screen Code Modal */}
+      {showCodeModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 cursor-pointer backdrop-blur-sm"
+          onClick={() => setShowCodeModal(false)}
+        >
+          <div className="text-center w-full">
+            <div className="text-4xl md:text-6xl font-bold text-gray-500 mb-8 md:mb-16 tracking-widest uppercase">Join Code</div>
+            <div 
+              className="text-[20vw] font-black tracking-widest leading-none select-text transition-colors duration-300"
+              style={{ color: theme.buttonSelected, textShadow: `0 0 100px ${theme.buttonSelected}33` }}
+              onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(roomCode || "");
+              }}
+              title="Click to copy"
+            >
+              {roomCode}
+            </div>
+            <div className="mt-16 text-xl md:text-2xl text-gray-600 font-medium">Click anywhere to close</div>
+          </div>
+        </div>
+      )}
 
       {/* Plan Builder Modal */}
       {showPlanBuilder && (
