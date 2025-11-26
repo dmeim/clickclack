@@ -26,6 +26,7 @@ function JoinRoomContent() {
   const [sessionId, setSessionId] = useState(0);
   const [hostName, setHostName] = useState<string>("Host");
   const [isFocused, setIsFocused] = useState(false);
+  const [resumeData, setResumeData] = useState<any>(null);
 
   // Socket ref to prevent global state issues
   const socketRef = useRef<Socket | null>(null);
@@ -34,19 +35,29 @@ function JoinRoomContent() {
   useEffect(() => {
     if (!code || !name) return;
 
+    // Generate or retrieve clientId
+    let clientId = localStorage.getItem("clientId");
+    if (!clientId) {
+        clientId = Math.random().toString(36).substring(2, 15);
+        localStorage.setItem("clientId", clientId);
+    }
+
     socketRef.current = io();
     const socket = socketRef.current;
 
     socket.on("connect", () => {
       console.log("Connected to server");
       
-      socket.emit("join_room", { code, name }, (response: any) => {
+      socket.emit("join_room", { code, name, clientId }, (response: any) => {
           if (response.error) {
             setError(response.error);
         } else {
             setLockedSettings(response.settings);
             setStatus(response.status);
             if (response.hostName) setHostName(response.hostName);
+            if (response.resumeSession) {
+                setResumeData(response.resumeSession);
+            }
             setConnected(true);
         }
       });
@@ -91,9 +102,9 @@ function JoinRoomContent() {
     };
   }, [code, name, router]);
 
-  const handleStatsUpdate = (stats: any) => {
+  const handleStatsUpdate = (stats: any, typedText?: string) => {
       if (connected && socketRef.current) {
-          socketRef.current.emit("send_stats", { code, stats });
+          socketRef.current.emit("send_stats", { code, stats, typedText });
       }
   };
 
@@ -219,6 +230,7 @@ function JoinRoomContent() {
         onLeave={handleLeave}
         sessionId={sessionId}
         hostName={hostName}
+        resumeData={resumeData}
     />
   );
 }

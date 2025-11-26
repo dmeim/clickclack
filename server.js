@@ -101,26 +101,78 @@ app.prepare().then(() => {
         }
     });
 
-    socket.on('join_room', ({ code, name }, callback) => {
+    socket.on('join_room', ({ code, name, clientId }, callback) => {
       const room = rooms.get(code);
       if (!room) {
         return callback({ error: 'Room not found' });
       }
-      
-      const newUser = { id: socket.id, name, stats: { wpm: 0, accuracy: 0, progress: 0 } };
-      room.users.push(newUser);
-      socket.join(code);
-      
-      // Notify host
-      io.to(room.hostId).emit('user_joined', newUser);
-      
-      const ipLog = getIpLog(socket);
-      console.log(`[ROOM]  👤 User Joined     | Code: ${code} | User: ${name} | ${ipLog}`);
 
-      // Send current state to joiner
-      callback({ settings: room.settings, status: room.status, hostName: room.hostName });
+      // Check for existing user with same clientId
+      let existingUser = null;
+      if (clientId) {
+          existingUser = room.users.find(u => u.clientId === clientId);
+      }
       
-      // console.log(`User ${name} joined room ${code}`);
+      if (existingUser) {
+          // Reconnection logic
+          const oldSocketId = existingUser.id;
+          
+          // Clear disconnect timeout if it exists
+          if (existingUser.disconnectTimeout) {
+              clearTimeout(existingUser.disconnectTimeout);
+              existingUser.disconnectTimeout = null;
+          }
+
+          // Update user identity
+          existingUser.id = socket.id;
+          existingUser.name = name || existingUser.name; 
+          existingUser.connected = true;
+
+          socket.join(code);
+
+          // Notify host: Swap old ID for new ID
+          io.to(room.hostId).emit('user_left', { userId: oldSocketId });
+          io.to(room.hostId).emit('user_joined', { 
+              ...existingUser, 
+              disconnectTimeout: undefined 
+          });
+
+           const ipLog = getIpLog(socket);
+           console.log(`[ROOM]  🔄 User Rejoined   | Code: ${code} | User: ${existingUser.name} | ${ipLog}`);
+
+           // Send resume data
+           callback({ 
+               settings: room.settings, 
+               status: room.status, 
+               hostName: room.hostName,
+               resumeSession: {
+                   stats: existingUser.stats,
+                   typedText: existingUser.typedText || "",
+                   targetText: existingUser.targetText || ""
+               }
+           });
+
+      } else {
+          // New User logic
+          const newUser = { 
+              id: socket.id, 
+              name, 
+              clientId: clientId || null,
+              stats: { wpm: 0, accuracy: 0, progress: 0 },
+              connected: true
+          };
+          room.users.push(newUser);
+          socket.join(code);
+          
+          // Notify host
+          io.to(room.hostId).emit('user_joined', newUser);
+          
+          const ipLog = getIpLog(socket);
+          console.log(`[ROOM]  👤 User Joined     | Code: ${code} | User: ${name} | ${ipLog}`);
+    
+          // Send current state to joiner
+          callback({ settings: room.settings, status: room.status, hostName: room.hostName });
+      }
     });
 
     socket.on('update_settings', ({ code, settings }) => {
@@ -194,14 +246,16 @@ app.prepare().then(() => {
         }
     });
 
-    socket.on('send_stats', ({ code, stats }) => {
+    socket.on('send_stats', ({ code, stats, typedText, targetText }) => {
       const room = rooms.get(code);
       if (room) {
         const user = room.users.find(u => u.id === socket.id);
         if (user) {
           user.stats = stats;
+          if (typedText !== undefined) user.typedText = typedText;
+          if (targetText !== undefined) user.targetText = targetText;
+          
           // If this is a user update, forward to host (or everyone if we want a leaderboard)
-          // Optimization: Maybe throttle this or only send to host
           io.to(room.hostId).emit('stats_update', { userId: socket.id, stats });
         }
       }
@@ -222,11 +276,21 @@ app.prepare().then(() => {
                 }, 15 * 60 * 1000);
                 roomTimeouts.set(code, timeout);
             } else {
-                const index = room.users.findIndex(u => u.id === socket.id);
-                if (index !== -1) {
-                    const [removedUser] = room.users.splice(index, 1);
-                    console.log(`[ROOM]  🏃 User Left       | Code: ${code} | User: ${removedUser.name} | ID: ${socket.id}`);
-                    io.to(room.hostId).emit('user_left', { userId: socket.id });
+                const user = room.users.find(u => u.id === socket.id);
+                if (user) {
+                    // Soft disconnect
+                    user.connected = false;
+                    console.log(`[ROOM]  ⏳ User Disconnect | Code: ${code} | User: ${user.name} | ID: ${socket.id} (Waiting for reconnect)`);
+                    
+                    // Set timeout to permanently remove user
+                    user.disconnectTimeout = setTimeout(() => {
+                        const index = room.users.indexOf(user);
+                        if (index !== -1) {
+                            room.users.splice(index, 1);
+                            console.log(`[ROOM]  🏃 User Left       | Code: ${code} | User: ${user.name} | ID: ${user.id} (Timeout)`);
+                            io.to(room.hostId).emit('user_left', { userId: user.id });
+                        }
+                    }, 60000); // 1 minute grace period
                 }
             }
         });

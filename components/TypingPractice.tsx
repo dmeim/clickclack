@@ -137,10 +137,22 @@ interface TypingPracticeProps {
     wordsTyped: number; 
     timeElapsed: number; 
     isFinished: boolean; 
-  }) => void;
+  }, typedText?: string, targetText?: string) => void;
   onLeave?: () => void;
   sessionId?: string | number;
   hostName?: string;
+  resumeData?: {
+      stats: {
+          wpm: number;
+          accuracy: number;
+          progress: number;
+          wordsTyped: number;
+          timeElapsed: number;
+          isFinished: boolean;
+      };
+      typedText: string;
+      targetText: string;
+  };
 }
 
 const formatTime = (seconds: number) => {
@@ -165,6 +177,7 @@ export default function TypingPractice({
   onLeave,
   sessionId,
   hostName,
+  resumeData,
 }: TypingPracticeProps) {
   // --- State Declarations ---
   const [settings, setSettings] = useState<SettingsState>({
@@ -223,6 +236,8 @@ export default function TypingPractice({
   const [isMobile, setIsMobile] = useState(false);
   const [isWarningPlayed, setIsWarningPlayed] = useState(false);
   const [soundManifest, setSoundManifest] = useState<SoundManifest>(INITIAL_SOUND_MANIFEST);
+  
+  const isResumingRef = useRef(!!resumeData);
 
   // Plan Mode State
   const [plan, setPlan] = useState<Plan>([]);
@@ -324,6 +339,24 @@ export default function TypingPractice({
   }, [settings.soundEnabled, settings.warningSound, soundManifest]);
 
   const generateTest = useCallback(() => {
+    if (isResumingRef.current && resumeData) {
+        setWords(resumeData.targetText);
+        setTypedText(resumeData.typedText);
+        setElapsedMs(resumeData.stats.timeElapsed);
+        
+        if (resumeData.stats.isFinished) {
+            setIsFinished(true);
+            setIsRunning(false);
+        } else if (connectMode && isTestActive) {
+             // Resume timer logic
+             setStartTime(Date.now() - resumeData.stats.timeElapsed);
+             setIsRunning(true);
+        }
+        
+        isResumingRef.current = false;
+        return;
+    }
+
     if (settings.mode === "quote") {
       if (quotes.length === 0) return;
       const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
@@ -360,7 +393,7 @@ export default function TypingPractice({
     }));
     resetSession(false);
     setScrollOffset(0);
-  }, [settings.mode, settings.duration, settings.wordTarget, settings.punctuation, settings.numbers, settings.quoteLength, settings.presetText, wordPool, quotes, resetSession, connectMode]);
+  }, [settings.mode, settings.duration, settings.wordTarget, settings.punctuation, settings.numbers, settings.quoteLength, settings.presetText, wordPool, quotes, resetSession, connectMode, resumeData, isTestActive]);
 
   const handleInput = (value: string) => {
     if (isFinished) return;
@@ -659,11 +692,11 @@ export default function TypingPractice({
   useEffect(() => {
     if (connectMode && onStatsUpdate && isRunning) {
         const interval = setInterval(() => {
-             onStatsUpdate(latestStatsRef.current);
+             onStatsUpdate(latestStatsRef.current, typedText, words);
         }, 500);
         return () => clearInterval(interval);
     }
-  }, [connectMode, onStatsUpdate, isRunning]);
+  }, [connectMode, onStatsUpdate, isRunning, typedText, words]);
 
   // Load word lists
   useEffect(() => {
