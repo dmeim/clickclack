@@ -219,7 +219,7 @@ app.prepare().then(() => {
                     rooms.delete(code);
                     roomTimeouts.delete(code);
                     console.log(`[ROOM]  💥 Room Destroyed  | Code: ${code} | Reason: Host Inactivity`);
-                }, 2 * 60 * 1000);
+                }, 15 * 60 * 1000);
                 roomTimeouts.set(code, timeout);
             } else {
                 const index = room.users.findIndex(u => u.id === socket.id);

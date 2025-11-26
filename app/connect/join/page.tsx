@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
@@ -8,8 +8,6 @@ import TypingPractice from "@/components/TypingPractice";
 import { SettingsState } from "@/lib/typing-constants";
 import { GLOBAL_COLORS } from "@/lib/colors";
 import JoinCard from "@/components/connect/JoinCard";
-
-let socket: Socket;
 
 function JoinRoomContent() {
   const searchParams = useSearchParams();
@@ -29,11 +27,15 @@ function JoinRoomContent() {
   const [hostName, setHostName] = useState<string>("Host");
   const [isFocused, setIsFocused] = useState(false);
 
+  // Socket ref to prevent global state issues
+  const socketRef = useRef<Socket | null>(null);
+
   // Effect for joining the room once code and name are present
   useEffect(() => {
     if (!code || !name) return;
 
-    socket = io();
+    socketRef.current = io();
+    const socket = socketRef.current;
 
     socket.on("connect", () => {
       console.log("Connected to server");
@@ -85,17 +87,20 @@ function JoinRoomContent() {
 
     return () => {
       socket.disconnect();
+      socketRef.current = null;
     };
   }, [code, name, router]);
 
   const handleStatsUpdate = (stats: any) => {
-      if (connected) {
-          socket.emit("send_stats", { code, stats });
+      if (connected && socketRef.current) {
+          socketRef.current.emit("send_stats", { code, stats });
       }
   };
 
   const handleLeave = () => {
-      socket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
       router.push("/");
   };
 

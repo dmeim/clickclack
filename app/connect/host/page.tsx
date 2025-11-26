@@ -29,8 +29,6 @@ import UserHostCard from "@/components/connect/UserHostCard";
 import SoundController from "@/components/SoundController";
 import { SoundManifest, INITIAL_SOUND_MANIFEST } from "@/lib/sounds";
 
-let socket: Socket;
-
 type User = {
   id: string;
   name: string;
@@ -113,6 +111,14 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   const [customTime, setCustomTime] = useState({ h: 0, m: 0, s: 0 });
   const [soundManifest, setSoundManifest] = useState<SoundManifest>(INITIAL_SOUND_MANIFEST);
 
+  // Socket ref to prevent global state issues
+  const socketRef = useMemo(() => {
+    // We only want to initialize the socket once per component mount
+    // But since we want to use it in callbacks, we'll keep it in a ref or just use the memoized instance
+    // actually, let's use a standard ref pattern for the connection to ensure we can cleanup
+    return { current: null as Socket | null };
+  }, []);
+
   // Derived theme for UI usage (defaulting if missing)
   const theme = settings.theme || DEFAULT_THEME;
 
@@ -133,7 +139,8 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   }, []);
 
   const createRoom = () => {
-      socket.emit("create_room", { name: hostName }, ({ code }: { code: string }) => {
+      if (!socketRef.current) return;
+      socketRef.current.emit("create_room", { name: hostName }, ({ code }: { code: string }) => {
         setRoomCode(code);
         localStorage.setItem("hostRoomCode", code);
       });
@@ -141,7 +148,8 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
 
   useEffect(() => {
     // Connect to socket
-    socket = io();
+    const socket = io();
+    socketRef.current = socket;
 
     socket.on("connect", () => {
       console.log("Connected to server");
@@ -156,7 +164,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
                   setSettings(prev => ({ ...prev, ...response.settings }));
                   setStatus(response.status);
               } else {
-                  console.log("Failed to claim room, creating new one");
+                  console.log("Failed to claim room, creating new one. Reason:", response.error);
                   localStorage.removeItem("hostRoomCode");
                   createRoom();
               }
@@ -182,14 +190,15 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
 
     return () => {
       socket.disconnect();
+      socketRef.current = null;
     };
   }, []);
 
   const updateSettings = (newSettings: Partial<SettingsState>) => {
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
-    if (roomCode) {
-      socket.emit("update_settings", { code: roomCode, settings: updated });
+    if (roomCode && socketRef.current) {
+      socketRef.current.emit("update_settings", { code: roomCode, settings: updated });
     }
   };
   
@@ -204,22 +213,22 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   };
 
   const startTest = () => {
-    if (roomCode) {
-      socket.emit("start_test", { code: roomCode });
+    if (roomCode && socketRef.current) {
+      socketRef.current.emit("start_test", { code: roomCode });
       setStatus("active");
     }
   };
 
   const stopTest = () => {
-    if (roomCode) {
-      socket.emit("stop_test", { code: roomCode });
+    if (roomCode && socketRef.current) {
+      socketRef.current.emit("stop_test", { code: roomCode });
       setStatus("waiting");
     }
   };
 
   const resetTest = () => {
-      if (roomCode) {
-          socket.emit("reset_test", { code: roomCode });
+      if (roomCode && socketRef.current) {
+          socketRef.current.emit("reset_test", { code: roomCode });
           setStatus("waiting");
           setUsers(prev => prev.map(u => ({ 
             ...u, 
@@ -245,14 +254,14 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   };
 
   const kickUser = (userId: string) => {
-      if (confirm("Are you sure you want to kick this user?")) {
-          socket.emit("kick_user", { code: roomCode, userId });
+      if (confirm("Are you sure you want to kick this user?") && socketRef.current) {
+          socketRef.current.emit("kick_user", { code: roomCode, userId });
       }
   };
 
   const resetUser = (userId: string) => {
-      if (confirm("Reset this user's progress?")) {
-          socket.emit("reset_user", { code: roomCode, userId });
+      if (confirm("Reset this user's progress?") && socketRef.current) {
+          socketRef.current.emit("reset_user", { code: roomCode, userId });
       }
   };
 
