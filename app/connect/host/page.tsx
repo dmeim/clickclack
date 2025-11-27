@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
@@ -112,6 +112,30 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   const [customValue, setCustomValue] = useState(0);
   const [customTime, setCustomTime] = useState({ h: 0, m: 0, s: 0 });
   const [soundManifest, setSoundManifest] = useState<SoundManifest>(INITIAL_SOUND_MANIFEST);
+  
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      cardsContainerRef.current?.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   // Socket ref to prevent global state issues
   const socketRef = useMemo(() => {
@@ -739,12 +763,37 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
                         </div>
                     </>
                 )}
+
+                <div className="w-px h-4 bg-gray-600"></div>
+
+                <button
+                    onClick={toggleFullscreen}
+                    className="flex items-center justify-center text-gray-400 hover:text-white transition"
+                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                >
+                    {isFullscreen ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                        </svg>
+                    )}
+                </button>
             </div>
          </div>
       </div>
 
       {/* Connected Users Area */}
-      <div className={`flex-1 overflow-y-auto p-4 rounded-xl ${users.length === 0 ? "flex items-center justify-center" : ""}`} style={{ backgroundColor: "rgba(0,0,0,0.2)" }}>
+      <div 
+        ref={cardsContainerRef}
+        className={`flex-1 overflow-y-auto p-4 rounded-xl ${users.length === 0 ? "flex items-center justify-center" : ""} ${isFullscreen ? "p-8" : ""}`} 
+        style={{ 
+            backgroundColor: isFullscreen ? theme.backgroundColor : "rgba(0,0,0,0.2)",
+            color: GLOBAL_COLORS.text.primary
+        }}
+      >
         {users.length === 0 ? (
             <div className="text-center" style={{ color: GLOBAL_COLORS.text.secondary }}>
                 <div className="text-xl mb-2">Waiting for users to join...</div>
