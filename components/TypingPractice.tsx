@@ -781,8 +781,8 @@ export default function TypingPractice({
       if ((settings.mode === "time" || (settings.mode === "preset" && settings.presetModeType === "time")) && settings.duration > 0) {
           const remainingMs = settings.duration * 1000 - nextElapsed;
           
-          // Warning sound logic: Play once when 3 seconds remain
-          if (remainingMs <= 3000 && remainingMs > 0 && !isWarningPlayed) {
+          // Warning sound logic: Play once when 1.5 seconds remain
+          if (remainingMs <= 1500 && remainingMs > 0 && !isWarningPlayed) {
               playWarningSound();
               setIsWarningPlayed(true);
           }
