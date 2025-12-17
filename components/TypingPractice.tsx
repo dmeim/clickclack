@@ -10,6 +10,7 @@ import PlanSplash from "./plan/PlanSplash";
 import PlanNavigation from "./plan/PlanNavigation";
 import PlanResultsModal from "./plan/PlanResultsModal";
 import SoundController from "./SoundController";
+import GhostWriterController from "./GhostWriterController";
 import ColorPicker from "./ColorPicker";
 import { getRandomSoundUrl, SoundManifest, INITIAL_SOUND_MANIFEST } from "@/lib/sounds";
 
@@ -1011,19 +1012,11 @@ export default function TypingPractice({
                 theme={theme}
             />
 
-            <button
-              type="button"
-              onClick={() => updateSettings({ ghostWriterEnabled: !settings.ghostWriterEnabled })}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
-              style={{ color: settings.ghostWriterEnabled ? theme.buttonSelected : theme.buttonUnselected }}
-              title="toggle ghost writer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 10h.01" />
-                <path d="M15 10h.01" />
-                <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z" />
-              </svg>
-            </button>
+            <GhostWriterController
+                settings={settings}
+                onUpdateSettings={updateSettings}
+                theme={theme}
+            />
            </div>
 
            {/* Line 2: Modes & Toggles */}
@@ -1747,23 +1740,6 @@ export default function TypingPractice({
                   step="0.1"
                   value={settings.helpFontSize}
                   onChange={(e) => updateSettings({ helpFontSize: parseFloat(e.target.value) || 0 })}
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": theme.buttonSelected } as any}
-                />
-              </div>
-
-              {/* Ghost Writer Speed */}
-              <div>
-                <label className="mb-2 block text-xs text-gray-400">
-                  Ghost Writer Speed (WPM)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="500"
-                  step="5"
-                  value={settings.ghostWriterSpeed}
-                  onChange={(e) => updateSettings({ ghostWriterSpeed: parseInt(e.target.value) || 0 })}
                   className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
                   style={{ "--tw-ring-color": theme.buttonSelected } as any}
                 />
