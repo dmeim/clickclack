@@ -13,6 +13,7 @@ import SoundController from "./SoundController";
 import GhostWriterController from "./GhostWriterController";
 import ColorPicker from "./ColorPicker";
 import { getRandomSoundUrl, SoundManifest, INITIAL_SOUND_MANIFEST } from "@/lib/sounds";
+import { loadSettings, saveSettings, loadTheme, saveTheme, loadThemeName, saveThemeName, DEFAULT_SETTINGS } from "@/lib/storage-utils";
 
 interface ThemePreset {
   name: string;
@@ -286,6 +287,82 @@ export default function TypingPractice({
       isZenWaiting: isZenWaiting
     };
   }, [wpm, accuracy, typedText.length, words.length, elapsedMs, isFinished, isPlanActive, planIndex, plan.length, isZenWaiting]);
+
+  // --- Load Settings from LocalStorage on Mount ---
+  const hasLoadedFromStorage = useRef(false);
+  useEffect(() => {
+    if (hasLoadedFromStorage.current) return;
+    hasLoadedFromStorage.current = true;
+
+    // Load settings
+    const storedSettings = loadSettings();
+    if (storedSettings) {
+      setSettings((prev) => ({
+        ...prev,
+        ...storedSettings,
+        // Always reset session-only fields
+        presetText: "",
+      }));
+    }
+
+    // Load theme
+    const storedTheme = loadTheme();
+    if (storedTheme) {
+      setTheme(storedTheme);
+    }
+
+    // Load theme name
+    const storedThemeName = loadThemeName();
+    if (storedThemeName) {
+      setSelectedThemeName(storedThemeName);
+    }
+  }, []);
+
+  // --- Save Settings to LocalStorage on Changes ---
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    // Skip initial render (before loading from storage)
+    if (!hasLoadedFromStorage.current) return;
+
+    // Debounce saves to avoid excessive writes
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveSettings(settings);
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [settings]);
+
+  // --- Save Theme to LocalStorage on Changes ---
+  const saveThemeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (!hasLoadedFromStorage.current) return;
+
+    if (saveThemeTimeoutRef.current) {
+      clearTimeout(saveThemeTimeoutRef.current);
+    }
+    saveThemeTimeoutRef.current = setTimeout(() => {
+      saveTheme(theme);
+    }, 500);
+
+    return () => {
+      if (saveThemeTimeoutRef.current) {
+        clearTimeout(saveThemeTimeoutRef.current);
+      }
+    };
+  }, [theme]);
+
+  // --- Save Theme Name to LocalStorage on Changes ---
+  useEffect(() => {
+    if (!hasLoadedFromStorage.current) return;
+    saveThemeName(selectedThemeName);
+  }, [selectedThemeName]);
 
   // --- Callbacks & Helpers ---
 
