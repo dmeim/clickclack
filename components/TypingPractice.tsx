@@ -1789,7 +1789,7 @@ export default function TypingPractice({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-200">Theme</h2>
+              <h2 className="text-xl font-semibold text-gray-200">Theme Presets</h2>
               <button
                 type="button"
                 onClick={() => {
@@ -1802,16 +1802,16 @@ export default function TypingPractice({
               </button>
             </div>
 
-            {/* Theme Preset Dropdown */}
-            <div className="mb-6 relative">
+            {/* Theme Presets Collapsible Section */}
+            <div className="mb-4 border border-gray-600 rounded-lg overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-gray-200 hover:border-gray-500 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-700 hover:bg-gray-600 transition-colors"
               >
-                <span>{selectedThemeName}</span>
+                <span className="text-sm font-medium text-gray-200">{selectedThemeName}</span>
                 <svg
-                  className={`w-5 h-5 transition-transform ${isThemeDropdownOpen ? "rotate-180" : ""}`}
+                  className={`w-5 h-5 text-gray-400 transition-transform ${isThemeDropdownOpen ? "rotate-180" : ""}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1820,8 +1820,12 @@ export default function TypingPractice({
                 </svg>
               </button>
 
-              {isThemeDropdownOpen && (
-                <div className="absolute z-10 mt-2 w-full rounded-lg border border-gray-600 bg-gray-800 shadow-xl max-h-64 overflow-y-auto">
+              <div
+                className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                  isThemeDropdownOpen ? "max-h-[240px] opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="overflow-y-auto max-h-[240px] bg-gray-800/50">
                   {themePresets.map((preset) => (
                     <button
                       key={preset.name}
@@ -1829,14 +1833,13 @@ export default function TypingPractice({
                       onClick={() => {
                         setTheme(preset.colors);
                         setSelectedThemeName(preset.name);
-                        setIsThemeDropdownOpen(false);
                         setIsCustomThemeExpanded(false);
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700 transition-colors ${
+                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-b-0 ${
                         selectedThemeName === preset.name ? "bg-gray-700" : ""
                       }`}
                     >
-                      <span className="text-gray-200">{preset.name}</span>
+                      <span className="text-sm text-gray-200">{preset.name}</span>
                       <div className="flex items-center gap-1">
                         <div
                           className="w-4 h-4 rounded border border-gray-500"
@@ -1867,7 +1870,7 @@ export default function TypingPractice({
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Custom Theme Collapsible Section */}
