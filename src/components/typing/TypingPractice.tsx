@@ -1154,7 +1154,10 @@ export default function TypingPractice({
 
             {/* Click to focus overlay */}
             {!isFocused && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                onClick={() => inputRef.current?.focus()}
+              >
                 <span className="text-gray-500 text-lg">Click here to start typing</span>
               </div>
             )}
