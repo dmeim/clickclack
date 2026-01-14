@@ -13,7 +13,7 @@ This document tracks feature parity between the old Next.js codebase and the new
 | Time mode | ⬜ Pending | Need to migrate TypingPractice component |
 | Words mode | ⬜ Pending | |
 | Quote mode | ⬜ Pending | |
-| Zen mode | ⬜ Pending | |
+| Zen mode | ✅ Ready | Infinite typing with no goals |
 | Preset mode | ⬜ Pending | |
 | Plan mode | ⬜ Pending | |
 | WPM calculation | ⬜ Pending | |

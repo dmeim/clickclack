@@ -14,11 +14,6 @@ dist/
 *.swp
 *.swo
 
-# Environment files
-.env
-.env.local
-.env*.local
-
 # Test files
 tests/
 coverage/
@@ -35,6 +30,3 @@ docs/
 # Misc
 .DS_Store
 Thumbs.db
-
-# Convex generated files (rebuilt during build)
-convex/_generated/

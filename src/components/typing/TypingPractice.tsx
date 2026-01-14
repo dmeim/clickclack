@@ -880,7 +880,7 @@ export default function TypingPractice({
           <div className="flex flex-wrap items-center justify-center gap-4 text-gray-400">
             {/* Mode */}
             <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
-              {(["time", "words", "quote", "preset"] as const).map((m) => (
+              {(["time", "words", "quote", "zen", "preset"] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
