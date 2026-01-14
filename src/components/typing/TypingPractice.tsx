@@ -596,6 +596,10 @@ export default function TypingPractice({
     if (e.key === "Enter" && isFinished) {
       generateTest();
     }
+    if (e.key === "Escape" && isRunning && !isFinished) {
+      e.preventDefault();
+      finishSession();
+    }
   };
 
   const handlePresetSubmit = (text: string) => {
