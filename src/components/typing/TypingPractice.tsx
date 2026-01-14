@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { GLOBAL_COLORS } from "@/lib/colors";
 import type { Difficulty, Quote, SettingsState, Theme } from "@/lib/typing-constants";
@@ -678,24 +678,28 @@ export default function TypingPractice({
   }, []);
 
   // --- Scroll handling ---
-  useEffect(() => {
-    if (!activeWordRef.current || !containerRef.current) return;
+  useLayoutEffect(() => {
+    if (!containerRef.current || !activeWordRef.current) return;
 
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const wordRect = activeWordRef.current.getBoundingClientRect();
-    const lineHeight = settings.typingFontSize * LINE_HEIGHT * 16;
+    const container = containerRef.current;
+    const activeWord = activeWordRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const wordRect = activeWord.getBoundingClientRect();
 
-    // Calculate the VISUAL position of the word within the container
-    // This is where the word appears on screen, not its logical position in the document
-    const wordVisualTop = wordRect.top - containerRect.top;
+    // Calculate relative position
+    const relativeTop = wordRect.top - containerRect.top;
+    const lineHeight = parseFloat(getComputedStyle(container).lineHeight || "0");
 
-    // Calculate which visual line the word is on (0-indexed)
-    const visualLine = Math.floor(wordVisualTop / lineHeight);
+    // If word is on 3rd line or below (index 2+), scroll up
+    // We want active line to be line 2 (index 1), unless we only have 1 line preview
+    const targetTop = linePreview === 1 ? 0 : lineHeight;
 
-    // Scroll when the word reaches the last visible line
-    // Guard against negative values (word above container) which shouldn't happen
-    if (visualLine >= linePreview - 1 && wordVisualTop >= 0) {
-      setScrollOffset((prev) => prev + lineHeight);
+    // Adjust scroll offset to keep the active word at the target position
+    // We use a threshold to prevent jitter
+    const diff = relativeTop - targetTop;
+
+    if (Math.abs(diff) > 10) {
+      setScrollOffset((prev) => Math.max(0, prev + diff));
     }
   }, [typedText, settings.typingFontSize, linePreview]);
 
