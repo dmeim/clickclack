@@ -31,6 +31,8 @@ import {
 } from "@/lib/typing-constants";
 import { fetchAllThemes, type ThemeDefinition } from "@/lib/themes";
 import { fetchSoundManifest, type SoundManifest } from "@/lib/sounds";
+import { fetchWordsManifest, type WordsManifest } from "@/lib/words";
+import { fetchQuotesManifest, type QuotesManifest } from "@/lib/quotes";
 import { useSessionId } from "@/hooks/useSessionId";
 import { HostCard, UserHostCard } from "@/components/connect";
 import SoundController from "@/components/typing/SoundController";
@@ -153,6 +155,12 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   // Sound manifest - loaded dynamically
   const [soundManifest, setSoundManifest] = useState<SoundManifest | null>(null);
 
+  // Words manifest - loaded dynamically
+  const [wordsManifest, setWordsManifest] = useState<WordsManifest | null>(null);
+
+  // Quotes manifest - loaded dynamically
+  const [quotesManifest, setQuotesManifest] = useState<QuotesManifest | null>(null);
+
   // Load themes on mount
   useEffect(() => {
     fetchAllThemes().then(setThemePresets);
@@ -161,6 +169,16 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   // Load sound manifest on mount
   useEffect(() => {
     fetchSoundManifest().then(setSoundManifest);
+  }, []);
+
+  // Load words manifest on mount
+  useEffect(() => {
+    fetchWordsManifest().then(setWordsManifest);
+  }, []);
+
+  // Load quotes manifest on mount
+  useEffect(() => {
+    fetchQuotesManifest().then(setQuotesManifest);
   }, []);
 
   // Fullscreen handler
@@ -811,11 +829,11 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
                 className="flex rounded-lg p-1"
                 style={{ backgroundColor: GLOBAL_COLORS.surface }}
               >
-                {(["all", "short", "medium", "long", "xl"] as QuoteLength[]).map(
+                {quotesManifest && ["all", ...quotesManifest.lengths].map(
                   (l) => (
                     <button
                       key={l}
-                      onClick={() => updateSettings({ quoteLength: l })}
+                      onClick={() => updateSettings({ quoteLength: l as QuoteLength })}
                       className={`px-3 py-1 rounded transition ${settings.quoteLength === l ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                       style={{
                         color:
@@ -834,23 +852,16 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
             {/* Difficulty */}
             {settings.mode !== "quote" &&
               settings.mode !== "zen" &&
-              settings.mode !== "preset" && (
+              settings.mode !== "preset" &&
+              wordsManifest && (
                 <div
                   className="flex rounded-lg p-1 ml-2"
                   style={{ backgroundColor: GLOBAL_COLORS.surface }}
                 >
-                  {(
-                    [
-                      "beginner",
-                      "easy",
-                      "medium",
-                      "hard",
-                      "expert",
-                    ] as Difficulty[]
-                  ).map((d) => (
+                  {wordsManifest.difficulties.map((d) => (
                     <button
                       key={d}
-                      onClick={() => updateSettings({ difficulty: d })}
+                      onClick={() => updateSettings({ difficulty: d as Difficulty })}
                       className={`px-3 py-1 rounded transition ${settings.difficulty === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                       style={{
                         color:

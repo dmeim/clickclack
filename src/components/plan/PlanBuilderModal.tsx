@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -19,6 +19,8 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Plan, PlanItem } from "@/types/plan";
 import { GLOBAL_COLORS } from "@/lib/colors";
 import type { Difficulty, SettingsState, QuoteLength } from "@/lib/typing-constants";
+import { fetchWordsManifest, type WordsManifest } from "@/lib/words";
+import { fetchQuotesManifest, type QuotesManifest } from "@/lib/quotes";
 
 // --- Types & Constants ---
 
@@ -125,6 +127,14 @@ export default function PlanBuilderModal({
     }
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [wordsManifest, setWordsManifest] = useState<WordsManifest | null>(null);
+  const [quotesManifest, setQuotesManifest] = useState<QuotesManifest | null>(null);
+
+  // Load manifests on mount
+  useEffect(() => {
+    fetchWordsManifest().then(setWordsManifest);
+    fetchQuotesManifest().then(setQuotesManifest);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -459,16 +469,14 @@ export default function PlanBuilderModal({
                         Quote Length
                       </label>
                       <div className="flex gap-2">
-                        {(
-                          ["short", "medium", "long", "xl", "all"] as QuoteLength[]
-                        ).map((l) => (
+                        {quotesManifest && [...quotesManifest.lengths, "all"].map((l) => (
                           <button
                             key={l}
                             onClick={() =>
                               handleUpdateItem(selectedItem.id, {
                                 settings: {
                                   ...selectedItem.settings,
-                                  quoteLength: l,
+                                  quoteLength: l as QuoteLength,
                                 },
                               })
                             }
@@ -648,28 +656,21 @@ export default function PlanBuilderModal({
 
                 {selectedItem.mode !== "quote" &&
                   selectedItem.mode !== "zen" &&
-                  selectedItem.mode !== "preset" && (
+                  selectedItem.mode !== "preset" &&
+                  wordsManifest && (
                     <div>
                       <label className="block text-xs text-gray-500 mb-2 mt-4">
                         Difficulty
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {(
-                          [
-                            "beginner",
-                            "easy",
-                            "medium",
-                            "hard",
-                            "expert",
-                          ] as Difficulty[]
-                        ).map((d) => (
+                        {wordsManifest.difficulties.map((d) => (
                           <button
                             key={d}
                             onClick={() =>
                               handleUpdateItem(selectedItem.id, {
                                 settings: {
                                   ...selectedItem.settings,
-                                  difficulty: d,
+                                  difficulty: d as Difficulty,
                                 },
                               })
                             }

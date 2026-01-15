@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Difficulty, Quote, SettingsState, Theme } from "@/lib/typing-constants";
+import type { Quote, SettingsState, Theme } from "@/lib/typing-constants";
 import { DEFAULT_THEME } from "@/lib/typing-constants";
 import { fetchSoundManifest, getRandomSoundUrl, type SoundManifest } from "@/lib/sounds";
 import { fetchTheme, fetchAllThemes, type ThemeDefinition } from "@/lib/themes";
+import { fetchWordsManifest, fetchWords, type WordsManifest } from "@/lib/words";
+import { fetchQuotesManifest, fetchQuotes, type QuotesManifest } from "@/lib/quotes";
 import {
   loadSettings,
   saveSettings,
@@ -252,6 +254,8 @@ export default function TypingPractice({
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [availableThemes, setAvailableThemes] = useState<ThemeDefinition[]>([]);
   const [soundManifest, setSoundManifest] = useState<SoundManifest | null>(null);
+  const [wordsManifest, setWordsManifest] = useState<WordsManifest | null>(null);
+  const [quotesManifest, setQuotesManifest] = useState<QuotesManifest | null>(null);
   const [showPresetInput, setShowPresetInput] = useState(false);
   const [tempPresetText, setTempPresetText] = useState("");
   const [wordPool, setWordPool] = useState<string[]>([]);
@@ -360,6 +364,16 @@ export default function TypingPractice({
     fetchSoundManifest().then(setSoundManifest);
   }, []);
 
+  // --- Load words manifest ---
+  useEffect(() => {
+    fetchWordsManifest().then(setWordsManifest);
+  }, []);
+
+  // --- Load quotes manifest ---
+  useEffect(() => {
+    fetchQuotesManifest().then(setQuotesManifest);
+  }, []);
+
   // --- Apply locked settings from connect mode ---
   useEffect(() => {
     if (connectMode && lockedSettings) {
@@ -371,38 +385,18 @@ export default function TypingPractice({
 
   // --- Load word pool ---
   useEffect(() => {
-    const loadWordPool = async () => {
-      try {
-        const difficulty = settings.difficulty || "medium";
-        const res = await fetch(`/words/${difficulty}.json`);
-        if (res.ok) {
-          const data = await res.json();
-          setWordPool(data);
-        }
-      } catch (e) {
-        console.error("Failed to load word pool:", e);
-      }
-    };
-    loadWordPool();
-  }, [settings.difficulty]);
+    const difficulty = settings.difficulty || wordsManifest?.default || "medium";
+    fetchWords(difficulty).then(setWordPool);
+  }, [settings.difficulty, wordsManifest]);
 
   // --- Load quotes ---
   useEffect(() => {
-    const loadQuotes = async () => {
-      if (settings.mode !== "quote") return;
-      try {
-        const length = settings.quoteLength === "all" ? "medium" : settings.quoteLength;
-        const res = await fetch(`/quotes/${length}.json`);
-        if (res.ok) {
-          const data = await res.json();
-          setQuotes(data);
-        }
-      } catch (e) {
-        console.error("Failed to load quotes:", e);
-      }
-    };
-    loadQuotes();
-  }, [settings.mode, settings.quoteLength]);
+    if (settings.mode !== "quote") return;
+    const length = settings.quoteLength === "all" 
+      ? (quotesManifest?.default || "medium") 
+      : settings.quoteLength;
+    fetchQuotes(length).then(setQuotes);
+  }, [settings.mode, settings.quoteLength, quotesManifest]);
 
   // --- Callbacks ---
   const updateSettings = useCallback((updates: Partial<SettingsState>) => {
@@ -1065,15 +1059,15 @@ export default function TypingPractice({
             )}
 
             {/* Quote Length */}
-            {settings.mode === "quote" && (
+            {settings.mode === "quote" && quotesManifest && (
               <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
-                {(["all", "short", "medium", "long", "xl"] as const).map((l) => (
+                {["all", ...quotesManifest.lengths].map((l) => (
                   <button
                     key={l}
                     type="button"
                     onClick={() => {
                       if (settings.quoteLength === l) generateTest();
-                      else updateSettings({ quoteLength: l });
+                      else updateSettings({ quoteLength: l as typeof settings.quoteLength });
                     }}
                     className={`px-3 py-1 rounded transition ${settings.quoteLength === l ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                     style={{ color: settings.quoteLength === l ? theme.buttonSelected : undefined }}
@@ -1085,15 +1079,15 @@ export default function TypingPractice({
             )}
 
             {/* Difficulty */}
-            {settings.mode !== "quote" && settings.mode !== "preset" && (
+            {settings.mode !== "quote" && settings.mode !== "preset" && wordsManifest && (
               <div className="flex rounded-lg p-1 ml-2" style={{ backgroundColor: theme.surfaceColor }}>
-                {(["beginner", "easy", "medium", "hard", "expert"] as Difficulty[]).map((d) => (
+                {wordsManifest.difficulties.map((d) => (
                   <button
                     key={d}
                     type="button"
                     onClick={() => {
                       if (settings.difficulty === d) generateTest();
-                      else updateSettings({ difficulty: d });
+                      else updateSettings({ difficulty: d as typeof settings.difficulty });
                     }}
                     className={`px-3 py-1 rounded transition ${settings.difficulty === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
                     style={{ color: settings.difficulty === d ? theme.buttonSelected : undefined }}

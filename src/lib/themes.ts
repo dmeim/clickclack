@@ -4,18 +4,13 @@ export type ThemeDefinition = Theme & {
   name: string;
 };
 
-// List of available themes - matches JSON files in /public/themes/
-// To add a new theme, just add the JSON file and add the name here
-export const THEME_LIST = [
-  "typesetgo",
-  "christmas",
-  "easter",
-  "ocean",
-  "sunset",
-  "thanksgiving",
-];
+export type ThemeManifest = {
+  themes: string[];
+  default: string;
+};
 
-// Cache for loaded themes
+// Cache for loaded data
+let cachedManifest: ThemeManifest | null = null;
 const themeCache: Record<string, ThemeDefinition> = {};
 
 // Format theme name for display (capitalize first letter of each word)
@@ -25,6 +20,31 @@ const formatThemeName = (name: string): string => {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
+
+// Fetch theme manifest from /public/themes/manifest.json
+export async function fetchThemeManifest(): Promise<ThemeManifest> {
+  if (cachedManifest) {
+    return cachedManifest;
+  }
+
+  try {
+    const res = await fetch("/themes/manifest.json");
+    if (!res.ok) {
+      console.error("Failed to load theme manifest");
+      return { themes: [], default: "typesetgo" };
+    }
+    cachedManifest = await res.json();
+    return cachedManifest!;
+  } catch (e) {
+    console.error("Failed to load theme manifest:", e);
+    return { themes: [], default: "typesetgo" };
+  }
+}
+
+// Get manifest from cache
+export function getThemeManifestFromCache(): ThemeManifest | null {
+  return cachedManifest;
+}
 
 // Fetch a single theme by name from /public/themes/
 export async function fetchTheme(themeName: string): Promise<ThemeDefinition | null> {
@@ -56,8 +76,10 @@ export async function fetchTheme(themeName: string): Promise<ThemeDefinition | n
 
 // Fetch all available themes from /public/themes/
 export async function fetchAllThemes(): Promise<ThemeDefinition[]> {
+  const manifest = await fetchThemeManifest();
+  
   const themes = await Promise.all(
-    THEME_LIST.map((name) => fetchTheme(name))
+    manifest.themes.map((name) => fetchTheme(name))
   );
   
   // Filter out any failed loads and sort (TypeSetGo first, then alphabetically)

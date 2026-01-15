@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# auto-generated manifests (created by vite-plugin-auto-manifest)
+public/themes/manifest.json
+public/words/manifest.json
+public/quotes/manifest.json
+public/sounds/manifest.json

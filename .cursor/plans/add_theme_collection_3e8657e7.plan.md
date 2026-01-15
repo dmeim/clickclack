@@ -3,7 +3,7 @@ name: Add Theme Collection
 overview: Add 50+ new themes as JSON files in /public/themes/ and redesign the theme picker UI with a custom theme dropdown and a scrollable 3x4 grid layout.
 todos:
   - id: add-themes
-    content: Add 56 new theme JSON files to /public/themes/ and update THEME_LIST in src/lib/themes.ts
+    content: Add 56 new theme JSON files to /public/themes/ (auto-discovered by Vite plugin)
     status: pending
   - id: custom-dropdown
     content: Replace theme list dropdown with Custom Theme dropdown containing color pickers for all theme properties
@@ -18,22 +18,23 @@ todos:
 
 # Add Theme Collection and Redesign Theme Picker
 
-## Files to Modify
+## Data-Driven Architecture
 
-- `/public/themes/*.json` - Add new theme JSON files (one per theme)
-- [src/lib/themes.ts](src/lib/themes.ts) - Update `THEME_LIST` array with new theme names
-- [src/components/typing/TypingPractice.tsx](src/components/typing/TypingPractice.tsx) - Redesign theme modal UI
+All content is **100% data-driven** with **zero manual configuration**. A Vite plugin (`vite-plugin-auto-manifest.ts`) automatically scans `/public` folders at build time.
+
+**To add a new theme:** Just create `/public/themes/{name}.json` - that's it!
+
+The plugin auto-generates manifests (gitignored) so the app knows what's available.
+
+---
 
 ## Part 1: Add New Themes
 
-Themes are now loaded dynamically from `/public/themes/`. To add a new theme:
+### What to Do
 
-1. Create a JSON file in `/public/themes/{theme-name}.json` with the theme colors
-2. Add the theme name to `THEME_LIST` in `src/lib/themes.ts`
+Create 56 new JSON files in `/public/themes/`. No code changes needed.
 
 ### Theme JSON Structure
-
-Each theme JSON file should have this structure:
 
 ```json
 {
@@ -92,39 +93,35 @@ Each theme JSON file should have this structure:
 
 ## Part 2: Redesign Theme Modal UI
 
-Update the theme modal in [src/components/typing/TypingPractice.tsx](src/components/typing/TypingPractice.tsx):
+Update the theme modal in `src/components/typing/TypingPractice.tsx`:
 
-### Current Structure:
+### Current Structure
 
 - Dropdown showing all themes in a list
 - 2-column "Featured" grid showing all themes
 
-### New Structure:
+### New Structure
 
 **1. Theme Grid (top section)**
 
 - Remove the old dropdown entirely
 - Change from `grid-cols-2` to `grid-cols-3`
-- Container height: fixed to show exactly 4 rows + partial 5th row peek (~20-30px visible)
+- Fixed height showing 4 rows + partial 5th row peek (~20-30px visible)
 - Add `overflow-y-auto` for scrolling
-- Calculate height based on card size (e.g., `max-h-[420px]` with slight overflow)
-- Optional: add fade gradient at bottom to reinforce scroll hint
+- Optional: fade gradient at bottom as scroll hint
 
 **2. Separator**
 
-- Horizontal divider line between theme grid and custom section
-- Use `border-t border-gray-600` or similar styling
+- Horizontal divider (`border-t border-gray-600`)
 
 **3. Custom Theme Dropdown (below separator)**
 
-- Button label: "Custom Theme" (or shows "Custom" when custom values active)
-- When expanded, shows color pickers for each theme property:
-  - Cursor, Default Text, Upcoming Text, Correct Text, Incorrect Text
-  - Button Unselected, Button Selected, Background, Surface, Ghost Cursor
-- Reuse the existing `ColorPicker` component from [src/components/typing/ColorPicker.tsx](src/components/typing/ColorPicker.tsx)
-- Include "Reset" buttons per field and "Reset All" at bottom (similar to Host.tsx pattern)
+- Button label: "Custom Theme"
+- When expanded, shows color pickers for each theme property
+- Reuse existing `ColorPicker` component from `src/components/typing/ColorPicker.tsx`
+- Include "Reset" buttons per field and "Reset All" at bottom
 
-### Layout Calculation:
+### Layout Calculation
 
 - Theme card height: ~80px (including padding and gap)
 - 4 full rows = 320px + gaps
@@ -143,14 +140,14 @@ Update the theme modal in [src/components/typing/TypingPractice.tsx](src/compone
 | [Card4] [Card5] [Card6]          |
 | [Card7] [Card8] [Card9]          |
 | [Card10][Card11][Card12]         |  <- Row 4
-| [Card13][Card14][...             |  <- Row 5 (partial, ~30px visible)
+| [Card13][Card14][...             |  <- Row 5 (partial peek)
 |  ~~~ scroll indicator ~~~        |
 +----------------------------------+
 |  ─────────────────────────────   |  <- Separator
 +----------------------------------+
 | [v] Custom Theme                 |  <- Dropdown (collapsed)
 |   +----------------------------+ |
-|   | Cursor:        [#color] R  | |  <- Expanded shows color pickers
+|   | Cursor:        [#color] R  | |  <- Expanded shows pickers
 |   | Background:    [#color] R  | |
 |   | ...                        | |
 |   | [Reset All Defaults]       | |
