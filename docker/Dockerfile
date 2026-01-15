@@ -2,9 +2,11 @@
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-# Accept Convex URL as build argument
+# Accept build arguments for environment variables
 ARG VITE_CONVEX_URL
+ARG VITE_CLERK_PUBLISHABLE_KEY
 ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
