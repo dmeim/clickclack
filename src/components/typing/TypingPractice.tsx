@@ -1226,23 +1226,36 @@ export default function TypingPractice({
               </div>
             </div>
 
-            {/* Secondary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
-                <div className="text-3xl font-bold text-gray-200 mb-1">{stats.correct}</div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Correct</div>
+            {/* Secondary Stats - Grouped by Words and Characters */}
+            <div className="flex flex-col md:flex-row gap-4 mb-12">
+              {/* Words Group */}
+              <div className="flex-1 rounded-xl border border-gray-800/50 p-4" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 text-center mb-3">Words</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="text-3xl font-bold text-gray-200 mb-1">{stats.correct}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Correct</div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="text-3xl font-bold mb-1" style={{ color: GLOBAL_COLORS.text.error }}>{stats.incorrect}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Incorrect</div>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
-                <div className="text-3xl font-bold mb-1" style={{ color: GLOBAL_COLORS.text.error }}>{stats.incorrect}</div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Errors</div>
-              </div>
-              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
-                <div className="text-3xl font-bold text-gray-400 mb-1">{stats.missed}</div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Missed</div>
-              </div>
-              <div className="rounded-xl p-4 border border-gray-800/50 flex flex-col items-center" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
-                <div className="text-3xl font-bold text-gray-400 mb-1">{stats.extra}</div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Extra</div>
+
+              {/* Characters Group */}
+              <div className="flex-1 rounded-xl border border-gray-800/50 p-4" style={{ backgroundColor: `${GLOBAL_COLORS.surface}80` }}>
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 text-center mb-3">Characters</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="text-3xl font-bold text-gray-400 mb-1">{stats.missed}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Missed</div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="text-3xl font-bold text-gray-400 mb-1">{stats.extra}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Extra</div>
+                  </div>
+                </div>
               </div>
             </div>
 
