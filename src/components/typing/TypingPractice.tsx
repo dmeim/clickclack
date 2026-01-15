@@ -482,7 +482,7 @@ export default function TypingPractice({
     } catch {
       // Ignore errors
     }
-  }, [settings.soundEnabled, settings.typingSound]);
+  }, [settings.soundEnabled, settings.typingSound, soundManifest]);
 
   const playWarningSound = useCallback(() => {
     if (!settings.soundEnabled || !settings.warningSound || !soundManifest) return;
@@ -495,7 +495,7 @@ export default function TypingPractice({
     } catch {
       // Ignore errors
     }
-  }, [settings.soundEnabled, settings.warningSound]);
+  }, [settings.soundEnabled, settings.warningSound, soundManifest]);
 
   const generateTest = useCallback(() => {
     if (settings.mode === "quote") {

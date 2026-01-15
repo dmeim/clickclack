@@ -29,7 +29,7 @@ export default function Header({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3">
-        {/* Connect */}
+        {/* Connect - temporarily hidden while feature is in development
         <Link
           to="/connect"
           className="flex h-10 w-10 items-center justify-center rounded-lg transition hover:bg-gray-800/50"
@@ -53,6 +53,7 @@ export default function Header({
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         </Link>
+        */}
 
         {/* Theme */}
         <button
