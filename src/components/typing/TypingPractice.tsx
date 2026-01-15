@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { GLOBAL_COLORS } from "@/lib/colors";
 import type { Difficulty, Quote, SettingsState, Theme } from "@/lib/typing-constants";
 import { DEFAULT_THEME } from "@/lib/typing-constants";
@@ -182,6 +181,17 @@ interface TypingPracticeProps {
     targetText?: string
   ) => void;
   onLeave?: () => void;
+  // External theme and modal control (lifted state from Home.tsx)
+  theme?: Theme;
+  setTheme?: (theme: Theme) => void;
+  selectedThemeName?: string;
+  setSelectedThemeName?: (name: string) => void;
+  showSettings?: boolean;
+  setShowSettings?: (show: boolean) => void;
+  showThemeModal?: boolean;
+  setShowThemeModal?: (show: boolean) => void;
+  // Callback to notify parent of typing state changes
+  onTypingStateChange?: (isTyping: boolean) => void;
 }
 
 export default function TypingPractice({
@@ -190,6 +200,16 @@ export default function TypingPractice({
   isTestActive = true,
   onStatsUpdate,
   onLeave,
+  // External state control (when used from Home.tsx)
+  theme: externalTheme,
+  setTheme: externalSetTheme,
+  selectedThemeName: externalSelectedThemeName,
+  setSelectedThemeName: externalSetSelectedThemeName,
+  showSettings: externalShowSettings,
+  setShowSettings: externalSetShowSettings,
+  showThemeModal: externalShowThemeModal,
+  setShowThemeModal: externalSetShowThemeModal,
+  onTypingStateChange,
 }: TypingPracticeProps) {
   // --- State ---
   const [settings, setSettings] = useState<SettingsState>({
@@ -214,11 +234,23 @@ export default function TypingPractice({
     presetModeType: "finish",
   });
 
-  const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
-  const [selectedThemeName, setSelectedThemeName] = useState("TypeSetGo");
+  // Use external state if provided, otherwise use internal state
+  const [internalTheme, setInternalTheme] = useState<Theme>(DEFAULT_THEME);
+  const [internalSelectedThemeName, setInternalSelectedThemeName] = useState("TypeSetGo");
+  const [internalShowSettings, setInternalShowSettings] = useState(false);
+  const [internalShowThemeModal, setInternalShowThemeModal] = useState(false);
+
+  // Resolve to external or internal state
+  const theme = externalTheme ?? internalTheme;
+  const setTheme = externalSetTheme ?? setInternalTheme;
+  const selectedThemeName = externalSelectedThemeName ?? internalSelectedThemeName;
+  const setSelectedThemeName = externalSetSelectedThemeName ?? setInternalSelectedThemeName;
+  const showSettings = externalShowSettings ?? internalShowSettings;
+  const setShowSettings = externalSetShowSettings ?? setInternalShowSettings;
+  const showThemeModal = externalShowThemeModal ?? internalShowThemeModal;
+  const setShowThemeModal = externalSetShowThemeModal ?? setInternalShowThemeModal;
+
   const [linePreview, setLinePreview] = useState(3);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showThemeModal, setShowThemeModal] = useState(false);
   const [showPresetInput, setShowPresetInput] = useState(false);
   const [tempPresetText, setTempPresetText] = useState("");
   const [wordPool, setWordPool] = useState<string[]>([]);
@@ -277,17 +309,20 @@ export default function TypingPractice({
         }));
       }
 
-      const storedTheme = loadTheme();
-      if (storedTheme) {
-        setTheme(storedTheme);
-      }
+      // Only load theme from storage if not controlled externally
+      if (!externalTheme) {
+        const storedTheme = loadTheme();
+        if (storedTheme) {
+          setInternalTheme(storedTheme);
+        }
 
-      const storedThemeName = loadThemeName();
-      if (storedThemeName) {
-        setSelectedThemeName(storedThemeName);
+        const storedThemeName = loadThemeName();
+        if (storedThemeName) {
+          setInternalSelectedThemeName(storedThemeName);
+        }
       }
     });
-  }, []);
+  }, [externalTheme]);
 
   // --- Save Settings ---
   useEffect(() => {
@@ -556,6 +591,13 @@ export default function TypingPractice({
     }
   }, [isRunning, isFinished, typedText]);
 
+  // --- Notify parent of typing state ---
+  useEffect(() => {
+    if (onTypingStateChange) {
+      onTypingStateChange(isRunning && !isFinished);
+    }
+  }, [isRunning, isFinished, onTypingStateChange]);
+
   // --- Report stats to parent (connect mode) ---
   useEffect(() => {
     if (onStatsUpdate) {
@@ -629,6 +671,25 @@ export default function TypingPractice({
       finishSession();
     }
   };
+
+  // --- Global keyboard listener for results screen ---
+  useEffect(() => {
+    if (!isFinished) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        generateTest();
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        resetSession(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isFinished, generateTest, resetSession]);
 
   const handlePresetSubmit = (text: string) => {
     const sanitized = text.replace(/[^\x20-\x7E\n]/g, "").replace(/\s+/g, " ").trim();
@@ -820,109 +881,20 @@ export default function TypingPractice({
       {/* Settings Controls - Fixed at top */}
       {!connectMode && !isRunning && !isFinished && (
         <div
-          className="fixed top-[100px] md:top-[10%] left-0 w-full flex flex-col items-center justify-center gap-4 transition-all duration-300 z-20"
+          className="fixed top-[130px] md:top-[15%] left-0 w-full flex flex-col items-center justify-center gap-4 transition-all duration-300 z-20"
           style={{ fontSize: `${settings.iconFontSize}rem`, opacity: uiOpacity }}
         >
-          {/* Line 1: Toolbar */}
-          <div
-            className="flex items-center gap-4 px-6 py-2 rounded-full shadow-lg mb-2"
-            style={{ backgroundColor: GLOBAL_COLORS.surface }}
-          >
-            {/* Connect Link */}
-            <Link
-              to="/connect"
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
-              style={{ color: theme.buttonUnselected }}
-              title="Multiplayer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </Link>
-
-            {/* Settings Icon */}
-            <button
-              type="button"
-              onClick={() => setShowSettings(true)}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
-              style={{ color: theme.buttonUnselected }}
-              title="Settings"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </button>
-
-            {/* Theme Icon */}
-            <button
-              type="button"
-              onClick={() => setShowThemeModal(true)}
-              className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
-              style={{ color: theme.buttonUnselected }}
-              title="Theme"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" stroke="none" />
-                <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" stroke="none" />
-                <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" stroke="none" />
-                <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" stroke="none" />
-                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
-              </svg>
-            </button>
-
-            {/* Plan Mode Icon */}
-            <button
-              type="button"
-              onClick={() => setShowPlanBuilder(true)}
-              className={`flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white ${isPlanActive ? "ring-2 ring-sky-500" : ""}`}
-              style={{ color: isPlanActive ? theme.buttonSelected : theme.buttonUnselected }}
-              title="Plan Mode"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-            </button>
-
-            <div className="w-px h-4 bg-gray-600"></div>
-
-            <SoundController
-              settings={settings}
-              onUpdateSettings={updateSettings}
-              soundManifest={SOUND_MANIFEST}
-              theme={theme}
-            />
-
-            <GhostWriterController
-              settings={settings}
-              onUpdateSettings={updateSettings}
-              theme={theme}
-            />
-          </div>
-
-          {/* Line 2: Modes & Toggles */}
+          {/* Modes Row: [modes] | [preset/plan] | [punctuation/numbers] | [sound/ghost] */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-gray-400">
-            {/* Mode */}
+            {/* Group 1: Test Modes */}
             <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
-              {(["time", "words", "quote", "zen", "preset"] as const).map((m) => (
+              {(["time", "words", "quote", "zen"] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => {
                     if (settings.mode === m) {
-                      if (m === "preset") {
-                        setShowPresetInput(true);
-                      } else {
-                        generateTest();
-                      }
+                      generateTest();
                     } else {
                       updateSettings({ mode: m });
                     }
@@ -937,39 +909,95 @@ export default function TypingPractice({
 
             <div className="w-px h-4 bg-gray-700"></div>
 
-            {/* Toggles */}
-            {settings.mode !== "preset" && (
-              <div className="flex gap-4 rounded-lg px-3 py-1.5" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
-                <button
-                  type="button"
-                  onClick={() => updateSettings({ punctuation: !settings.punctuation })}
-                  className={`flex items-center gap-2 transition ${settings.punctuation ? "" : "hover:text-gray-200"}`}
-                  style={{ color: settings.punctuation ? theme.buttonSelected : undefined }}
+            {/* Group 2: Preset & Plan */}
+            <div className="flex rounded-lg p-1" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
+              {/* Preset Mode */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (settings.mode === "preset") {
+                    setShowPresetInput(true);
+                  } else {
+                    updateSettings({ mode: "preset" });
+                  }
+                }}
+                className={`px-3 py-1 rounded transition ${settings.mode === "preset" ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                style={{ color: settings.mode === "preset" ? theme.buttonSelected : undefined }}
+              >
+                preset
+              </button>
+              {/* Plan Mode */}
+              <button
+                type="button"
+                onClick={() => setShowPlanBuilder(true)}
+                className={`px-3 py-1 rounded transition hover:text-gray-200 ${isPlanActive ? "font-medium bg-gray-800" : ""}`}
+                style={{ color: isPlanActive ? theme.buttonSelected : undefined }}
+                title="Plan Mode"
+              >
+                plan
+              </button>
+            </div>
+
+            <div className="w-px h-4 bg-gray-700"></div>
+
+            {/* Group 3: Punctuation & Numbers */}
+            <div className="flex gap-4 rounded-lg px-3 py-1.5" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
+              <button
+                type="button"
+                onClick={() => updateSettings({ punctuation: !settings.punctuation })}
+                className={`flex items-center gap-2 transition ${settings.punctuation ? "" : "hover:text-gray-200"}`}
+                style={{ color: settings.punctuation ? theme.buttonSelected : undefined }}
+                disabled={settings.mode === "preset"}
+                title={settings.mode === "preset" ? "Not available in preset mode" : "Toggle punctuation"}
+              >
+                <span
+                  className={settings.punctuation ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}
+                  style={{ 
+                    backgroundColor: settings.punctuation ? theme.buttonSelected : undefined,
+                    opacity: settings.mode === "preset" ? 0.5 : 1
+                  }}
                 >
-                  <span
-                    className={settings.punctuation ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}
-                    style={{ backgroundColor: settings.punctuation ? theme.buttonSelected : undefined }}
-                  >
-                    @
-                  </span>
-                  punctuation
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateSettings({ numbers: !settings.numbers })}
-                  className={`flex items-center gap-2 transition ${settings.numbers ? "" : "hover:text-gray-200"}`}
-                  style={{ color: settings.numbers ? theme.buttonSelected : undefined }}
+                  @
+                </span>
+                <span style={{ opacity: settings.mode === "preset" ? 0.5 : 1 }}>punctuation</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSettings({ numbers: !settings.numbers })}
+                className={`flex items-center gap-2 transition ${settings.numbers ? "" : "hover:text-gray-200"}`}
+                style={{ color: settings.numbers ? theme.buttonSelected : undefined }}
+                disabled={settings.mode === "preset"}
+                title={settings.mode === "preset" ? "Not available in preset mode" : "Toggle numbers"}
+              >
+                <span
+                  className={settings.numbers ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}
+                  style={{ 
+                    backgroundColor: settings.numbers ? theme.buttonSelected : undefined,
+                    opacity: settings.mode === "preset" ? 0.5 : 1
+                  }}
                 >
-                  <span
-                    className={settings.numbers ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}
-                    style={{ backgroundColor: settings.numbers ? theme.buttonSelected : undefined }}
-                  >
-                    #
-                  </span>
-                  numbers
-                </button>
-              </div>
-            )}
+                  #
+                </span>
+                <span style={{ opacity: settings.mode === "preset" ? 0.5 : 1 }}>numbers</span>
+              </button>
+            </div>
+
+            <div className="w-px h-4 bg-gray-700"></div>
+
+            {/* Group 4: Sound & Ghost Writer */}
+            <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ backgroundColor: GLOBAL_COLORS.surface }}>
+              <SoundController
+                settings={settings}
+                onUpdateSettings={updateSettings}
+                soundManifest={SOUND_MANIFEST}
+                theme={theme}
+              />
+              <GhostWriterController
+                settings={settings}
+                onUpdateSettings={updateSettings}
+                theme={theme}
+              />
+            </div>
           </div>
 
           {/* Line 3: Sub-settings */}

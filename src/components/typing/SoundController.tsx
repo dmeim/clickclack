@@ -28,12 +28,11 @@ export default function SoundController({
         type="button"
         onClick={() => setIsOpen(true)}
         className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded transition hover:opacity-75 hover:text-white"
-        style={{
-          color: soundEnabled ? theme.buttonSelected : theme.buttonUnselected,
-        }}
+        style={{ color: theme.buttonUnselected }}
         title="sound settings"
       >
         {soundEnabled ? (
+          // Speaker with sound waves (sound ON)
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="1em"
@@ -46,9 +45,11 @@ export default function SoundController({
             strokeLinejoin="round"
           >
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
           </svg>
         ) : (
+          // Speaker with diagonal slash (sound OFF)
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="1em"
@@ -61,8 +62,7 @@ export default function SoundController({
             strokeLinejoin="round"
           >
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-            <line x1="23" y1="9" x2="17" y2="15" />
-            <line x1="17" y1="9" x2="23" y2="15" />
+            <line x1="22" y1="2" x2="12" y2="22" />
           </svg>
         )}
       </button>

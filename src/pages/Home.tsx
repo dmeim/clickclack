@@ -1,27 +1,53 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
 import TypingPractice from "@/components/typing/TypingPractice";
+import Header from "@/components/layout/Header";
+import type { Theme } from "@/lib/typing-constants";
+import { DEFAULT_THEME } from "@/lib/typing-constants";
+import { loadTheme, loadThemeName } from "@/lib/storage-utils";
+
+// Initialize theme from storage (lazy initialization)
+const getInitialTheme = (): Theme => {
+  const stored = loadTheme();
+  return stored ?? DEFAULT_THEME;
+};
+
+const getInitialThemeName = (): string => {
+  const stored = loadThemeName();
+  return stored ?? "TypeSetGo";
+};
 
 export default function Home() {
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [selectedThemeName, setSelectedThemeName] = useState(getInitialThemeName);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+
   return (
     <div
       className="min-h-screen relative"
-      style={{ backgroundColor: "var(--bg-primary)" }}
+      style={{ backgroundColor: theme.backgroundColor }}
     >
-      {/* Header - absolute positioned like the original */}
-      <header className="absolute top-0 left-0 w-full md:w-auto p-4 md:p-6 z-50 flex justify-center md:block">
-        <div className="w-[200px] md:w-[400px]">
-          <Link to="/">
-            <img
-              src="/assets/Banner-Color.svg"
-              alt="TypeSetGo"
-              className="w-full h-auto"
-            />
-          </Link>
-        </div>
-      </header>
+      {/* Header with action buttons */}
+      <Header
+        theme={theme}
+        onShowSettings={() => setShowSettings(true)}
+        onShowTheme={() => setShowThemeModal(true)}
+        hidden={isTyping}
+      />
 
       {/* Main Content - TypingPractice fills the page */}
-      <TypingPractice />
+      <TypingPractice
+        theme={theme}
+        setTheme={setTheme}
+        selectedThemeName={selectedThemeName}
+        setSelectedThemeName={setSelectedThemeName}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        showThemeModal={showThemeModal}
+        setShowThemeModal={setShowThemeModal}
+        onTypingStateChange={setIsTyping}
+      />
     </div>
   );
 }
