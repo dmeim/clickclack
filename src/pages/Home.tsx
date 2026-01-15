@@ -58,18 +58,17 @@ export default function Home() {
         <StatsModal theme={theme} onClose={() => setShowStatsModal(false)} />
       )}
 
-      {/* Footer with legal links */}
+      {/* Footer with legal links - always visible for Google verification compliance */}
       <footer
-        className={`fixed bottom-4 left-0 right-0 flex justify-center gap-4 text-xs transition-opacity duration-300 ${
-          isTyping ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
+        className="fixed bottom-4 left-0 right-0 flex justify-center gap-4 text-xs"
         style={{ color: theme.defaultText }}
       >
-        <Link to="/privacy" className="hover:underline opacity-50 hover:opacity-100 transition-opacity">
-          Privacy
+        <Link to="/privacy" className="hover:underline opacity-70 hover:opacity-100 transition-opacity">
+          Privacy Policy
         </Link>
-        <Link to="/tos" className="hover:underline opacity-50 hover:opacity-100 transition-opacity">
-          TOS
+        <span style={{ opacity: 0.5 }}>|</span>
+        <Link to="/tos" className="hover:underline opacity-70 hover:opacity-100 transition-opacity">
+          Terms of Service
         </Link>
       </footer>
     </div>
