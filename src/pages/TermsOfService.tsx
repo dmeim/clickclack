@@ -1,0 +1,209 @@
+import { Link } from "react-router-dom";
+import { GLOBAL_COLORS } from "@/lib/colors";
+
+export default function TermsOfService() {
+  return (
+    <div
+      className="min-h-[100dvh] font-mono px-4 py-12 transition-colors duration-300"
+      style={{
+        backgroundColor: GLOBAL_COLORS.background,
+        color: GLOBAL_COLORS.text.primary,
+      }}
+    >
+      <div className="w-full max-w-3xl mx-auto animate-fade-in">
+        <div className="text-center mb-12">
+          <h1
+            className="text-4xl font-bold mb-2"
+            style={{ color: GLOBAL_COLORS.brand.primary }}
+          >
+            Terms of Service
+          </h1>
+          <p style={{ color: GLOBAL_COLORS.text.secondary }}>
+            Last updated: January 15, 2026
+          </p>
+        </div>
+
+        <div
+          className="space-y-8 text-sm leading-relaxed"
+          style={{ color: GLOBAL_COLORS.text.secondary }}
+        >
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              1. Acceptance of Terms
+            </h2>
+            <p>
+              By accessing and using TypeSetGo, you accept and agree to be bound
+              by these Terms of Service. If you do not agree to these terms, you
+              should not use our service.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              2. Description of Service
+            </h2>
+            <p>
+              TypeSetGo is a typing practice and improvement platform that
+              allows users to practice typing, track their progress, and compete
+              with others in real-time multiplayer sessions. The service is
+              provided &quot;as is&quot; and may be updated or modified at any
+              time.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              3. User Conduct
+            </h2>
+            <p className="mb-3">When using TypeSetGo, you agree to:</p>
+            <ul className="list-disc list-inside space-y-2 ml-4">
+              <li>Use the service for lawful purposes only</li>
+              <li>
+                Not attempt to cheat, manipulate, or artificially inflate typing
+                statistics
+              </li>
+              <li>
+                Not interfere with or disrupt the service or servers connected
+                to the service
+              </li>
+              <li>
+                Not use automated tools, bots, or scripts to interact with the
+                service
+              </li>
+              <li>
+                Respect other users in multiplayer sessions and maintain
+                appropriate conduct
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              4. Intellectual Property
+            </h2>
+            <p>
+              All content, features, and functionality of TypeSetGo, including
+              but not limited to text, graphics, logos, and software, are the
+              property of TypeSetGo and are protected by copyright, trademark,
+              and other intellectual property laws.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              5. User Data
+            </h2>
+            <p>
+              Your use of TypeSetGo is also governed by our Privacy Policy.
+              Please review our{" "}
+              <Link
+                to="/privacy"
+                className="underline hover:text-white transition"
+                style={{ color: GLOBAL_COLORS.brand.primary }}
+              >
+                Privacy Policy
+              </Link>{" "}
+              to understand how we collect, use, and protect your information.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              6. Disclaimer of Warranties
+            </h2>
+            <p>
+              TypeSetGo is provided &quot;as is&quot; and &quot;as
+              available&quot; without any warranties of any kind, either express
+              or implied. We do not guarantee that the service will be
+              uninterrupted, secure, or error-free.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              7. Limitation of Liability
+            </h2>
+            <p>
+              In no event shall TypeSetGo be liable for any indirect,
+              incidental, special, consequential, or punitive damages arising
+              out of or related to your use of the service.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              8. Modifications to Service
+            </h2>
+            <p>
+              We reserve the right to modify, suspend, or discontinue any part
+              of the service at any time without prior notice. We will not be
+              liable to you or any third party for any modification, suspension,
+              or discontinuation of the service.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              9. Changes to Terms
+            </h2>
+            <p>
+              We may revise these Terms of Service at any time. By continuing to
+              use TypeSetGo after changes become effective, you agree to be
+              bound by the revised terms.
+            </p>
+          </section>
+
+          <section>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{ color: GLOBAL_COLORS.text.primary }}
+            >
+              10. Contact Information
+            </h2>
+            <p>
+              If you have any questions about these Terms of Service, please
+              contact us through our official channels.
+            </p>
+          </section>
+        </div>
+
+        <div className="text-center mt-12">
+          <Link
+            to="/"
+            className="transition text-sm hover:text-white"
+            style={{ color: GLOBAL_COLORS.text.secondary }}
+          >
+            ← Back to Typing
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

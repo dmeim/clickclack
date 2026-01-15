@@ -3,6 +3,8 @@ import Home from "./pages/Home";
 import Connect from "./pages/Connect";
 import Host from "./pages/Host";
 import Join from "./pages/Join";
+import Privacy from "./pages/Privacy";
+import TermsOfService from "./pages/TermsOfService";
 
 export default function App() {
   return (
@@ -11,6 +13,8 @@ export default function App() {
       <Route path="/connect" element={<Connect />} />
       <Route path="/connect/host" element={<Host />} />
       <Route path="/connect/join" element={<Join />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/tos" element={<TermsOfService />} />
     </Routes>
   );
 }
