@@ -251,6 +251,7 @@ export default function TypingPractice({
   const setShowThemeModal = externalSetShowThemeModal ?? setInternalShowThemeModal;
 
   const [linePreview, setLinePreview] = useState(3);
+  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [showPresetInput, setShowPresetInput] = useState(false);
   const [tempPresetText, setTempPresetText] = useState("");
   const [wordPool, setWordPool] = useState<string[]>([]);
@@ -1480,7 +1481,10 @@ export default function TypingPractice({
       {showThemeModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setShowThemeModal(false)}
+          onClick={() => {
+            setShowThemeModal(false);
+            setIsThemeDropdownOpen(false);
+          }}
         >
           <div
             className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4 max-h-[80vh] overflow-y-auto"
@@ -1489,35 +1493,128 @@ export default function TypingPractice({
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-200">Theme</h2>
-              <button onClick={() => setShowThemeModal(false)} className="text-gray-400 hover:text-gray-200">
+              <button
+                onClick={() => {
+                  setShowThemeModal(false);
+                  setIsThemeDropdownOpen(false);
+                }}
+                className="text-gray-400 hover:text-gray-200"
+              >
                 ✕
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {Object.entries(THEME_MANIFEST).map(([key, themeData]) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    handleThemeSelect(key);
-                    setShowThemeModal(false);
-                  }}
-                  className={`p-4 rounded-lg border transition ${
-                    selectedThemeName.toLowerCase() === themeData.name.toLowerCase()
-                      ? "border-gray-400"
-                      : "border-gray-700 hover:border-gray-600"
-                  }`}
-                  style={{ backgroundColor: themeData.backgroundColor }}
+
+            {/* Theme Dropdown */}
+            <div className="mb-6 border border-gray-600 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-700 hover:bg-gray-600 transition-colors"
+              >
+                <span className="text-sm font-medium text-gray-200">
+                  {selectedThemeName}
+                </span>
+                <svg
+                  className={`w-5 h-5 text-gray-400 transition-transform ${isThemeDropdownOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: themeData.cursor }} />
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: themeData.buttonSelected }} />
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: themeData.correctText }} />
-                  </div>
-                  <div className="text-sm" style={{ color: themeData.correctText }}>
-                    {themeData.name}
-                  </div>
-                </button>
-              ))}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              <div
+                className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                  isThemeDropdownOpen
+                    ? "max-h-[240px] opacity-100"
+                    : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="overflow-y-auto max-h-[240px] bg-gray-800/50">
+                  {Object.entries(THEME_MANIFEST).map(([key, themeData]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        handleThemeSelect(key);
+                        setIsThemeDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-b-0 ${
+                        selectedThemeName.toLowerCase() === themeData.name.toLowerCase() ? "bg-gray-700" : ""
+                      }`}
+                    >
+                      <span className="text-sm text-gray-200">
+                        {themeData.name}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <div
+                          className="w-4 h-4 rounded border border-gray-500"
+                          style={{ backgroundColor: themeData.backgroundColor }}
+                          title="Background"
+                        />
+                        <div
+                          className="w-4 h-4 rounded border border-gray-500"
+                          style={{ backgroundColor: themeData.cursor }}
+                          title="Cursor"
+                        />
+                        <div
+                          className="w-4 h-4 rounded border border-gray-500"
+                          style={{ backgroundColor: themeData.defaultText }}
+                          title="Default Text"
+                        />
+                        <div
+                          className="w-4 h-4 rounded border border-gray-500"
+                          style={{ backgroundColor: themeData.correctText }}
+                          title="Correct Text"
+                        />
+                        <div
+                          className="w-4 h-4 rounded border border-gray-500"
+                          style={{ backgroundColor: themeData.incorrectText }}
+                          title="Incorrect Text"
+                        />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Themes Grid */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Featured</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(THEME_MANIFEST).map(([key, themeData]) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      handleThemeSelect(key);
+                      setShowThemeModal(false);
+                      setIsThemeDropdownOpen(false);
+                    }}
+                    className={`p-4 rounded-lg border transition ${
+                      selectedThemeName.toLowerCase() === themeData.name.toLowerCase()
+                        ? "border-gray-400"
+                        : "border-gray-700 hover:border-gray-600"
+                    }`}
+                    style={{ backgroundColor: themeData.backgroundColor }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: themeData.cursor }} />
+                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: themeData.buttonSelected }} />
+                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: themeData.correctText }} />
+                    </div>
+                    <div className="text-sm" style={{ color: themeData.correctText }}>
+                      {themeData.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
