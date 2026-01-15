@@ -1151,6 +1151,12 @@ export default function TypingPractice({
                 maxHeight: `${linePreview * settings.typingFontSize * LINE_HEIGHT}rem`,
                 textAlign: settings.textAlign,
               }}
+              onMouseDown={(e) => {
+                // Prevent mousedown from stealing focus from the input
+                if (isFocused) {
+                  e.preventDefault();
+                }
+              }}
               onClick={() => inputRef.current?.focus()}
             >
               <div

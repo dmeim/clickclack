@@ -1,5 +1,6 @@
 services:
   typesetgo:
+    container_name: typesetgo
     build:
       context: ..
       dockerfile: docker/Dockerfile
