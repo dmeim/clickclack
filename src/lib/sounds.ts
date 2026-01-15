@@ -4,6 +4,34 @@ export type SoundManifest = {
   };
 };
 
+// Cache for loaded manifest
+let cachedManifest: SoundManifest | null = null;
+
+// Fetch sound manifest from /public/sounds/manifest.json
+export async function fetchSoundManifest(): Promise<SoundManifest> {
+  if (cachedManifest) {
+    return cachedManifest;
+  }
+
+  try {
+    const res = await fetch("/sounds/manifest.json");
+    if (!res.ok) {
+      console.error("Failed to load sound manifest");
+      return { typing: {}, warning: {}, error: {} };
+    }
+    cachedManifest = await res.json();
+    return cachedManifest!;
+  } catch (e) {
+    console.error("Failed to load sound manifest:", e);
+    return { typing: {}, warning: {}, error: {} };
+  }
+}
+
+// Get manifest from cache (returns empty if not loaded yet)
+export function getSoundManifestFromCache(): SoundManifest | null {
+  return cachedManifest;
+}
+
 export const getRandomSoundUrl = (
   manifest: SoundManifest | null,
   category: string,
@@ -23,64 +51,8 @@ export const getRandomSoundUrl = (
   return `/sounds/${category}/${pack}/${randomFile}`;
 };
 
-// Static sound manifest - no need for API call
-export const SOUND_MANIFEST: SoundManifest = {
-  typing: {
-    bubbles: ["bubbles_01.wav", "bubbles_02.wav", "bubbles_03.wav"],
-    creamy: [
-      "creamy_01.wav",
-      "creamy_02.wav",
-      "creamy_03.wav",
-      "creamy_04.wav",
-      "creamy_05.wav",
-      "creamy_06.wav",
-      "creamy_07.wav",
-      "creamy_08.wav",
-      "creamy_09.wav",
-      "creamy_10.wav",
-      "creamy_11.wav",
-      "creamy_12.wav",
-    ],
-    hitmarker: [
-      "hitmarker_01.wav",
-      "hitmarker_02.wav",
-      "hitmarker_03.wav",
-      "hitmarker_04.wav",
-      "hitmarker_05.wav",
-      "hitmarker_06.wav",
-    ],
-    plink: ["plink_01.wav", "plink_02.wav", "plink_03.wav"],
-    punch: [
-      "punch_01.wav",
-      "punch_02.wav",
-      "punch_03.wav",
-      "punch_04.wav",
-      "punch_05.wav",
-      "punch_06.wav",
-      "punch_07.wav",
-      "punch_08.wav",
-    ],
-    robo: ["robo_01.wav", "robo_02.wav", "robo_03.wav"],
-    typewriter: [
-      "typewriter_01.wav",
-      "typewriter_02.wav",
-      "typewriter_03.wav",
-      "typewriter_04.wav",
-      "typewriter_05.wav",
-      "typewriter_06.wav",
-      "typewriter_07.wav",
-      "typewriter_08.wav",
-      "typewriter_09.wav",
-      "typewriter_10.wav",
-      "typewriter_11.wav",
-      "typewriter_12.wav",
-    ],
-  },
-  warning: {
-    clock: ["clock.wav"],
-  },
-  error: {},
-};
-
-// Backwards compat for any code using the old INITIAL_SOUND_MANIFEST
-export const INITIAL_SOUND_MANIFEST = SOUND_MANIFEST;
+// Get list of available sound packs for a category
+export function getSoundPacks(manifest: SoundManifest | null, category: string): string[] {
+  if (!manifest || !manifest[category]) return [];
+  return Object.keys(manifest[category]);
+}

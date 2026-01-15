@@ -1,12 +1,12 @@
 // src/hooks/useSound.ts
 import { useRef, useCallback } from "react";
-import { getRandomSoundUrl, SOUND_MANIFEST } from "@/lib/sounds";
+import { getRandomSoundUrl, type SoundManifest } from "@/lib/sounds";
 
-export function useSound() {
+export function useSound(soundManifest: SoundManifest | null) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const playSound = useCallback((category: string, pack: string) => {
-    const url = getRandomSoundUrl(SOUND_MANIFEST, category, pack);
+    const url = getRandomSoundUrl(soundManifest, category, pack);
     if (!url) return;
 
     // Reuse or create audio element
@@ -19,7 +19,7 @@ export function useSound() {
     audioRef.current.play().catch(() => {
       // Ignore autoplay errors
     });
-  }, []);
+  }, [soundManifest]);
 
   const playTypingSound = useCallback(
     (pack: string) => {

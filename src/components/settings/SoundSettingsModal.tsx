@@ -10,7 +10,7 @@ interface SoundSettingsModalProps {
   onClose: () => void;
   settings: SettingsState;
   onUpdateSettings: (updates: Partial<SettingsState>) => void;
-  soundManifest: SoundManifest;
+  soundManifest: SoundManifest | null;
 }
 
 // Use useSyncExternalStore for client-side check
@@ -43,6 +43,7 @@ export default function SoundSettingsModal({
 
   // Helper to safely get keys
   const getPacks = (category: string) => {
+    if (!soundManifest) return [];
     return soundManifest[category] ? Object.keys(soundManifest[category]) : [];
   };
 

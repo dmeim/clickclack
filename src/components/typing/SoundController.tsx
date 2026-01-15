@@ -6,7 +6,7 @@ import SoundSettingsModal from "@/components/settings/SoundSettingsModal";
 interface SoundControllerProps {
   settings: SettingsState | Partial<SettingsState>;
   onUpdateSettings: (updates: Partial<SettingsState>) => void;
-  soundManifest: SoundManifest;
+  soundManifest: SoundManifest | null;
   theme: Theme;
 }
 

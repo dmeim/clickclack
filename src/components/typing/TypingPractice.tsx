@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Difficulty, Quote, SettingsState, Theme } from "@/lib/typing-constants";
 import { DEFAULT_THEME } from "@/lib/typing-constants";
-import { SOUND_MANIFEST } from "@/lib/sounds";
-import { getRandomSoundUrl } from "@/lib/sounds";
-import { THEME_MANIFEST } from "@/lib/themes";
+import { fetchSoundManifest, getRandomSoundUrl, type SoundManifest } from "@/lib/sounds";
+import { fetchTheme, fetchAllThemes, type ThemeDefinition } from "@/lib/themes";
 import {
   loadSettings,
   saveSettings,
@@ -251,6 +250,8 @@ export default function TypingPractice({
 
   const [linePreview, setLinePreview] = useState(3);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
+  const [availableThemes, setAvailableThemes] = useState<ThemeDefinition[]>([]);
+  const [soundManifest, setSoundManifest] = useState<SoundManifest | null>(null);
   const [showPresetInput, setShowPresetInput] = useState(false);
   const [tempPresetText, setTempPresetText] = useState("");
   const [wordPool, setWordPool] = useState<string[]>([]);
@@ -348,6 +349,16 @@ export default function TypingPractice({
     saveTheme(theme);
     saveThemeName(selectedThemeName);
   }, [theme, selectedThemeName]);
+
+  // --- Load available themes ---
+  useEffect(() => {
+    fetchAllThemes().then(setAvailableThemes);
+  }, []);
+
+  // --- Load sound manifest ---
+  useEffect(() => {
+    fetchSoundManifest().then(setSoundManifest);
+  }, []);
 
   // --- Apply locked settings from connect mode ---
   useEffect(() => {
@@ -462,9 +473,9 @@ export default function TypingPractice({
   }, [isFinished, isPlanActive, isPlanSplash, plan, planIndex, planResults, typedText, words, elapsedMs]);
 
   const playClickSound = useCallback(() => {
-    if (!settings.soundEnabled || !settings.typingSound) return;
+    if (!settings.soundEnabled || !settings.typingSound || !soundManifest) return;
     try {
-      const soundUrl = getRandomSoundUrl(SOUND_MANIFEST, "typing", settings.typingSound);
+      const soundUrl = getRandomSoundUrl(soundManifest, "typing", settings.typingSound);
       if (!soundUrl) return;
       const audio = new Audio(soundUrl);
       audio.volume = 0.5;
@@ -475,9 +486,9 @@ export default function TypingPractice({
   }, [settings.soundEnabled, settings.typingSound]);
 
   const playWarningSound = useCallback(() => {
-    if (!settings.soundEnabled || !settings.warningSound) return;
+    if (!settings.soundEnabled || !settings.warningSound || !soundManifest) return;
     try {
-      const soundUrl = getRandomSoundUrl(SOUND_MANIFEST, "warning", settings.warningSound);
+      const soundUrl = getRandomSoundUrl(soundManifest, "warning", settings.warningSound);
       if (!soundUrl) return;
       const audio = new Audio(soundUrl);
       audio.volume = 0.5;
@@ -699,8 +710,19 @@ export default function TypingPractice({
     }
   };
 
-  const handleThemeSelect = (themeName: string) => {
-    const themeData = THEME_MANIFEST[themeName.toLowerCase()];
+  const handleThemeSelect = async (themeName: string) => {
+    // First check if already loaded in availableThemes
+    const cached = availableThemes.find(
+      (t) => t.name.toLowerCase() === themeName.toLowerCase()
+    );
+    if (cached) {
+      const { name, ...colors } = cached;
+      setTheme(colors);
+      setSelectedThemeName(name);
+      return;
+    }
+    // Otherwise fetch it
+    const themeData = await fetchTheme(themeName);
     if (themeData) {
       const { name, ...colors } = themeData;
       setTheme(colors);
@@ -989,7 +1011,7 @@ export default function TypingPractice({
               <SoundController
                 settings={settings}
                 onUpdateSettings={updateSettings}
-                soundManifest={SOUND_MANIFEST}
+                soundManifest={soundManifest}
                 theme={theme}
               />
               <GhostWriterController
@@ -1540,12 +1562,12 @@ export default function TypingPractice({
                 }`}
               >
                 <div className="overflow-y-auto max-h-[240px] bg-gray-800/50">
-                  {Object.entries(THEME_MANIFEST).map(([key, themeData]) => (
+                  {availableThemes.map((themeData) => (
                     <button
-                      key={key}
+                      key={themeData.name}
                       type="button"
                       onClick={() => {
-                        handleThemeSelect(key);
+                        handleThemeSelect(themeData.name);
                         setIsThemeDropdownOpen(false);
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-b-0 ${
@@ -1592,11 +1614,11 @@ export default function TypingPractice({
             <div>
               <h3 className="text-sm font-medium text-gray-400 mb-3">Featured</h3>
               <div className="grid grid-cols-2 gap-3">
-                {Object.entries(THEME_MANIFEST).map(([key, themeData]) => (
+                {availableThemes.map((themeData) => (
                   <button
-                    key={key}
+                    key={themeData.name}
                     onClick={() => {
-                      handleThemeSelect(key);
+                      handleThemeSelect(themeData.name);
                       setShowThemeModal(false);
                       setIsThemeDropdownOpen(false);
                     }}

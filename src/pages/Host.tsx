@@ -29,8 +29,8 @@ import {
   type QuoteLength,
   type Theme,
 } from "@/lib/typing-constants";
-import { THEME_MANIFEST, type ThemeDefinition } from "@/lib/themes";
-import { SOUND_MANIFEST } from "@/lib/sounds";
+import { fetchAllThemes, type ThemeDefinition } from "@/lib/themes";
+import { fetchSoundManifest, type SoundManifest } from "@/lib/sounds";
 import { useSessionId } from "@/hooks/useSessionId";
 import { HostCard, UserHostCard } from "@/components/connect";
 import SoundController from "@/components/typing/SoundController";
@@ -147,11 +147,21 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
   // Derived theme
   const theme = settings.theme || DEFAULT_THEME;
 
-  // Theme presets from manifest
-  const themePresets: ThemeDefinition[] = useMemo(
-    () => Object.values(THEME_MANIFEST),
-    []
-  );
+  // Theme presets - loaded dynamically
+  const [themePresets, setThemePresets] = useState<ThemeDefinition[]>([]);
+
+  // Sound manifest - loaded dynamically
+  const [soundManifest, setSoundManifest] = useState<SoundManifest | null>(null);
+
+  // Load themes on mount
+  useEffect(() => {
+    fetchAllThemes().then(setThemePresets);
+  }, []);
+
+  // Load sound manifest on mount
+  useEffect(() => {
+    fetchSoundManifest().then(setSoundManifest);
+  }, []);
 
   // Fullscreen handler
   useEffect(() => {
@@ -584,7 +594,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
           <SoundController
             settings={settings}
             onUpdateSettings={updateSettings}
-            soundManifest={SOUND_MANIFEST}
+            soundManifest={soundManifest}
             theme={theme}
           />
 
