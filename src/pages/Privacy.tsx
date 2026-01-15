@@ -1,36 +1,45 @@
 import { Link } from "react-router-dom";
-import { GLOBAL_COLORS } from "@/lib/colors";
+import type { Theme } from "@/lib/typing-constants";
+import { DEFAULT_THEME } from "@/lib/typing-constants";
+import { loadTheme } from "@/lib/storage-utils";
+
+const getTheme = (): Theme => {
+  const stored = loadTheme();
+  return stored ?? DEFAULT_THEME;
+};
 
 export default function Privacy() {
+  const theme = getTheme();
+
   return (
     <div
       className="min-h-[100dvh] font-mono px-4 py-12 transition-colors duration-300"
       style={{
-        backgroundColor: GLOBAL_COLORS.background,
-        color: GLOBAL_COLORS.text.primary,
+        backgroundColor: theme.backgroundColor,
+        color: theme.correctText,
       }}
     >
       <div className="w-full max-w-3xl mx-auto animate-fade-in">
         <div className="text-center mb-12">
           <h1
             className="text-4xl font-bold mb-2"
-            style={{ color: GLOBAL_COLORS.brand.primary }}
+            style={{ color: theme.cursor }}
           >
             Privacy Policy
           </h1>
-          <p style={{ color: GLOBAL_COLORS.text.secondary }}>
+          <p style={{ color: theme.defaultText }}>
             Last updated: January 15, 2026
           </p>
         </div>
 
         <div
           className="space-y-8 text-sm leading-relaxed"
-          style={{ color: GLOBAL_COLORS.text.secondary }}
+          style={{ color: theme.defaultText }}
         >
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               1. Information We Collect
             </h2>
@@ -57,7 +66,7 @@ export default function Privacy() {
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               2. How We Use Your Information
             </h2>
@@ -73,7 +82,7 @@ export default function Privacy() {
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               3. Data Storage
             </h2>
@@ -89,7 +98,7 @@ export default function Privacy() {
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               4. Data Sharing
             </h2>
@@ -103,7 +112,7 @@ export default function Privacy() {
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               5. Cookies and Tracking
             </h2>
@@ -117,7 +126,7 @@ export default function Privacy() {
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               6. Your Rights
             </h2>
@@ -134,7 +143,7 @@ export default function Privacy() {
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               7. Changes to This Policy
             </h2>
@@ -148,7 +157,7 @@ export default function Privacy() {
           <section>
             <h2
               className="text-xl font-semibold mb-4"
-              style={{ color: GLOBAL_COLORS.text.primary }}
+              style={{ color: theme.correctText }}
             >
               8. Contact Us
             </h2>
@@ -162,8 +171,8 @@ export default function Privacy() {
         <div className="text-center mt-12">
           <Link
             to="/"
-            className="transition text-sm hover:text-white"
-            style={{ color: GLOBAL_COLORS.text.secondary }}
+            className="transition text-sm hover:opacity-100"
+            style={{ color: theme.defaultText, opacity: 0.7 }}
           >
             ← Back to Typing
           </Link>
