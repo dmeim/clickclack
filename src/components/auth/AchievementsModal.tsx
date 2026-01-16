@@ -109,13 +109,11 @@ function AchievementCard({
 function CategorySection({
   category,
   earnedIds,
-  earnedAchievements,
   theme,
   onAchievementClick,
 }: {
   category: AchievementCategory;
   earnedIds: Set<string>;
-  earnedAchievements: Record<string, number>;
   theme: Theme;
   onAchievementClick: (achievement: Achievement, index: number, allInCategory: Achievement[]) => void;
 }) {
@@ -195,7 +193,7 @@ export default function AchievementsModal({
 
   // Handle achievement card click - open carousel with all achievements in that category
   const handleAchievementClick = (
-    clickedAchievement: Achievement,
+    _clickedAchievement: Achievement,
     index: number,
     allInCategory: Achievement[]
   ) => {
@@ -294,7 +292,6 @@ export default function AchievementsModal({
                 key={category}
                 category={category}
                 earnedIds={earnedIds}
-                earnedAchievements={earnedAchievements}
                 theme={theme}
                 onAchievementClick={handleAchievementClick}
               />
