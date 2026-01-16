@@ -731,11 +731,11 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
 
         {/* Achievements Section */}
         {!isLoading && stats && stats.totalTests > 0 && (
-          <div className="mt-6" style={{ minHeight: "160px" }}>
-              <AchievementsGrid
-                earnedAchievements={achievements ?? {}}
-                theme={theme}
-              />
+          <div className="mt-6" style={{ height: "160px" }}>
+            <AchievementsGrid
+              earnedAchievements={achievements ?? {}}
+              theme={theme}
+            />
           </div>
         )}
 
