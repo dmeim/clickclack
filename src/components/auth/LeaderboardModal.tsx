@@ -190,7 +190,7 @@ export default function LeaderboardModal({
           className="text-xs mb-4"
           style={{ color: theme.defaultText }}
         >
-          Tests must be at least 30 seconds or 50 words to qualify
+          Requires 90%+ accuracy and at least 30 seconds or 50 words to qualify
         </p>
 
         {/* Time Range Tabs */}

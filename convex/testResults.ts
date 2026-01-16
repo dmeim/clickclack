@@ -261,11 +261,12 @@ export const getLeaderboard = query({
     // Fetch all test results (we'll filter and group in memory)
     const allResults = await ctx.db.query("testResults").collect();
 
-    // Filter by time range
-    const filteredResults =
-      args.timeRange === "all-time"
-        ? allResults
-        : allResults.filter((r) => r.createdAt >= timeCutoff);
+    // Filter by time range and minimum accuracy (90% required to prevent spacebar spam exploit)
+    const filteredResults = allResults.filter((r) => {
+      const meetsAccuracy = r.accuracy >= 90;
+      const meetsTimeRange = args.timeRange === "all-time" || r.createdAt >= timeCutoff;
+      return meetsAccuracy && meetsTimeRange;
+    });
 
     // Group by user and find best WPM for each user
     // Use a Map keyed by the string representation of userId
