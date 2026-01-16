@@ -73,6 +73,7 @@ export default function SoundController({
         settings={safeSettings}
         onUpdateSettings={onUpdateSettings}
         soundManifest={soundManifest}
+        theme={theme}
       />
     </>
   );

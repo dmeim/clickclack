@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { GLOBAL_COLORS } from "@/lib/colors";
-import type { SettingsState } from "@/lib/typing-constants";
+import type { SettingsState, Theme } from "@/lib/typing-constants";
 import { getRandomSoundUrl } from "@/lib/sounds";
 import type { SoundManifest } from "@/lib/sounds";
 
@@ -11,6 +10,7 @@ interface SoundSettingsModalProps {
   settings: SettingsState;
   onUpdateSettings: (updates: Partial<SettingsState>) => void;
   soundManifest: SoundManifest | null;
+  theme: Theme;
 }
 
 // Use useSyncExternalStore for client-side check
@@ -24,6 +24,7 @@ export default function SoundSettingsModal({
   settings,
   onUpdateSettings,
   soundManifest,
+  theme,
 }: SoundSettingsModalProps) {
   const mounted = useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
 
@@ -53,16 +54,17 @@ export default function SoundSettingsModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4 md:mx-0 border border-gray-700"
-        style={{ backgroundColor: GLOBAL_COLORS.surface }}
+        className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4 md:mx-0 border"
+        style={{ backgroundColor: theme.surfaceColor, borderColor: `${theme.defaultText}30` }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-200">Sound Settings</h2>
+          <h2 className="text-xl font-semibold" style={{ color: theme.correctText }}>Sound Settings</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-200"
+            className="hover:opacity-75 transition"
+            style={{ color: theme.defaultText }}
           >
             ✕
           </button>
@@ -73,28 +75,30 @@ export default function SoundSettingsModal({
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => onUpdateSettings({ soundEnabled: false })}
-              className={`group relative inline-flex items-center justify-center px-6 py-2 font-medium text-white transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 ${
-                !settings.soundEnabled
-                  ? "bg-gray-600 ring-2 ring-gray-400"
-                  : "bg-gray-700 hover:bg-gray-600 opacity-50 hover:opacity-100"
-              }`}
+              className="group relative inline-flex items-center justify-center px-6 py-2 font-medium transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2"
+              style={{
+                backgroundColor: !settings.soundEnabled ? `${theme.buttonSelected}30` : `${theme.defaultText}20`,
+                color: !settings.soundEnabled ? theme.correctText : theme.defaultText,
+                boxShadow: !settings.soundEnabled ? `0 0 0 2px ${theme.buttonSelected}` : "none",
+              }}
             >
               Off
             </button>
 
             <button
               onClick={() => onUpdateSettings({ soundEnabled: true })}
-              className={`group relative inline-flex items-center justify-center px-6 py-2 font-medium text-white transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 ${
-                settings.soundEnabled
-                  ? "bg-gray-600 ring-2 ring-gray-400"
-                  : "bg-gray-700 hover:bg-gray-600 opacity-50 hover:opacity-100"
-              }`}
+              className="group relative inline-flex items-center justify-center px-6 py-2 font-medium transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2"
+              style={{
+                backgroundColor: settings.soundEnabled ? `${theme.buttonSelected}30` : `${theme.defaultText}20`,
+                color: settings.soundEnabled ? theme.correctText : theme.defaultText,
+                boxShadow: settings.soundEnabled ? `0 0 0 2px ${theme.buttonSelected}` : "none",
+              }}
             >
               On
               {settings.soundEnabled && (
                 <div
                   className="absolute bottom-0 left-0 h-1 w-full scale-x-100 rounded-b-lg transition-transform duration-200"
-                  style={{ backgroundColor: GLOBAL_COLORS.brand.primary }}
+                  style={{ backgroundColor: theme.buttonSelected }}
                 ></div>
               )}
             </button>
@@ -106,17 +110,19 @@ export default function SoundSettingsModal({
           >
             {/* Typing Sound */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm text-gray-400">Typing Sound</label>
+              <label className="text-sm" style={{ color: theme.defaultText }}>Typing Sound</label>
               <div className="flex items-center gap-2">
                 <select
                   value={settings.typingSound}
                   onChange={(e) =>
                     onUpdateSettings({ typingSound: e.target.value })
                   }
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
-                  style={
-                    { "--tw-ring-color": GLOBAL_COLORS.brand.primary } as React.CSSProperties
-                  }
+                  className="w-full rounded px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: `${theme.backgroundColor}80`,
+                    color: theme.correctText,
+                    ["--tw-ring-color" as string]: theme.buttonSelected,
+                  }}
                 >
                   {getPacks("typing").map((pack) => (
                     <option key={pack} value={pack}>
@@ -127,7 +133,8 @@ export default function SoundSettingsModal({
                 <button
                   type="button"
                   onClick={() => playPreview("typing", settings.typingSound)}
-                  className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition"
+                  className="p-2 rounded hover:opacity-75 transition"
+                  style={{ color: theme.defaultText }}
                   title="Preview sound"
                 >
                   <svg
@@ -150,17 +157,19 @@ export default function SoundSettingsModal({
 
             {/* Warning Sound */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm text-gray-400">Warning Sound</label>
+              <label className="text-sm" style={{ color: theme.defaultText }}>Warning Sound</label>
               <div className="flex items-center gap-2">
                 <select
                   value={settings.warningSound}
                   onChange={(e) =>
                     onUpdateSettings({ warningSound: e.target.value })
                   }
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
-                  style={
-                    { "--tw-ring-color": GLOBAL_COLORS.brand.primary } as React.CSSProperties
-                  }
+                  className="w-full rounded px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: `${theme.backgroundColor}80`,
+                    color: theme.correctText,
+                    ["--tw-ring-color" as string]: theme.buttonSelected,
+                  }}
                 >
                   {getPacks("warning").map((pack) => (
                     <option key={pack} value={pack}>
@@ -171,7 +180,8 @@ export default function SoundSettingsModal({
                 <button
                   type="button"
                   onClick={() => playPreview("warning", settings.warningSound)}
-                  className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition"
+                  className="p-2 rounded hover:opacity-75 transition"
+                  style={{ color: theme.defaultText }}
                   title="Preview sound"
                 >
                   <svg
@@ -194,17 +204,19 @@ export default function SoundSettingsModal({
 
             {/* Error Sound (Placeholder) */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm text-gray-400">Error Sound</label>
+              <label className="text-sm" style={{ color: theme.defaultText }}>Error Sound</label>
               <div className="flex items-center gap-2">
                 <select
                   value={settings.errorSound}
                   onChange={(e) =>
                     onUpdateSettings({ errorSound: e.target.value })
                   }
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2"
-                  style={
-                    { "--tw-ring-color": GLOBAL_COLORS.brand.primary } as React.CSSProperties
-                  }
+                  className="w-full rounded px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: `${theme.backgroundColor}80`,
+                    color: theme.correctText,
+                    ["--tw-ring-color" as string]: theme.buttonSelected,
+                  }}
                   disabled={getPacks("error").length === 0}
                 >
                   <option value="">None</option>
@@ -220,7 +232,8 @@ export default function SoundSettingsModal({
                     settings.errorSound &&
                     playPreview("error", settings.errorSound)
                   }
-                  className={`p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition ${!settings.errorSound ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`p-2 rounded hover:opacity-75 transition ${!settings.errorSound ? "opacity-50 cursor-not-allowed" : ""}`}
+                  style={{ color: theme.defaultText }}
                   title="Preview sound"
                   disabled={!settings.errorSound}
                 >

@@ -54,6 +54,7 @@ export default function GhostWriterController({
         onClose={() => setIsOpen(false)}
         settings={safeSettings}
         onUpdateSettings={onUpdateSettings}
+        theme={theme}
       />
     </>
   );
