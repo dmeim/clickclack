@@ -15,11 +15,14 @@ interface AchievementsGridProps {
   // Record of achievementId -> earnedAt timestamp
   earnedAchievements: Record<string, number>;
   theme: Theme;
+  // Maximum visible rows before scrolling (shows +0.5 to indicate more)
+  maxVisibleRows?: number;
 }
 
 export default function AchievementsGrid({
   earnedAchievements,
   theme,
+  maxVisibleRows,
 }: AchievementsGridProps) {
   // State now holds an array of achievements in the progressive group and the initial index
   const [selectedAchievements, setSelectedAchievements] = useState<{
@@ -117,7 +120,11 @@ export default function AchievementsGrid({
         </div>
 
         {/* Scrollable Content - Flat Grid */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        {/* Each achievement item is ~68px tall (p-2 + icon + title), gap-2 = 8px */}
+        <div 
+          className="flex-1 overflow-y-auto overflow-x-hidden"
+          style={maxVisibleRows ? { maxHeight: `calc(${maxVisibleRows}.5 * 68px + ${maxVisibleRows - 1} * 8px)` } : undefined}
+        >
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 p-1">
             {achievements.map(({ achievement }) => {
               const tierColors = TIER_COLORS[achievement.tier];
@@ -134,9 +141,19 @@ export default function AchievementsGrid({
                   }}
                   title={achievement.title}
                 >
-                  {/* Icon */}
+                  {/* Tier Badge (top) */}
+                  <div
+                    className="px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider mb-1"
+                    style={{
+                      backgroundColor: tierColors.bg,
+                      color: tierColors.text,
+                    }}
+                  >
+                    {achievement.tier}
+                  </div>
+                  {/* Icon (middle) */}
                   <div className="text-xl mb-1">{achievement.icon}</div>
-                  {/* Title (truncated) */}
+                  {/* Title (bottom) */}
                   <div
                     className="text-[10px] font-medium text-center leading-tight line-clamp-2"
                     style={{ color: theme.correctText }}

@@ -43,26 +43,26 @@ function AchievementCard({
         }}
         title={achievement.description}
       >
-        {/* Icon */}
-        <div className="text-2xl mb-1.5">{achievement.icon}</div>
-        
-        {/* Title */}
+        {/* Tier Badge (top) */}
         <div
-          className="text-xs font-medium text-center leading-tight line-clamp-2 mb-1.5"
-          style={{ color: theme.correctText }}
-        >
-          {achievement.title}
-        </div>
-        
-        {/* Tier Badge */}
-        <div
-          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1.5"
           style={{
             backgroundColor: tierColors.bg,
             color: tierColors.text,
           }}
         >
           {achievement.tier}
+        </div>
+        
+        {/* Icon (middle) */}
+        <div className="text-2xl mb-1.5">{achievement.icon}</div>
+        
+        {/* Title (bottom) */}
+        <div
+          className="text-xs font-medium text-center leading-tight line-clamp-2"
+          style={{ color: theme.correctText }}
+        >
+          {achievement.title}
         </div>
       </button>
     );
@@ -80,26 +80,26 @@ function AchievementCard({
       }}
       title={`Locked: ${achievement.description}`}
     >
-      {/* Icon */}
-      <div className="text-2xl mb-1.5">{achievement.icon}</div>
-      
-      {/* Title */}
+      {/* Tier Badge (top) */}
       <div
-        className="text-xs font-medium text-center leading-tight line-clamp-2 mb-1.5"
-        style={{ color: theme.defaultText }}
-      >
-        {achievement.title}
-      </div>
-      
-      {/* Tier Badge */}
-      <div
-        className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+        className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1.5"
         style={{
           backgroundColor: `${theme.defaultText}40`,
           color: theme.backgroundColor,
         }}
       >
         {achievement.tier}
+      </div>
+      
+      {/* Icon (middle) */}
+      <div className="text-2xl mb-1.5">{achievement.icon}</div>
+      
+      {/* Title (bottom) */}
+      <div
+        className="text-xs font-medium text-center leading-tight line-clamp-2"
+        style={{ color: theme.defaultText }}
+      >
+        {achievement.title}
       </div>
     </button>
   );
@@ -140,8 +140,8 @@ function CategorySection({
         </span>
       </div>
 
-      {/* Achievement Grid */}
-      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
+      {/* Achievement Grid - max 7 columns */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
         {achievements.map((achievement, index) => (
           <AchievementCard
             key={achievement.id}

@@ -689,8 +689,8 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
                   />
                 </div>
 
-                {/* Table Body - Scrollable */}
-                <div className="flex-1 overflow-y-auto">
+                {/* Table Body - Scrollable (shows 7 entries + 8th peeking) */}
+                <div className="overflow-y-auto" style={{ maxHeight: "calc(7.5 * 44px)" }}>
                   {sortedResults.length > 0 ? (
                     sortedResults.map((result) => (
                       <div
@@ -731,10 +731,11 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
 
         {/* Achievements Section */}
         {!isLoading && stats && stats.totalTests > 0 && (
-          <div className="mt-6" style={{ height: "160px" }}>
+          <div className="mt-6">
             <AchievementsGrid
               earnedAchievements={achievements ?? {}}
               theme={theme}
+              maxVisibleRows={2}
             />
           </div>
         )}

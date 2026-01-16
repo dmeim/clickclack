@@ -17,6 +17,21 @@ export function qualifiesForStreak(
 }
 
 /**
+ * Check if a test qualifies for achievement counting
+ * Qualification: (duration >= 30s OR wordsCorrect >= 50) AND accuracy >= 90%
+ * This prevents gaming achievements by ending tests early
+ */
+export function qualifiesForAchievement(
+  duration: number,
+  wordsCorrect: number,
+  accuracy: number
+): boolean {
+  const meetsDurationOrWords = duration >= MIN_DURATION_MS || wordsCorrect >= MIN_CORRECT_WORDS;
+  const meetsAccuracy = accuracy >= 90;
+  return meetsDurationOrWords && meetsAccuracy;
+}
+
+/**
  * Get the next day's date string (YYYY-MM-DD format)
  */
 function getNextDay(dateStr: string): string {

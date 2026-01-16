@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as achievementThresholds from "../achievementThresholds.js";
 import type * as achievements from "../achievements.js";
 import type * as participants from "../participants.js";
 import type * as preferences from "../preferences.js";
@@ -23,6 +24,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  achievementThresholds: typeof achievementThresholds;
   achievements: typeof achievements;
   participants: typeof participants;
   preferences: typeof preferences;

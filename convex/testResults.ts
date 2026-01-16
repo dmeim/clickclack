@@ -107,7 +107,7 @@ export const deleteResult = mutation({
     resultId: v.id("testResults"),
     clerkId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; removedAchievements: string[] }> => {
     // Find the user by Clerk ID
     const user = await ctx.db
       .query("users")
@@ -133,7 +133,13 @@ export const deleteResult = mutation({
     // Delete the result
     await ctx.db.delete(args.resultId);
 
-    return { success: true };
+    // Recheck achievements and remove any that user no longer qualifies for
+    const { removedAchievements } = await ctx.runMutation(
+      internal.achievements.recheckAchievementsAfterDeletion,
+      { userId: user._id }
+    );
+
+    return { success: true, removedAchievements };
   },
 });
 
