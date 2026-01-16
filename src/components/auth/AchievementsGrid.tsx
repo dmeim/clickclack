@@ -4,6 +4,7 @@ import {
   getAchievementById,
   TIER_COLORS,
   filterToHighestAchievements,
+  getEarnedInProgressiveGroup,
   type Achievement,
 } from "@/lib/achievement-definitions";
 import AchievementDetailModal from "./AchievementDetailModal";
@@ -18,9 +19,10 @@ export default function AchievementsGrid({
   earnedAchievements,
   theme,
 }: AchievementsGridProps) {
-  const [selectedAchievement, setSelectedAchievement] = useState<{
-    achievement: Achievement;
-    earnedAt: number;
+  // State now holds an array of achievements in the progressive group and the initial index
+  const [selectedAchievements, setSelectedAchievements] = useState<{
+    achievements: { achievement: Achievement; earnedAt: number }[];
+    initialIndex: number;
   } | null>(null);
 
   // Get all earned achievement IDs
@@ -37,6 +39,31 @@ export default function AchievementsGrid({
       return { achievement, earnedAt: earnedAchievements[id] };
     })
     .filter(Boolean) as { achievement: Achievement; earnedAt: number }[];
+
+  // Handler to open the detail modal with all achievements in the progressive group
+  const handleAchievementClick = (clickedAchievement: Achievement) => {
+    // Get all earned achievements in the same progressive group
+    const groupIds = getEarnedInProgressiveGroup(clickedAchievement.id, earnedIds);
+    
+    // Map to achievement objects with earned timestamps
+    const groupAchievements = groupIds
+      .map((id) => {
+        const achievement = getAchievementById(id);
+        if (!achievement) return null;
+        return { achievement, earnedAt: earnedAchievements[id] };
+      })
+      .filter(Boolean) as { achievement: Achievement; earnedAt: number }[];
+
+    // Find the index of the clicked achievement (which is the highest/last one)
+    const initialIndex = groupAchievements.findIndex(
+      (a) => a.achievement.id === clickedAchievement.id
+    );
+
+    setSelectedAchievements({
+      achievements: groupAchievements,
+      initialIndex: initialIndex >= 0 ? initialIndex : groupAchievements.length - 1,
+    });
+  };
 
   if (displayIds.length === 0) {
     return (
@@ -86,14 +113,13 @@ export default function AchievementsGrid({
         {/* Scrollable Content - Flat Grid */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 p-1">
-            {achievements.map(({ achievement, earnedAt }) => {
+            {achievements.map(({ achievement }) => {
               const tierColors = TIER_COLORS[achievement.tier];
+              
               return (
                 <button
                   key={achievement.id}
-                  onClick={() =>
-                    setSelectedAchievement({ achievement, earnedAt })
-                  }
+                  onClick={() => handleAchievementClick(achievement)}
                   className="flex flex-col items-center p-2 rounded-lg transition-all hover:scale-105 hover:shadow-lg"
                   style={{
                     backgroundColor: `${tierColors.bg}20`,
@@ -119,12 +145,12 @@ export default function AchievementsGrid({
       </div>
 
       {/* Achievement Detail Modal */}
-      {selectedAchievement && (
+      {selectedAchievements && (
         <AchievementDetailModal
-          achievement={selectedAchievement.achievement}
-          earnedAt={selectedAchievement.earnedAt}
+          achievements={selectedAchievements.achievements}
+          initialIndex={selectedAchievements.initialIndex}
           theme={theme}
-          onClose={() => setSelectedAchievement(null)}
+          onClose={() => setSelectedAchievements(null)}
         />
       )}
     </>

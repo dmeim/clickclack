@@ -617,3 +617,35 @@ export function getEarnedCategories(
 
   return orderedCategories.filter((c) => categories.has(c));
 }
+
+/**
+ * Get all earned achievements in the same progressive group as the given achievement.
+ * For non-progressive achievements, returns just that achievement.
+ * Results are sorted by target value ascending (lowest to highest).
+ *
+ * @param achievementId - The achievement ID to find group members for
+ * @param earnedAchievementIds - Array of all achievement IDs the user has earned
+ * @returns Array of achievement IDs in the same progressive group, sorted by target
+ */
+export function getEarnedInProgressiveGroup(
+  achievementId: string,
+  earnedAchievementIds: string[]
+): string[] {
+  const achievement = ACHIEVEMENTS_BY_ID.get(achievementId);
+  if (!achievement?.progressiveGroup) {
+    return [achievementId]; // Non-progressive, return just this one
+  }
+
+  // Filter all earned achievements that share the same progressive group
+  return earnedAchievementIds
+    .filter((id) => {
+      const a = ACHIEVEMENTS_BY_ID.get(id);
+      return a?.progressiveGroup === achievement.progressiveGroup;
+    })
+    .sort((a, b) => {
+      // Sort by target value ascending
+      const aTarget = ACHIEVEMENTS_BY_ID.get(a)?.target ?? 0;
+      const bTarget = ACHIEVEMENTS_BY_ID.get(b)?.target ?? 0;
+      return aTarget - bTarget;
+    });
+}
