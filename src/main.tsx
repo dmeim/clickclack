@@ -10,6 +10,12 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+// Hide the static HTML footer once React loads (it exists for SEO/Google verification)
+const staticFooter = document.getElementById("static-footer");
+if (staticFooter) {
+  staticFooter.style.display = "none";
+}
+
 if (!CLERK_PUBLISHABLE_KEY) {
   console.warn("Missing VITE_CLERK_PUBLISHABLE_KEY. Auth features will be disabled.");
 }
