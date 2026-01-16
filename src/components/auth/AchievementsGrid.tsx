@@ -5,9 +5,11 @@ import {
   TIER_COLORS,
   filterToHighestAchievements,
   getEarnedInProgressiveGroup,
+  ALL_ACHIEVEMENTS,
   type Achievement,
 } from "@/lib/achievement-definitions";
 import AchievementDetailModal from "./AchievementDetailModal";
+import AchievementsModal from "./AchievementsModal";
 
 interface AchievementsGridProps {
   // Record of achievementId -> earnedAt timestamp
@@ -24,6 +26,9 @@ export default function AchievementsGrid({
     achievements: { achievement: Achievement; earnedAt: number }[];
     initialIndex: number;
   } | null>(null);
+  
+  // State for the full achievements board modal
+  const [showAchievementsModal, setShowAchievementsModal] = useState(false);
 
   // Get all earned achievement IDs
   const earnedIds = Object.keys(earnedAchievements);
@@ -102,12 +107,13 @@ export default function AchievementsGrid({
           >
             Achievements
           </div>
-          <div
-            className="text-xs font-medium"
+          <button
+            onClick={() => setShowAchievementsModal(true)}
+            className="text-xs font-medium hover:underline transition-all cursor-pointer"
             style={{ color: theme.buttonSelected }}
           >
-            {earnedIds.length} earned
-          </div>
+            {earnedIds.length} / {ALL_ACHIEVEMENTS.length}
+          </button>
         </div>
 
         {/* Scrollable Content - Flat Grid */}
@@ -151,6 +157,15 @@ export default function AchievementsGrid({
           initialIndex={selectedAchievements.initialIndex}
           theme={theme}
           onClose={() => setSelectedAchievements(null)}
+        />
+      )}
+
+      {/* Full Achievements Board Modal */}
+      {showAchievementsModal && (
+        <AchievementsModal
+          earnedAchievements={earnedAchievements}
+          theme={theme}
+          onClose={() => setShowAchievementsModal(false)}
         />
       )}
     </>

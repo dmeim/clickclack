@@ -1,5 +1,5 @@
 // Achievement definitions for the typing application
-// ~126 total achievements across 8 categories
+// ~180 total achievements across 16 categories
 
 export type AchievementTier = "bronze" | "silver" | "gold" | "platinum";
 
@@ -11,7 +11,15 @@ export type AchievementCategory =
   | "streak"
   | "tests"
   | "explorer"
-  | "special";
+  | "special"
+  | "consistency"
+  | "improvement"
+  | "challenge"
+  | "endurance"
+  | "timebased"
+  | "milestone"
+  | "quirky"
+  | "collection";
 
 // Progressive groups - only show the highest achievement in each group
 export type ProgressiveGroup =
@@ -21,7 +29,12 @@ export type ProgressiveGroup =
   | "streak"
   | "tests"
   | "accuracy-95"
-  | "accuracy-streak";
+  | "accuracy-streak"
+  | "consistency-90plus"
+  | "consistency-variance"
+  | "improvement-pb-count"
+  | "endurance-tests-day"
+  | "collection";
 
 export interface Achievement {
   id: string;
@@ -80,6 +93,46 @@ export const ACHIEVEMENT_CATEGORIES: Record<
     name: "Special Moments",
     icon: "✨",
     description: "Unique and fun achievements",
+  },
+  consistency: {
+    name: "Consistency",
+    icon: "📊",
+    description: "Performance stability achievements",
+  },
+  improvement: {
+    name: "Improvement",
+    icon: "📈",
+    description: "Personal growth and records",
+  },
+  challenge: {
+    name: "Challenge Mode",
+    icon: "💪",
+    description: "Difficult setting combinations",
+  },
+  endurance: {
+    name: "Endurance",
+    icon: "🏋️",
+    description: "Long sessions and marathons",
+  },
+  timebased: {
+    name: "Time-Based",
+    icon: "🕐",
+    description: "Specific times and dates",
+  },
+  milestone: {
+    name: "Milestones",
+    icon: "🎖️",
+    description: "Multi-requirement achievements",
+  },
+  quirky: {
+    name: "Fun & Quirky",
+    icon: "🎲",
+    description: "Humor and specific numbers",
+  },
+  collection: {
+    name: "Collection",
+    icon: "🗃️",
+    description: "Meta achievements",
   },
 };
 
@@ -504,6 +557,518 @@ function generateSpecialAchievements(): Achievement[] {
   ];
 }
 
+// Generate Consistency achievements
+function generateConsistencyAchievements(): Achievement[] {
+  return [
+    {
+      id: "consistency-low-variance-5",
+      category: "consistency",
+      title: "Rock Solid",
+      description: "Complete 5 tests with less than 5 WPM variance",
+      icon: "📊",
+      tier: "bronze",
+      target: 5,
+      progressiveGroup: "consistency-variance",
+    },
+    {
+      id: "consistency-low-variance-10",
+      category: "consistency",
+      title: "Steady Hands",
+      description: "Complete 10 tests with less than 5 WPM variance",
+      icon: "📊",
+      tier: "silver",
+      target: 10,
+      progressiveGroup: "consistency-variance",
+    },
+    {
+      id: "consistency-same-wpm-3",
+      category: "consistency",
+      title: "Deja Vu",
+      description: "Get the same WPM (rounded) 3 times",
+      icon: "📊",
+      tier: "bronze",
+    },
+    {
+      id: "consistency-90plus-5",
+      category: "consistency",
+      title: "Reliable Performer",
+      description: "5 consecutive tests above 90% accuracy",
+      icon: "📊",
+      tier: "silver",
+      target: 5,
+      progressiveGroup: "consistency-90plus",
+    },
+    {
+      id: "consistency-90plus-10",
+      category: "consistency",
+      title: "Dependable",
+      description: "10 consecutive tests above 90% accuracy",
+      icon: "📊",
+      tier: "gold",
+      target: 10,
+      progressiveGroup: "consistency-90plus",
+    },
+    {
+      id: "consistency-90plus-25",
+      category: "consistency",
+      title: "Unshakeable",
+      description: "25 consecutive tests above 90% accuracy",
+      icon: "📊",
+      tier: "platinum",
+      target: 25,
+      progressiveGroup: "consistency-90plus",
+    },
+  ];
+}
+
+// Generate Improvement achievements
+function generateImprovementAchievements(): Achievement[] {
+  return [
+    {
+      id: "improvement-pb-first",
+      category: "improvement",
+      title: "Personal Best",
+      description: "Beat your previous best WPM",
+      icon: "📈",
+      tier: "bronze",
+      target: 1,
+      progressiveGroup: "improvement-pb-count",
+    },
+    {
+      id: "improvement-pb-5",
+      category: "improvement",
+      title: "Record Breaker",
+      description: "Set 5 personal bests",
+      icon: "📈",
+      tier: "silver",
+      target: 5,
+      progressiveGroup: "improvement-pb-count",
+    },
+    {
+      id: "improvement-pb-10",
+      category: "improvement",
+      title: "Serial Improver",
+      description: "Set 10 personal bests",
+      icon: "📈",
+      tier: "gold",
+      target: 10,
+      progressiveGroup: "improvement-pb-count",
+    },
+    {
+      id: "improvement-pb-by-10",
+      category: "improvement",
+      title: "Big Leap",
+      description: "Beat your PB by 10+ WPM in a single test",
+      icon: "📈",
+      tier: "silver",
+    },
+    {
+      id: "improvement-pb-by-20",
+      category: "improvement",
+      title: "Massive Jump",
+      description: "Beat your PB by 20+ WPM in a single test",
+      icon: "📈",
+      tier: "gold",
+    },
+    {
+      id: "improvement-double-wpm",
+      category: "improvement",
+      title: "Doubled Up",
+      description: "Double your first test's WPM",
+      icon: "📈",
+      tier: "gold",
+    },
+    {
+      id: "improvement-avg-increase",
+      category: "improvement",
+      title: "Rising Average",
+      description: "Improve your average WPM by 20+ since starting",
+      icon: "📈",
+      tier: "platinum",
+    },
+  ];
+}
+
+// Generate Challenge Mode achievements
+function generateChallengeAchievements(): Achievement[] {
+  return [
+    {
+      id: "challenge-hard-punctuation",
+      category: "challenge",
+      title: "Punctuation Pro",
+      description: "Complete hard difficulty with punctuation enabled",
+      icon: "💪",
+      tier: "silver",
+    },
+    {
+      id: "challenge-hard-numbers",
+      category: "challenge",
+      title: "Number Cruncher Pro",
+      description: "Complete hard difficulty with numbers enabled",
+      icon: "💪",
+      tier: "silver",
+    },
+    {
+      id: "challenge-hard-both",
+      category: "challenge",
+      title: "Full Challenge",
+      description: "Complete hard difficulty with punctuation AND numbers",
+      icon: "💪",
+      tier: "gold",
+    },
+    {
+      id: "challenge-hard-80wpm",
+      category: "challenge",
+      title: "Hard Mode Hero",
+      description: "Achieve 80+ WPM on hard difficulty",
+      icon: "💪",
+      tier: "gold",
+    },
+    {
+      id: "challenge-hard-both-80wpm",
+      category: "challenge",
+      title: "Ultimate Challenge",
+      description: "80+ WPM on hard with punctuation and numbers",
+      icon: "💪",
+      tier: "platinum",
+    },
+    {
+      id: "challenge-hard-100-accuracy",
+      category: "challenge",
+      title: "Perfect Challenge",
+      description: "100% accuracy on hard difficulty",
+      icon: "💪",
+      tier: "platinum",
+    },
+  ];
+}
+
+// Generate Endurance achievements
+function generateEnduranceAchievements(): Achievement[] {
+  return [
+    {
+      id: "endurance-5-tests-day",
+      category: "endurance",
+      title: "Warming Up",
+      description: "Complete 5 tests in one day",
+      icon: "🏋️",
+      tier: "bronze",
+      target: 5,
+      progressiveGroup: "endurance-tests-day",
+    },
+    {
+      id: "endurance-10-tests-day",
+      category: "endurance",
+      title: "Daily Grind",
+      description: "Complete 10 tests in one day",
+      icon: "🏋️",
+      tier: "silver",
+      target: 10,
+      progressiveGroup: "endurance-tests-day",
+    },
+    {
+      id: "endurance-20-tests-day",
+      category: "endurance",
+      title: "Marathon Day",
+      description: "Complete 20 tests in one day",
+      icon: "🏋️",
+      tier: "gold",
+      target: 20,
+      progressiveGroup: "endurance-tests-day",
+    },
+    {
+      id: "endurance-180s-test",
+      category: "endurance",
+      title: "Ultra Marathon",
+      description: "Complete a 180+ second test",
+      icon: "🏋️",
+      tier: "silver",
+    },
+    {
+      id: "endurance-300s-test",
+      category: "endurance",
+      title: "Epic Marathon",
+      description: "Complete a 300+ second test (5 minutes)",
+      icon: "🏋️",
+      tier: "gold",
+    },
+    {
+      id: "endurance-500-words-test",
+      category: "endurance",
+      title: "Word Mountain",
+      description: "Complete a 500+ word test",
+      icon: "🏋️",
+      tier: "gold",
+    },
+  ];
+}
+
+// Generate Time-Based achievements
+function generateTimebasedAchievements(): Achievement[] {
+  return [
+    {
+      id: "timebased-lunch",
+      category: "timebased",
+      title: "Lunch Break Typist",
+      description: "Complete a test between 12pm-2pm",
+      icon: "🕐",
+      tier: "bronze",
+    },
+    {
+      id: "timebased-midnight",
+      category: "timebased",
+      title: "Midnight Typist",
+      description: "Complete a test at exactly midnight (12am hour)",
+      icon: "🕐",
+      tier: "silver",
+    },
+    {
+      id: "timebased-new-year",
+      category: "timebased",
+      title: "New Year Typist",
+      description: "Complete a test on January 1st",
+      icon: "🕐",
+      tier: "gold",
+    },
+    {
+      id: "timebased-friday",
+      category: "timebased",
+      title: "TGIF",
+      description: "Complete a test on Friday",
+      icon: "🕐",
+      tier: "bronze",
+    },
+    {
+      id: "timebased-monday",
+      category: "timebased",
+      title: "Case of the Mondays",
+      description: "Complete a test on Monday",
+      icon: "🕐",
+      tier: "bronze",
+    },
+    {
+      id: "timebased-holiday",
+      category: "timebased",
+      title: "Holiday Spirit",
+      description: "Complete a test on a major holiday",
+      icon: "🕐",
+      tier: "silver",
+    },
+    {
+      id: "timebased-all-weekdays",
+      category: "timebased",
+      title: "Weekday Warrior",
+      description: "Complete tests on all 5 weekdays",
+      icon: "🕐",
+      tier: "silver",
+    },
+    {
+      id: "timebased-all-weekend",
+      category: "timebased",
+      title: "Weekend Complete",
+      description: "Complete tests on both Saturday and Sunday",
+      icon: "🕐",
+      tier: "bronze",
+    },
+  ];
+}
+
+// Generate Milestone Combinations achievements
+function generateMilestoneAchievements(): Achievement[] {
+  return [
+    {
+      id: "milestone-100wpm-100acc",
+      category: "milestone",
+      title: "Perfect Century",
+      description: "100+ WPM with 100% accuracy in a single test",
+      icon: "🎖️",
+      tier: "platinum",
+    },
+    {
+      id: "milestone-80wpm-98acc",
+      category: "milestone",
+      title: "Elite Typist",
+      description: "80+ WPM with 98%+ accuracy in a single test",
+      icon: "🎖️",
+      tier: "gold",
+    },
+    {
+      id: "milestone-50wpm-100acc-hard",
+      category: "milestone",
+      title: "Hard Perfection",
+      description: "50+ WPM with 100% accuracy on hard difficulty",
+      icon: "🎖️",
+      tier: "gold",
+    },
+    {
+      id: "milestone-triple-digits",
+      category: "milestone",
+      title: "Triple Threat",
+      description: "100+ WPM on a 100+ word test lasting 100+ seconds",
+      icon: "🎖️",
+      tier: "gold",
+    },
+    {
+      id: "milestone-speed-endurance",
+      category: "milestone",
+      title: "Speed Marathoner",
+      description: "80+ WPM on a 120+ second test",
+      icon: "🎖️",
+      tier: "gold",
+    },
+    {
+      id: "milestone-1000-words-95acc",
+      category: "milestone",
+      title: "Accurate Thousand",
+      description: "1000 total words with 95%+ average accuracy",
+      icon: "🎖️",
+      tier: "silver",
+    },
+    {
+      id: "milestone-all-modes-80wpm",
+      category: "milestone",
+      title: "Mode Master",
+      description: "80+ WPM in time, words, and quote modes",
+      icon: "🎖️",
+      tier: "gold",
+    },
+    {
+      id: "milestone-week-streak-100wpm",
+      category: "milestone",
+      title: "Consistent Speed",
+      description: "7-day streak with 100+ WPM each day",
+      icon: "🎖️",
+      tier: "platinum",
+    },
+  ];
+}
+
+// Generate Fun/Quirky achievements
+function generateQuirkyAchievements(): Achievement[] {
+  return [
+    {
+      id: "quirky-67",
+      category: "quirky",
+      title: "The Meme",
+      description: "Get exactly 67 WPM",
+      icon: "🎲",
+      tier: "bronze",
+    },
+    {
+      id: "quirky-lucky-7",
+      category: "quirky",
+      title: "Lucky Sevens",
+      description: "Get exactly 77 WPM",
+      icon: "🎲",
+      tier: "bronze",
+    },
+    {
+      id: "quirky-100-exact",
+      category: "quirky",
+      title: "Perfectly Round",
+      description: "Get exactly 100 WPM",
+      icon: "🎲",
+      tier: "silver",
+    },
+    {
+      id: "quirky-palindrome",
+      category: "quirky",
+      title: "Palindrome",
+      description: "Get a palindrome WPM (11, 22, 33, etc.)",
+      icon: "🎲",
+      tier: "bronze",
+    },
+    {
+      id: "quirky-42",
+      category: "quirky",
+      title: "Answer to Everything",
+      description: "Get exactly 42 WPM",
+      icon: "🎲",
+      tier: "bronze",
+    },
+    {
+      id: "quirky-123",
+      category: "quirky",
+      title: "Easy as 123",
+      description: "Get exactly 123 WPM",
+      icon: "🎲",
+      tier: "silver",
+    },
+    {
+      id: "quirky-pi",
+      category: "quirky",
+      title: "Pi Day",
+      description: "Get 31 WPM on March 14th",
+      icon: "🎲",
+      tier: "gold",
+    },
+  ];
+}
+
+// Generate Collection achievements
+function generateCollectionAchievements(): Achievement[] {
+  return [
+    {
+      id: "collection-10",
+      category: "collection",
+      title: "Collector",
+      description: "Earn 10 achievements",
+      icon: "🗃️",
+      tier: "bronze",
+      target: 10,
+      progressiveGroup: "collection",
+    },
+    {
+      id: "collection-25",
+      category: "collection",
+      title: "Enthusiast",
+      description: "Earn 25 achievements",
+      icon: "🗃️",
+      tier: "bronze",
+      target: 25,
+      progressiveGroup: "collection",
+    },
+    {
+      id: "collection-50",
+      category: "collection",
+      title: "Dedicated",
+      description: "Earn 50 achievements",
+      icon: "🗃️",
+      tier: "silver",
+      target: 50,
+      progressiveGroup: "collection",
+    },
+    {
+      id: "collection-100",
+      category: "collection",
+      title: "Achievement Hunter",
+      description: "Earn 100 achievements",
+      icon: "🗃️",
+      tier: "gold",
+      target: 100,
+      progressiveGroup: "collection",
+    },
+    {
+      id: "collection-150",
+      category: "collection",
+      title: "Completionist",
+      description: "Earn 150 achievements",
+      icon: "🗃️",
+      tier: "platinum",
+      target: 150,
+      progressiveGroup: "collection",
+    },
+    {
+      id: "collection-category-complete",
+      category: "collection",
+      title: "Category Master",
+      description: "Complete all achievements in any category",
+      icon: "🗃️",
+      tier: "platinum",
+    },
+  ];
+}
+
 // Combine all achievements
 export const ALL_ACHIEVEMENTS: Achievement[] = [
   ...generateSpeedAchievements(),
@@ -514,6 +1079,14 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   ...generateTestAchievements(),
   ...generateExplorerAchievements(),
   ...generateSpecialAchievements(),
+  ...generateConsistencyAchievements(),
+  ...generateImprovementAchievements(),
+  ...generateChallengeAchievements(),
+  ...generateEnduranceAchievements(),
+  ...generateTimebasedAchievements(),
+  ...generateMilestoneAchievements(),
+  ...generateQuirkyAchievements(),
+  ...generateCollectionAchievements(),
 ];
 
 // Create a map for quick lookup by ID
@@ -613,6 +1186,14 @@ export function getEarnedCategories(
     "tests",
     "explorer",
     "special",
+    "consistency",
+    "improvement",
+    "challenge",
+    "endurance",
+    "timebased",
+    "milestone",
+    "quirky",
+    "collection",
   ];
 
   return orderedCategories.filter((c) => categories.has(c));

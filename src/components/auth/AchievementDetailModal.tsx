@@ -14,7 +14,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface AchievementDetailModalProps {
-  achievements: { achievement: Achievement; earnedAt: number }[];
+  achievements: { achievement: Achievement; earnedAt: number | null }[];
   initialIndex: number;
   theme: Theme;
   onClose: () => void;
@@ -39,18 +39,19 @@ function AchievementSlide({
   theme,
 }: {
   achievement: Achievement;
-  earnedAt: number;
+  earnedAt: number | null;
   theme: Theme;
 }) {
   const category = ACHIEVEMENT_CATEGORIES[achievement.category];
   const tierColors = TIER_COLORS[achievement.tier];
+  const isLocked = earnedAt === null;
 
   return (
-    <div className="flex flex-col items-center justify-center px-4">
+    <div className={`flex flex-col items-center justify-center px-4 ${isLocked ? "opacity-60" : ""}`}>
       {/* Top Section: Icon/Tier + Title/Category */}
       <div className="flex items-center justify-center gap-5 mb-5">
         {/* Left: Achievement Icon & Tier Badge */}
-        <div className="flex flex-col items-center shrink-0">
+        <div className={`flex flex-col items-center shrink-0 ${isLocked ? "grayscale" : ""}`}>
           {/* Large Icon with Tier Border */}
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-2"
@@ -58,7 +59,7 @@ function AchievementSlide({
               backgroundColor: `${tierColors.bg}30`,
               borderWidth: 3,
               borderColor: tierColors.border,
-              boxShadow: `0 0 20px ${tierColors.bg}40`,
+              boxShadow: isLocked ? "none" : `0 0 20px ${tierColors.bg}40`,
             }}
           >
             {achievement.icon}
@@ -109,10 +110,16 @@ function AchievementSlide({
         className="text-xs text-center"
         style={{ color: theme.defaultText }}
       >
-        <span className="opacity-70">Earned on </span>
-        <span className="font-medium" style={{ color: theme.buttonSelected }}>
-          {formatDateTime(earnedAt)}
-        </span>
+        {isLocked ? (
+          <span className="opacity-70">Not yet earned</span>
+        ) : (
+          <>
+            <span className="opacity-70">Earned on </span>
+            <span className="font-medium" style={{ color: theme.buttonSelected }}>
+              {formatDateTime(earnedAt)}
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

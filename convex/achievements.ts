@@ -35,6 +35,43 @@ interface AchievementCheckContext {
   difficultiesCovered: Set<string>;
   // Current streak
   currentStreak: number;
+  
+  // === NEW FIELDS FOR NEW ACHIEVEMENT CATEGORIES ===
+  
+  // Time-based
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  monthDay: { month: number; day: number }; // 0-11 for month, 1-31 for day
+  
+  // Consistency
+  consecutiveHighAccuracyStreak: number; // 90%+ accuracy consecutive
+  recentWpmVariance: number; // variance in WPM across last N tests
+  lowVarianceTestCount: number; // count of tests with low variance
+  sameWpmCount: number; // count of tests with exact same WPM
+  
+  // Improvement
+  personalBestWpm: number;
+  previousPersonalBest: number; // PB before this test
+  firstTestWpm: number;
+  pbImprovementCount: number; // how many times user has set a new PB
+  averageWpm: number;
+  firstFiveAvgWpm: number; // average of first 5 tests
+  isNewPersonalBest: boolean;
+  pbImprovement: number; // how much the PB improved by (0 if not a PB)
+  
+  // Endurance
+  testsToday: number;
+  
+  // Milestone
+  wpmByMode: Map<string, number>; // best WPM per mode
+  averageAccuracy: number;
+  has100WpmAllDaysInStreak: boolean; // for week streak with 100+ WPM
+  
+  // Weekday tracking
+  weekdaysCovered: Set<number>; // 1-5 (Mon-Fri)
+  weekendDaysCovered: Set<number>; // 0, 6 (Sun, Sat)
+  
+  // Collection
+  totalAchievementsCount: number;
 }
 
 /**
@@ -191,6 +228,272 @@ function checkAchievements(ctx: AchievementCheckContext): string[] {
     newAchievements.push("special-speed-accuracy");
   }
 
+  // === CONSISTENCY ACHIEVEMENTS ===
+  
+  // Low variance achievements
+  if (ctx.lowVarianceTestCount >= 5) {
+    newAchievements.push("consistency-low-variance-5");
+  }
+  if (ctx.lowVarianceTestCount >= 10) {
+    newAchievements.push("consistency-low-variance-10");
+  }
+  
+  // Same WPM achievement
+  if (ctx.sameWpmCount >= 3) {
+    newAchievements.push("consistency-same-wpm-3");
+  }
+  
+  // Consecutive 90%+ accuracy
+  if (ctx.consecutiveHighAccuracyStreak >= 5) {
+    newAchievements.push("consistency-90plus-5");
+  }
+  if (ctx.consecutiveHighAccuracyStreak >= 10) {
+    newAchievements.push("consistency-90plus-10");
+  }
+  if (ctx.consecutiveHighAccuracyStreak >= 25) {
+    newAchievements.push("consistency-90plus-25");
+  }
+
+  // === IMPROVEMENT ACHIEVEMENTS ===
+  
+  // Personal best achievements
+  if (ctx.pbImprovementCount >= 1) {
+    newAchievements.push("improvement-pb-first");
+  }
+  if (ctx.pbImprovementCount >= 5) {
+    newAchievements.push("improvement-pb-5");
+  }
+  if (ctx.pbImprovementCount >= 10) {
+    newAchievements.push("improvement-pb-10");
+  }
+  
+  // PB improvement amount
+  if (ctx.isNewPersonalBest && ctx.pbImprovement >= 10) {
+    newAchievements.push("improvement-pb-by-10");
+  }
+  if (ctx.isNewPersonalBest && ctx.pbImprovement >= 20) {
+    newAchievements.push("improvement-pb-by-20");
+  }
+  
+  // Double first test WPM
+  if (ctx.firstTestWpm > 0 && testResult.wpm >= ctx.firstTestWpm * 2) {
+    newAchievements.push("improvement-double-wpm");
+  }
+  
+  // Rising average (20+ improvement since starting)
+  if (ctx.firstFiveAvgWpm > 0 && ctx.averageWpm >= ctx.firstFiveAvgWpm + 20) {
+    newAchievements.push("improvement-avg-increase");
+  }
+
+  // === CHALLENGE MODE ACHIEVEMENTS ===
+  
+  const isHard = testResult.difficulty === "hard";
+  
+  if (isHard && testResult.punctuation) {
+    newAchievements.push("challenge-hard-punctuation");
+  }
+  if (isHard && testResult.numbers) {
+    newAchievements.push("challenge-hard-numbers");
+  }
+  if (isHard && testResult.punctuation && testResult.numbers) {
+    newAchievements.push("challenge-hard-both");
+  }
+  if (isHard && testResult.wpm >= 80) {
+    newAchievements.push("challenge-hard-80wpm");
+  }
+  if (isHard && testResult.punctuation && testResult.numbers && testResult.wpm >= 80) {
+    newAchievements.push("challenge-hard-both-80wpm");
+  }
+  if (isHard && testResult.accuracy === 100) {
+    newAchievements.push("challenge-hard-100-accuracy");
+  }
+
+  // === ENDURANCE ACHIEVEMENTS ===
+  
+  // Tests in one day
+  if (ctx.testsToday >= 5) {
+    newAchievements.push("endurance-5-tests-day");
+  }
+  if (ctx.testsToday >= 10) {
+    newAchievements.push("endurance-10-tests-day");
+  }
+  if (ctx.testsToday >= 20) {
+    newAchievements.push("endurance-20-tests-day");
+  }
+  
+  // Long test duration
+  if (testResult.duration >= 180000) { // 180 seconds
+    newAchievements.push("endurance-180s-test");
+  }
+  if (testResult.duration >= 300000) { // 300 seconds (5 min)
+    newAchievements.push("endurance-300s-test");
+  }
+  
+  // High word count test
+  if (testResult.wordCount >= 500) {
+    newAchievements.push("endurance-500-words-test");
+  }
+
+  // === TIME-BASED ACHIEVEMENTS ===
+  
+  // Lunch break (12pm-2pm)
+  if (ctx.localHour >= 12 && ctx.localHour < 14) {
+    newAchievements.push("timebased-lunch");
+  }
+  
+  // Midnight (12am hour)
+  if (ctx.localHour === 0) {
+    newAchievements.push("timebased-midnight");
+  }
+  
+  // New Year (January 1st)
+  if (ctx.monthDay.month === 0 && ctx.monthDay.day === 1) {
+    newAchievements.push("timebased-new-year");
+  }
+  
+  // Friday
+  if (ctx.dayOfWeek === 5) {
+    newAchievements.push("timebased-friday");
+  }
+  
+  // Monday
+  if (ctx.dayOfWeek === 1) {
+    newAchievements.push("timebased-monday");
+  }
+  
+  // Major holidays
+  const { month, day } = ctx.monthDay;
+  const isHoliday = 
+    (month === 11 && day === 25) || // Christmas
+    (month === 11 && day === 31) || // New Year's Eve
+    (month === 6 && day === 4) ||   // July 4th
+    (month === 9 && day === 31) ||  // Halloween
+    (month === 1 && day === 14) ||  // Valentine's Day
+    (month === 2 && day === 17);    // St. Patrick's Day
+  if (isHoliday) {
+    newAchievements.push("timebased-holiday");
+  }
+  
+  // All weekdays (check if this test completes the set)
+  if (ctx.weekdaysCovered.size >= 5) {
+    newAchievements.push("timebased-all-weekdays");
+  }
+  
+  // Weekend complete
+  if (ctx.weekendDaysCovered.size >= 2) {
+    newAchievements.push("timebased-all-weekend");
+  }
+
+  // === MILESTONE COMBINATIONS ===
+  
+  // Perfect century (100+ WPM, 100% accuracy)
+  if (testResult.wpm >= 100 && testResult.accuracy === 100) {
+    newAchievements.push("milestone-100wpm-100acc");
+  }
+  
+  // Elite typist (80+ WPM, 98%+ accuracy)
+  if (testResult.wpm >= 80 && testResult.accuracy >= 98) {
+    newAchievements.push("milestone-80wpm-98acc");
+  }
+  
+  // Hard perfection (50+ WPM, 100% accuracy on hard)
+  if (isHard && testResult.wpm >= 50 && testResult.accuracy === 100) {
+    newAchievements.push("milestone-50wpm-100acc-hard");
+  }
+  
+  // Triple threat (100+ WPM, 100+ words, 100+ seconds)
+  if (testResult.wpm >= 100 && testResult.wordCount >= 100 && testResult.duration >= 100000) {
+    newAchievements.push("milestone-triple-digits");
+  }
+  
+  // Speed marathoner (80+ WPM on 120+ second test)
+  if (testResult.wpm >= 80 && testResult.duration >= 120000) {
+    newAchievements.push("milestone-speed-endurance");
+  }
+  
+  // Accurate thousand (1000 words with 95%+ avg accuracy)
+  if (ctx.totalWordsCorrect >= 1000 && ctx.averageAccuracy >= 95) {
+    newAchievements.push("milestone-1000-words-95acc");
+  }
+  
+  // Mode master (80+ WPM in time, words, and quote modes)
+  const timeWpm = ctx.wpmByMode.get("time") || 0;
+  const wordsWpm = ctx.wpmByMode.get("words") || 0;
+  const quoteWpm = ctx.wpmByMode.get("quote") || 0;
+  if (timeWpm >= 80 && wordsWpm >= 80 && quoteWpm >= 80) {
+    newAchievements.push("milestone-all-modes-80wpm");
+  }
+  
+  // Consistent speed (7-day streak with 100+ WPM each day)
+  if (ctx.has100WpmAllDaysInStreak) {
+    newAchievements.push("milestone-week-streak-100wpm");
+  }
+
+  // === FUN/QUIRKY ACHIEVEMENTS ===
+  
+  const roundedWpm = Math.round(testResult.wpm);
+  
+  // The Meme (67 WPM)
+  if (roundedWpm === 67) {
+    newAchievements.push("quirky-67");
+  }
+  
+  // Lucky sevens (77 WPM)
+  if (roundedWpm === 77) {
+    newAchievements.push("quirky-lucky-7");
+  }
+  
+  // Perfectly round (100 WPM exact)
+  if (roundedWpm === 100) {
+    newAchievements.push("quirky-100-exact");
+  }
+  
+  // Palindrome (11, 22, 33, 44, 55, 66, 77, 88, 99, 111, 121, 131, etc.)
+  const wpmStr = roundedWpm.toString();
+  const isPalindrome = wpmStr === wpmStr.split("").reverse().join("");
+  if (isPalindrome && roundedWpm >= 11) {
+    newAchievements.push("quirky-palindrome");
+  }
+  
+  // Answer to everything (42 WPM)
+  if (roundedWpm === 42) {
+    newAchievements.push("quirky-42");
+  }
+  
+  // Easy as 123 (123 WPM)
+  if (roundedWpm === 123) {
+    newAchievements.push("quirky-123");
+  }
+  
+  // Pi day (31 WPM on March 14th)
+  if (roundedWpm === 31 && ctx.monthDay.month === 2 && ctx.monthDay.day === 14) {
+    newAchievements.push("quirky-pi");
+  }
+
+  // === COLLECTION ACHIEVEMENTS ===
+  
+  // These check the count AFTER potential new achievements are added
+  // We add the count of new achievements from this run
+  const projectedTotal = ctx.totalAchievementsCount + newAchievements.length;
+  
+  if (projectedTotal >= 10) {
+    newAchievements.push("collection-10");
+  }
+  if (projectedTotal >= 25) {
+    newAchievements.push("collection-25");
+  }
+  if (projectedTotal >= 50) {
+    newAchievements.push("collection-50");
+  }
+  if (projectedTotal >= 100) {
+    newAchievements.push("collection-100");
+  }
+  if (projectedTotal >= 150) {
+    newAchievements.push("collection-150");
+  }
+  
+  // Category master is complex - skip for now as it requires checking complete categories
+
   return newAchievements;
 }
 
@@ -216,6 +519,10 @@ export const checkAndAwardAchievements = internalMutation({
     }),
     localHour: v.number(),
     isWeekend: v.boolean(),
+    // New time-based fields
+    dayOfWeek: v.number(), // 0-6 (Sunday-Saturday)
+    month: v.number(), // 0-11
+    day: v.number(), // 1-31
   },
   handler: async (
     ctx,
@@ -280,6 +587,123 @@ export const checkAndAwardAchievements = internalMutation({
     const modesCovered = new Set(allResults.map((r) => r.mode));
     const difficultiesCovered = new Set(allResults.map((r) => r.difficulty));
 
+    // === COMPUTE NEW CONTEXT FIELDS ===
+
+    // Consecutive 90%+ accuracy streak
+    let consecutiveHighAccuracyStreak = 0;
+    for (const result of sortedResults) {
+      if (result.accuracy >= 90) {
+        consecutiveHighAccuracyStreak++;
+      } else {
+        break;
+      }
+    }
+
+    // WPM variance across last 10 tests
+    const last10Results = sortedResults.slice(0, 10);
+    let recentWpmVariance = 0;
+    let lowVarianceTestCount = 0;
+    if (last10Results.length >= 5) {
+      const wpms = last10Results.map((r) => r.wpm);
+      const mean = wpms.reduce((a, b) => a + b, 0) / wpms.length;
+      const variance = wpms.reduce((sum, wpm) => sum + Math.pow(wpm - mean, 2), 0) / wpms.length;
+      recentWpmVariance = Math.sqrt(variance); // standard deviation
+      if (recentWpmVariance < 5) {
+        lowVarianceTestCount = last10Results.length;
+      }
+    }
+
+    // Count tests with same WPM (rounded)
+    const wpmCounts = new Map<number, number>();
+    for (const result of allResults) {
+      const roundedWpm = Math.round(result.wpm);
+      wpmCounts.set(roundedWpm, (wpmCounts.get(roundedWpm) || 0) + 1);
+    }
+    const sameWpmCount = Math.max(...Array.from(wpmCounts.values()), 0);
+
+    // Personal best tracking
+    const allWpms = allResults.map((r) => r.wpm);
+    const previousResults = allResults.slice(0, -1); // All except current
+    const previousWpms = previousResults.map((r) => r.wpm);
+    const personalBestWpm = allWpms.length > 0 ? Math.max(...allWpms) : 0;
+    const previousPersonalBest = previousWpms.length > 0 ? Math.max(...previousWpms) : 0;
+    const isNewPersonalBest = args.testResult.wpm > previousPersonalBest && previousResults.length > 0;
+    const pbImprovement = isNewPersonalBest ? args.testResult.wpm - previousPersonalBest : 0;
+
+    // First test WPM (oldest test)
+    const oldestFirst = [...allResults].sort((a, b) => a.createdAt - b.createdAt);
+    const firstTestWpm = oldestFirst.length > 0 ? oldestFirst[0].wpm : args.testResult.wpm;
+
+    // Count PB improvements (how many times user beat their previous PB)
+    let pbImprovementCount = 0;
+    let runningMax = 0;
+    for (const result of oldestFirst) {
+      if (result.wpm > runningMax) {
+        if (runningMax > 0) pbImprovementCount++; // Don't count the first test
+        runningMax = result.wpm;
+      }
+    }
+
+    // Average WPM
+    const averageWpm = allWpms.length > 0 
+      ? allWpms.reduce((a, b) => a + b, 0) / allWpms.length 
+      : 0;
+
+    // First 5 tests average
+    const first5 = oldestFirst.slice(0, 5);
+    const firstFiveAvgWpm = first5.length > 0 
+      ? first5.reduce((sum, r) => sum + r.wpm, 0) / first5.length 
+      : 0;
+
+    // Tests today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayStartMs = todayStart.getTime();
+    const testsToday = allResults.filter((r) => r.createdAt >= todayStartMs).length;
+
+    // Best WPM by mode
+    const wpmByMode = new Map<string, number>();
+    for (const result of allResults) {
+      const current = wpmByMode.get(result.mode) || 0;
+      if (result.wpm > current) {
+        wpmByMode.set(result.mode, result.wpm);
+      }
+    }
+
+    // Average accuracy
+    const accuracies = allResults.map((r) => r.accuracy);
+    const averageAccuracy = accuracies.length > 0 
+      ? accuracies.reduce((a, b) => a + b, 0) / accuracies.length 
+      : 0;
+
+    // Check if user has 100+ WPM on every day of their current streak
+    // This is simplified - we just check if current streak exists and current test is 100+
+    const has100WpmAllDaysInStreak = (streak?.currentStreak ?? 0) >= 7 && args.testResult.wpm >= 100;
+
+    // Weekdays and weekend days covered
+    const weekdaysCovered = new Set<number>();
+    const weekendDaysCovered = new Set<number>();
+    // We track this based on the current test's day
+    const currentDayOfWeek = args.dayOfWeek;
+    if (currentDayOfWeek >= 1 && currentDayOfWeek <= 5) {
+      weekdaysCovered.add(currentDayOfWeek);
+    } else {
+      weekendDaysCovered.add(currentDayOfWeek);
+    }
+    // Check existing achievements to see which days are already covered
+    if (existingAchievements["timebased-monday"]) weekdaysCovered.add(1);
+    if (existingAchievements["timebased-friday"]) weekdaysCovered.add(5);
+    // We'll track Tuesday-Thursday implicitly if weekday warrior is earned
+    if (existingAchievements["timebased-all-weekdays"]) {
+      weekdaysCovered.add(1).add(2).add(3).add(4).add(5);
+    }
+    if (existingAchievements["timebased-all-weekend"]) {
+      weekendDaysCovered.add(0).add(6);
+    }
+
+    // Total achievements count
+    const totalAchievementsCount = Object.keys(existingAchievements).length;
+
     // Check achievements
     const checkContext: AchievementCheckContext = {
       testResult: args.testResult,
@@ -294,6 +718,28 @@ export const checkAndAwardAchievements = internalMutation({
       modesCovered,
       difficultiesCovered,
       currentStreak: streak?.currentStreak ?? 0,
+      // New fields
+      dayOfWeek: args.dayOfWeek,
+      monthDay: { month: args.month, day: args.day },
+      consecutiveHighAccuracyStreak,
+      recentWpmVariance,
+      lowVarianceTestCount,
+      sameWpmCount,
+      personalBestWpm,
+      previousPersonalBest,
+      firstTestWpm,
+      pbImprovementCount,
+      averageWpm,
+      firstFiveAvgWpm,
+      isNewPersonalBest,
+      pbImprovement,
+      testsToday,
+      wpmByMode,
+      averageAccuracy,
+      has100WpmAllDaysInStreak,
+      weekdaysCovered,
+      weekendDaysCovered,
+      totalAchievementsCount,
     };
 
     const potentialAchievements = checkAchievements(checkContext);

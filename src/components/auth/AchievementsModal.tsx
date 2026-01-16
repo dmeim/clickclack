@@ -1,0 +1,317 @@
+import { useEffect, useState } from "react";
+import type { Theme } from "@/lib/typing-constants";
+import {
+  ALL_ACHIEVEMENTS,
+  ACHIEVEMENT_CATEGORIES,
+  TIER_COLORS,
+  getAchievementsByCategory,
+  type Achievement,
+  type AchievementCategory,
+} from "@/lib/achievement-definitions";
+import AchievementDetailModal from "./AchievementDetailModal";
+
+interface AchievementsModalProps {
+  earnedAchievements: Record<string, number>;
+  theme: Theme;
+  onClose: () => void;
+}
+
+// Achievement card component
+function AchievementCard({
+  achievement,
+  isEarned,
+  theme,
+  onClick,
+}: {
+  achievement: Achievement;
+  isEarned: boolean;
+  theme: Theme;
+  onClick: () => void;
+}) {
+  const tierColors = TIER_COLORS[achievement.tier];
+
+  if (isEarned) {
+    return (
+      <button
+        onClick={onClick}
+        className="flex flex-col items-center p-3 rounded-lg transition-all hover:scale-105 cursor-pointer"
+        style={{
+          backgroundColor: `${tierColors.bg}20`,
+          borderWidth: 2,
+          borderColor: `${tierColors.border}60`,
+          boxShadow: `0 0 12px ${tierColors.bg}25`,
+        }}
+        title={achievement.description}
+      >
+        {/* Icon */}
+        <div className="text-2xl mb-1.5">{achievement.icon}</div>
+        
+        {/* Title */}
+        <div
+          className="text-xs font-medium text-center leading-tight line-clamp-2 mb-1.5"
+          style={{ color: theme.correctText }}
+        >
+          {achievement.title}
+        </div>
+        
+        {/* Tier Badge */}
+        <div
+          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+          style={{
+            backgroundColor: tierColors.bg,
+            color: tierColors.text,
+          }}
+        >
+          {achievement.tier}
+        </div>
+      </button>
+    );
+  }
+
+  // Locked card
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center p-3 rounded-lg opacity-40 grayscale cursor-pointer hover:opacity-60 transition-opacity"
+      style={{
+        backgroundColor: `${theme.defaultText}10`,
+        borderWidth: 2,
+        borderColor: `${theme.defaultText}20`,
+      }}
+      title={`Locked: ${achievement.description}`}
+    >
+      {/* Icon */}
+      <div className="text-2xl mb-1.5">{achievement.icon}</div>
+      
+      {/* Title */}
+      <div
+        className="text-xs font-medium text-center leading-tight line-clamp-2 mb-1.5"
+        style={{ color: theme.defaultText }}
+      >
+        {achievement.title}
+      </div>
+      
+      {/* Tier Badge */}
+      <div
+        className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+        style={{
+          backgroundColor: `${theme.defaultText}40`,
+          color: theme.backgroundColor,
+        }}
+      >
+        {achievement.tier}
+      </div>
+    </button>
+  );
+}
+
+// Category section component
+function CategorySection({
+  category,
+  earnedIds,
+  earnedAchievements,
+  theme,
+  onAchievementClick,
+}: {
+  category: AchievementCategory;
+  earnedIds: Set<string>;
+  earnedAchievements: Record<string, number>;
+  theme: Theme;
+  onAchievementClick: (achievement: Achievement, index: number, allInCategory: Achievement[]) => void;
+}) {
+  const categoryInfo = ACHIEVEMENT_CATEGORIES[category];
+  const achievements = getAchievementsByCategory(category);
+  const earnedCount = achievements.filter((a) => earnedIds.has(a.id)).length;
+
+  return (
+    <div className="mb-6 last:mb-0">
+      {/* Category Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl">{categoryInfo.icon}</span>
+        <h3
+          className="text-sm font-semibold"
+          style={{ color: theme.correctText }}
+        >
+          {categoryInfo.name}
+        </h3>
+        <span
+          className="text-xs font-medium ml-auto"
+          style={{ color: theme.buttonSelected }}
+        >
+          {earnedCount} / {achievements.length}
+        </span>
+      </div>
+
+      {/* Achievement Grid */}
+      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
+        {achievements.map((achievement, index) => (
+          <AchievementCard
+            key={achievement.id}
+            achievement={achievement}
+            isEarned={earnedIds.has(achievement.id)}
+            theme={theme}
+            onClick={() => onAchievementClick(achievement, index, achievements)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function AchievementsModal({
+  earnedAchievements,
+  theme,
+  onClose,
+}: AchievementsModalProps) {
+  const earnedIds = new Set(Object.keys(earnedAchievements));
+  const totalEarned = earnedIds.size;
+  const totalAchievements = ALL_ACHIEVEMENTS.length;
+
+  // State for the detail modal carousel
+  const [selectedCarousel, setSelectedCarousel] = useState<{
+    achievements: { achievement: Achievement; earnedAt: number | null }[];
+    initialIndex: number;
+  } | null>(null);
+
+  // Category order
+  const categories: AchievementCategory[] = [
+    "speed",
+    "words",
+    "accuracy",
+    "time",
+    "streak",
+    "tests",
+    "explorer",
+    "special",
+    "consistency",
+    "improvement",
+    "challenge",
+    "endurance",
+    "timebased",
+    "milestone",
+    "quirky",
+    "collection",
+  ];
+
+  // Handle achievement card click - open carousel with all achievements in that category
+  const handleAchievementClick = (
+    clickedAchievement: Achievement,
+    index: number,
+    allInCategory: Achievement[]
+  ) => {
+    // Map all achievements in the category to the format expected by AchievementDetailModal
+    const carouselAchievements = allInCategory.map((a) => ({
+      achievement: a,
+      earnedAt: earnedAchievements[a.id] ?? null,
+    }));
+
+    setSelectedCarousel({
+      achievements: carouselAchievements,
+      initialIndex: index,
+    });
+  };
+
+  // Keyboard navigation - only handle Escape if detail modal is not open
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !selectedCarousel) {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, selectedCarousel]);
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70"
+        onClick={onClose}
+      >
+        <div
+          className="w-full max-w-5xl rounded-lg shadow-xl mx-4 max-h-[90vh] flex flex-col"
+          style={{ backgroundColor: theme.surfaceColor }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div
+            className="flex items-center justify-between p-6 border-b"
+            style={{ borderColor: `${theme.defaultText}20` }}
+          >
+            <div>
+              <h2
+                className="text-xl font-semibold"
+                style={{ color: theme.correctText }}
+              >
+                All Achievements
+              </h2>
+              <p className="text-sm mt-1" style={{ color: theme.defaultText }}>
+                Progress:{" "}
+                <span
+                  className="font-medium"
+                  style={{ color: theme.buttonSelected }}
+                >
+                  {totalEarned} / {totalAchievements}
+                </span>
+                <span className="ml-2 opacity-70">
+                  ({Math.round((totalEarned / totalAchievements) * 100)}% complete)
+                </span>
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg transition hover:bg-gray-700/50"
+              style={{ color: theme.defaultText }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div
+            className="flex-1 overflow-y-auto p-6"
+            style={{ backgroundColor: `${theme.backgroundColor}40` }}
+          >
+            {categories.map((category) => (
+              <CategorySection
+                key={category}
+                category={category}
+                earnedIds={earnedIds}
+                earnedAchievements={earnedAchievements}
+                theme={theme}
+                onAchievementClick={handleAchievementClick}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Achievement Detail Carousel Modal */}
+      {selectedCarousel && (
+        <AchievementDetailModal
+          achievements={selectedCarousel.achievements}
+          initialIndex={selectedCarousel.initialIndex}
+          theme={theme}
+          onClose={() => setSelectedCarousel(null)}
+        />
+      )}
+    </>
+  );
+}

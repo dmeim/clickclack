@@ -24,6 +24,10 @@ export const saveResult = mutation({
     localDate: v.string(), // "YYYY-MM-DD" in user's local time
     localHour: v.number(), // 0-23, user's local hour
     isWeekend: v.boolean(), // Whether it's Saturday or Sunday
+    // New time-based fields for achievements
+    dayOfWeek: v.number(), // 0-6 (Sunday-Saturday)
+    month: v.number(), // 0-11
+    day: v.number(), // 1-31
   },
   handler: async (ctx, args): Promise<{ resultId: Id<"testResults">; newAchievements: string[] }> => {
     // Find the user by Clerk ID
@@ -84,6 +88,9 @@ export const saveResult = mutation({
         },
         localHour: args.localHour,
         isWeekend: args.isWeekend,
+        dayOfWeek: args.dayOfWeek,
+        month: args.month,
+        day: args.day,
       }
     );
 

@@ -687,8 +687,10 @@ export default function TypingPractice({
       const now = new Date();
       const localDate = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
       const localHour = now.getHours(); // 0-23
-      const dayOfWeek = now.getDay();
+      const dayOfWeek = now.getDay(); // 0-6 (Sunday-Saturday)
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+      const month = now.getMonth(); // 0-11
+      const day = now.getDate(); // 1-31
 
       // Save the result with streak/achievement tracking info
       await saveResultMutation({
@@ -697,6 +699,9 @@ export default function TypingPractice({
         localDate,
         localHour,
         isWeekend,
+        dayOfWeek,
+        month,
+        day,
       });
       setSaveState("saved");
       pendingResultRef.current = null;
