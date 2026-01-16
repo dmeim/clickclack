@@ -84,8 +84,8 @@ export default function AchievementsGrid({
         </div>
 
         {/* Scrollable Content - Flat Grid */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 p-1">
             {achievements.map(({ achievement, earnedAt }) => {
               const tierColors = TIER_COLORS[achievement.tier];
               return (
