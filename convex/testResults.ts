@@ -94,6 +94,42 @@ export const saveResult = mutation({
   },
 });
 
+// Delete a test result
+export const deleteResult = mutation({
+  args: {
+    resultId: v.id("testResults"),
+    clerkId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find the user by Clerk ID
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found. Please sign in first.");
+    }
+
+    // Get the test result
+    const result = await ctx.db.get(args.resultId);
+
+    if (!result) {
+      throw new Error("Test result not found.");
+    }
+
+    // Verify ownership
+    if (result.userId !== user._id) {
+      throw new Error("You can only delete your own test results.");
+    }
+
+    // Delete the result
+    await ctx.db.delete(args.resultId);
+
+    return { success: true };
+  },
+});
+
 // Get user's test results (most recent first)
 export const getUserResults = query({
   args: {

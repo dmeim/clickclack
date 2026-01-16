@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useUser } from "@clerk/clerk-react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import type { Theme } from "@/lib/typing-constants";
 import StreakCard from "./StreakCard";
 import AchievementsGrid from "./AchievementsGrid";
@@ -116,149 +117,250 @@ function TestTypeChips({
   );
 }
 
+// Delete Confirmation Modal Component
+function DeleteConfirmModal({
+  theme,
+  isDeleting,
+  onConfirm,
+  onCancel,
+}: {
+  theme: Theme;
+  isDeleting: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg p-6 shadow-xl mx-4"
+        style={{ backgroundColor: theme.surfaceColor }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-xl font-semibold text-center mb-6" style={{ color: theme.correctText }}>
+          Are You Sure?
+        </h3>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="flex-1 py-3 px-4 rounded-lg font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
+            style={{ 
+              backgroundColor: theme.buttonSelected, 
+              color: theme.backgroundColor 
+            }}
+          >
+            NOOO
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="flex-1 py-3 px-4 rounded-lg font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
+            style={{ 
+              backgroundColor: theme.incorrectText, 
+              color: theme.backgroundColor 
+            }}
+          >
+            {isDeleting ? "Deleting..." : "Yes, Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Test Detail Modal Component
 function TestDetailModal({
   result,
   theme,
+  clerkId,
   onClose,
+  onDeleted,
 }: {
   result: TestResult;
   theme: Theme;
+  clerkId: string;
   onClose: () => void;
+  onDeleted: () => void;
 }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteResult = useMutation(api.testResults.deleteResult);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteResult({
+        resultId: result._id as Id<"testResults">,
+        clerkId,
+      });
+      onDeleted();
+    } catch (error) {
+      console.error("Failed to delete test result:", error);
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
-      onClick={onClose}
-    >
+    <>
       <div
-        className="w-full max-w-lg rounded-lg p-8 shadow-xl mx-4"
-        style={{ backgroundColor: theme.surfaceColor }}
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
+        onClick={onClose}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-semibold" style={{ color: theme.correctText }}>
-            Test Details
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg transition hover:bg-gray-700/50"
-            style={{ color: theme.defaultText }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+        <div
+          className="w-full max-w-lg rounded-lg p-8 shadow-xl mx-4"
+          style={{ backgroundColor: theme.surfaceColor }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-semibold" style={{ color: theme.correctText }}>
+              Test Details
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg transition hover:bg-gray-700/50"
+              style={{ color: theme.defaultText }}
             >
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Date & Test Type Chips */}
+          <div className="mb-5 text-center">
+            <div className="text-sm mb-2" style={{ color: theme.defaultText }}>
+              {formatDateTime(result.createdAt)}
+            </div>
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              {getTestTypeChips(result).map((chip, idx) => (
+                <span
+                  key={idx}
+                  className="px-3 py-1 rounded-full text-sm font-medium"
+                  style={{ backgroundColor: theme.buttonSelected, color: theme.backgroundColor }}
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Stats - WPM & Accuracy */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div
+              className="p-5 rounded-xl text-center"
+              style={{ backgroundColor: `${theme.backgroundColor}80` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.defaultText }}>
+                WPM
+              </div>
+              <div className="text-5xl font-bold" style={{ color: theme.buttonSelected }}>
+                {result.wpm}
+              </div>
+            </div>
+            <div
+              className="p-5 rounded-xl text-center"
+              style={{ backgroundColor: `${theme.backgroundColor}80` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.defaultText }}>
+                Accuracy
+              </div>
+              <div className="text-5xl font-bold" style={{ color: theme.buttonSelected }}>
+                {Math.round(result.accuracy)}%
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary Stats */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            {/* Words */}
+            <div
+              className="p-4 rounded-xl"
+              style={{ backgroundColor: `${theme.backgroundColor}80` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.defaultText }}>
+                Words
+              </div>
+              <div className="flex justify-around">
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
+                    {result.wordsCorrect ?? 0}
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Correct</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: theme.incorrectText }}>
+                    {result.wordsIncorrect ?? 0}
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Incorrect</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Characters */}
+            <div
+              className="p-4 rounded-xl"
+              style={{ backgroundColor: `${theme.backgroundColor}80` }}
+            >
+              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.defaultText }}>
+                Characters
+              </div>
+              <div className="flex justify-around">
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
+                    {result.charsMissed ?? 0}
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Missed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
+                    {result.charsExtra ?? 0}
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Extra</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Delete Button */}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full py-2.5 rounded-lg font-medium transition-opacity hover:opacity-80"
+            style={{ 
+              backgroundColor: `${theme.incorrectText}20`, 
+              color: theme.incorrectText 
+            }}
+          >
+            Delete
           </button>
         </div>
-
-        {/* Date & Test Type Chips */}
-        <div className="mb-5 text-center">
-          <div className="text-sm mb-2" style={{ color: theme.defaultText }}>
-            {formatDateTime(result.createdAt)}
-          </div>
-          <div className="flex flex-wrap gap-1.5 justify-center">
-            {getTestTypeChips(result).map((chip, idx) => (
-              <span
-                key={idx}
-                className="px-3 py-1 rounded-full text-sm font-medium"
-                style={{ backgroundColor: theme.buttonSelected, color: theme.backgroundColor }}
-              >
-                {chip}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Main Stats - WPM & Accuracy */}
-        <div className="grid grid-cols-2 gap-4 mb-5">
-          <div
-            className="p-5 rounded-xl text-center"
-            style={{ backgroundColor: `${theme.backgroundColor}80` }}
-          >
-            <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.defaultText }}>
-              WPM
-            </div>
-            <div className="text-5xl font-bold" style={{ color: theme.buttonSelected }}>
-              {result.wpm}
-            </div>
-          </div>
-          <div
-            className="p-5 rounded-xl text-center"
-            style={{ backgroundColor: `${theme.backgroundColor}80` }}
-          >
-            <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.defaultText }}>
-              Accuracy
-            </div>
-            <div className="text-5xl font-bold" style={{ color: theme.buttonSelected }}>
-              {Math.round(result.accuracy)}%
-            </div>
-          </div>
-        </div>
-
-        {/* Secondary Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Words */}
-          <div
-            className="p-4 rounded-xl"
-            style={{ backgroundColor: `${theme.backgroundColor}80` }}
-          >
-            <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.defaultText }}>
-              Words
-            </div>
-            <div className="flex justify-around">
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
-                  {result.wordsCorrect ?? 0}
-                </div>
-                <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Correct</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: theme.incorrectText }}>
-                  {result.wordsIncorrect ?? 0}
-                </div>
-                <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Incorrect</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Characters */}
-          <div
-            className="p-4 rounded-xl"
-            style={{ backgroundColor: `${theme.backgroundColor}80` }}
-          >
-            <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.defaultText }}>
-              Characters
-            </div>
-            <div className="flex justify-around">
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
-                  {result.charsMissed ?? 0}
-                </div>
-                <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Missed</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
-                  {result.charsExtra ?? 0}
-                </div>
-                <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Extra</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <DeleteConfirmModal
+          theme={theme}
+          isDeleting={isDeleting}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -533,11 +635,13 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
       </div>
 
       {/* Test Detail Modal */}
-      {selectedTest && (
+      {selectedTest && user && (
         <TestDetailModal
           result={selectedTest}
           theme={theme}
+          clerkId={user.id}
           onClose={() => setSelectedTest(null)}
+          onDeleted={() => setSelectedTest(null)}
         />
       )}
     </div>
