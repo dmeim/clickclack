@@ -152,7 +152,7 @@ function DeleteConfirmModal({
               color: theme.backgroundColor 
             }}
           >
-            NOOO
+            NOOO!!!
           </button>
           <button
             onClick={onConfirm}
