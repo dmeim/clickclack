@@ -30,6 +30,8 @@ interface TestResult {
   wordsIncorrect?: number;
   charsMissed?: number;
   charsExtra?: number;
+  isValid?: boolean; // undefined = legacy (treated as valid)
+  invalidReason?: string;
   createdAt: number;
 }
 
@@ -68,30 +70,41 @@ function formatDateTime(timestamp: number): string {
   return `${month}/${day}/${year} at ${hour12}:${minutes} ${ampm}`;
 }
 
+// Chip data with optional special styling
+interface ChipData {
+  label: string;
+  isUnverified?: boolean;
+}
+
 // Helper to get test type chips data
-// Order: Mode, Difficulty, Mode-specific value, Modifiers
-function getTestTypeChips(result: TestResult): string[] {
-  const chips: string[] = [];
+// Order: Mode, Difficulty, Mode-specific value, Modifiers, [UNVERIFIED if applicable]
+function getTestTypeChips(result: TestResult): ChipData[] {
+  const chips: ChipData[] = [];
   
   // 1. Mode (always first)
-  chips.push(result.mode.charAt(0).toUpperCase() + result.mode.slice(1));
+  chips.push({ label: result.mode.charAt(0).toUpperCase() + result.mode.slice(1) });
   
   // 2. Difficulty (second, except for quote/preset)
   if (result.mode !== "quote" && result.mode !== "preset") {
-    chips.push(result.difficulty.charAt(0).toUpperCase() + result.difficulty.slice(1));
+    chips.push({ label: result.difficulty.charAt(0).toUpperCase() + result.difficulty.slice(1) });
   }
   
   // 3. Mode-specific value (third)
   if (result.mode === "time") {
     const seconds = Math.round(result.duration / 1000);
-    chips.push(`${seconds}s`);
+    chips.push({ label: `${seconds}s` });
   } else if (result.mode === "words") {
-    chips.push(`${result.wordCount} words`);
+    chips.push({ label: `${result.wordCount} words` });
   }
   
-  // 4. Modifiers (last)
-  if (result.punctuation) chips.push("punctuation");
-  if (result.numbers) chips.push("numbers");
+  // 4. Modifiers
+  if (result.punctuation) chips.push({ label: "punctuation" });
+  if (result.numbers) chips.push({ label: "numbers" });
+  
+  // 5. UNVERIFIED chip if result is invalid
+  if (result.isValid === false) {
+    chips.push({ label: "UNVERIFIED", isUnverified: true });
+  }
   
   return chips;
 }
@@ -111,9 +124,13 @@ function TestTypeChips({
         <span
           key={idx}
           className="px-2 py-0.5 rounded text-xs font-medium"
-          style={{ backgroundColor: theme.buttonSelected, color: theme.backgroundColor }}
+          style={{ 
+            backgroundColor: chip.isUnverified ? `${theme.incorrectText}30` : theme.buttonSelected, 
+            color: chip.isUnverified ? theme.incorrectText : theme.backgroundColor 
+          }}
+          title={chip.isUnverified && result.invalidReason ? `Reason: ${result.invalidReason}` : undefined}
         >
-          {chip}
+          {chip.label}
         </span>
       ))}
     </div>
@@ -306,9 +323,13 @@ function TestDetailModal({
                 <span
                   key={idx}
                   className="px-3 py-1 rounded-full text-sm font-medium"
-                  style={{ backgroundColor: theme.buttonSelected, color: theme.backgroundColor }}
+                  style={{ 
+                    backgroundColor: chip.isUnverified ? `${theme.incorrectText}30` : theme.buttonSelected, 
+                    color: chip.isUnverified ? theme.incorrectText : theme.backgroundColor 
+                  }}
+                  title={chip.isUnverified && result.invalidReason ? `Reason: ${result.invalidReason}` : undefined}
                 >
-                  {chip}
+                  {chip.label}
                 </span>
               ))}
             </div>

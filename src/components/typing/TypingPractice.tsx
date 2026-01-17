@@ -28,6 +28,11 @@ import {
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import {
+  PROGRESS_INTERVAL_MS,
+  PROGRESS_CHAR_THRESHOLD,
+} from "../../../convex/lib/antiCheatConstants";
 
 // Constants
 const TIME_PRESETS = [15, 30, 60, 120, 300];
@@ -290,6 +295,8 @@ export default function TypingPractice({
 
   // Save Results State
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastResultIsValid, setLastResultIsValid] = useState<boolean | null>(null);
+  const [lastResultInvalidReason, setLastResultInvalidReason] = useState<string | undefined>(undefined);
   const pendingResultRef = useRef<{
     wpm: number;
     accuracy: number;
@@ -305,11 +312,28 @@ export default function TypingPractice({
     charsExtra: number;
   } | null>(null);
 
+  // Anti-cheat session state
+  const [sessionId, setSessionId] = useState<Id<"typingSessions"> | null>(null);
+  const sessionIdRef = useRef<Id<"typingSessions"> | null>(null); // Mirror for use in callbacks without causing re-renders
+  const lastProgressRef = useRef<number>(0);
+  const lastProgressTimeRef = useRef<number>(0);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+
   // Clerk auth hooks
   const { isSignedIn, user } = useUser();
   const { openSignIn } = useClerk();
   const saveResultMutation = useMutation(api.testResults.saveResult);
   const getOrCreateUser = useMutation(api.users.getOrCreateUser);
+
+  // Anti-cheat session mutations
+  const startSessionMutation = useMutation(api.typingSessions.startSession);
+  const recordProgressMutation = useMutation(api.typingSessions.recordProgress);
+  const finalizeSessionMutation = useMutation(api.typingSessions.finalizeSession);
+  const cancelSessionMutation = useMutation(api.typingSessions.cancelSession);
 
   // Preferences sync
   const dbPreferences = useQuery(
@@ -572,8 +596,17 @@ export default function TypingPractice({
     setIsWarningPlayed(false);
     setUiOpacity(1);
     setSaveState("idle");
+    setLastResultIsValid(null);
+    setLastResultInvalidReason(undefined);
+    // Cancel any existing session (use ref to avoid dependency cycle)
+    if (sessionIdRef.current) {
+      cancelSessionMutation({ sessionId: sessionIdRef.current }).catch(() => {});
+    }
+    setSessionId(null);
+    lastProgressRef.current = 0;
+    lastProgressTimeRef.current = 0;
     inputRef.current?.focus();
-  }, []);
+  }, [cancelSessionMutation]);
 
   // Ref to store pending plan result
   const pendingPlanResultRef = useRef<{
@@ -608,6 +641,12 @@ export default function TypingPractice({
       }
     }
 
+    // Record final progress before finishing (use ref to avoid dependency cycle)
+    if (sessionIdRef.current && typedText.length > lastProgressRef.current) {
+      recordProgressMutation({ sessionId: sessionIdRef.current, typedTextLength: typedText.length })
+        .catch(() => {}); // Silently ignore errors
+    }
+
     setIsFinished(true);
     setIsRunning(false);
     setUiOpacity(1);
@@ -621,7 +660,7 @@ export default function TypingPractice({
       }));
       pendingPlanResultRef.current = null;
     }
-  }, [isFinished, isPlanActive, isPlanSplash, plan, planIndex, planResults, typedText, words, elapsedMs]);
+  }, [isFinished, isPlanActive, isPlanSplash, plan, planIndex, planResults, typedText, words, elapsedMs, recordProgressMutation]);
 
   const playClickSound = useCallback(() => {
     if (!settings.soundEnabled || !settings.typingSound || !soundManifest) return;
@@ -649,7 +688,7 @@ export default function TypingPractice({
     }
   }, [settings.soundEnabled, settings.warningSound, soundManifest]);
 
-  // Save results to Convex
+  // Save results to Convex (using session-based flow when available)
   const saveResults = useCallback(async (resultData?: typeof pendingResultRef.current) => {
     const dataToSave = resultData || {
       wpm: Math.round(wpm),
@@ -692,7 +731,27 @@ export default function TypingPractice({
       const month = now.getMonth(); // 0-11
       const day = now.getDate(); // 1-31
 
-      // Save the result with streak/achievement tracking info
+      // If we have a session, use the new finalize flow (server-authoritative)
+      if (sessionId) {
+        const finalizeResult = await finalizeSessionMutation({
+          sessionId,
+          typedText,
+          localDate,
+          localHour,
+          isWeekend,
+          dayOfWeek,
+          month,
+          day,
+        });
+        setLastResultIsValid(finalizeResult.isValid);
+        setLastResultInvalidReason(finalizeResult.invalidReason);
+        setSessionId(null);
+        setSaveState("saved");
+        pendingResultRef.current = null;
+        return;
+      }
+
+      // Fall back to legacy save (no session) - result won't have server validation
       await saveResultMutation({
         clerkId: user.id,
         ...dataToSave,
@@ -709,7 +768,7 @@ export default function TypingPractice({
       console.error("Failed to save result:", error);
       setSaveState("error");
     }
-  }, [user, wpm, accuracy, settings.mode, settings.difficulty, settings.punctuation, settings.numbers, elapsedMs, typedText.length, wordResults, stats, openSignIn, getOrCreateUser, saveResultMutation]);
+  }, [user, wpm, accuracy, settings.mode, settings.difficulty, settings.punctuation, settings.numbers, elapsedMs, typedText, wordResults, stats, openSignIn, getOrCreateUser, saveResultMutation, sessionId, finalizeSessionMutation]);
 
   // Effect to save pending result after sign-in
   useEffect(() => {
@@ -719,6 +778,72 @@ export default function TypingPractice({
       saveResults(pending);
     }
   }, [isSignedIn, user, saveResults]);
+
+  // Start anti-cheat session when test begins (for logged-in users)
+  useEffect(() => {
+    if (!isRunning || isFinished || !user || sessionId || connectMode) return;
+
+    const startSession = async () => {
+      try {
+        const result = await startSessionMutation({
+          clerkId: user.id,
+          settings: {
+            mode: settings.mode,
+            duration: settings.mode === "time" ? settings.duration : undefined,
+            wordTarget: settings.mode === "words" ? settings.wordTarget : undefined,
+            difficulty: settings.difficulty,
+            punctuation: settings.punctuation,
+            numbers: settings.numbers,
+          },
+          targetText: words,
+        });
+        setSessionId(result.sessionId);
+        lastProgressTimeRef.current = Date.now();
+      } catch (error) {
+        console.warn("Failed to start session:", error);
+        // Continue without session - result will be marked as unverified
+      }
+    };
+
+    startSession();
+  }, [
+    isRunning,
+    isFinished,
+    user,
+    sessionId,
+    connectMode,
+    startSessionMutation,
+    settings.mode,
+    settings.duration,
+    settings.wordTarget,
+    settings.difficulty,
+    settings.punctuation,
+    settings.numbers,
+    words,
+  ]);
+
+  // Record progress periodically during typing (throttled)
+  useEffect(() => {
+    if (!isRunning || isFinished || !sessionId) return;
+
+    const charsSinceLastReport = typedText.length - lastProgressRef.current;
+    const timeSinceLastReport = Date.now() - lastProgressTimeRef.current;
+
+    const shouldReport =
+      charsSinceLastReport >= PROGRESS_CHAR_THRESHOLD ||
+      timeSinceLastReport >= PROGRESS_INTERVAL_MS;
+
+    if (shouldReport && charsSinceLastReport !== 0) {
+      recordProgressMutation({ sessionId, typedTextLength: typedText.length })
+        .then(() => {
+          lastProgressRef.current = typedText.length;
+          lastProgressTimeRef.current = Date.now();
+        })
+        .catch(() => {
+          // Silently ignore progress recording errors
+        });
+    }
+  }, [typedText, isRunning, isFinished, sessionId, recordProgressMutation]);
 
   const generateTest = useCallback(() => {
     if (settings.mode === "quote") {
@@ -918,8 +1043,8 @@ export default function TypingPractice({
         e.preventDefault();
         resetSession(true);
       }
-      // Spacebar to save results (only if not already saved/saving and not in connect mode)
-      if (e.key === " " && !connectMode && saveState !== "saving" && saveState !== "saved") {
+      // Spacebar to save results (only if not already saved/saving, not invalid, and not in connect mode)
+      if (e.key === " " && !connectMode && saveState !== "saving" && saveState !== "saved" && lastResultIsValid !== false) {
         e.preventDefault();
         saveResults();
       }
@@ -927,7 +1052,7 @@ export default function TypingPractice({
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [isFinished, generateTest, resetSession, connectMode, saveState, saveResults]);
+  }, [isFinished, generateTest, resetSession, connectMode, saveState, saveResults, lastResultIsValid]);
 
   const handlePresetSubmit = (text: string) => {
     const sanitized = text.replace(/[^\x20-\x7E\n]/g, "").replace(/\s+/g, " ").trim();
@@ -1641,6 +1766,53 @@ export default function TypingPractice({
               </div>
             )}
 
+            {/* Unverified Test Warning */}
+            {lastResultIsValid === false && (
+              <div
+                className="w-full mb-6 p-4 rounded-lg border"
+                style={{
+                  backgroundColor: `${theme.incorrectText}10`,
+                  borderColor: `${theme.incorrectText}30`,
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="flex-shrink-0"
+                    style={{ color: theme.incorrectText }}
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <div className="flex-1">
+                    <span className="font-medium" style={{ color: theme.incorrectText }}>
+                      Unverified
+                    </span>
+                    <span className="text-sm ml-2" style={{ color: theme.defaultText }}>
+                      {lastResultInvalidReason?.includes("progress events")
+                        ? "Not enough typing activity detected (need 3+ check-ins)"
+                        : lastResultInvalidReason?.includes("WPM exceeds")
+                          ? "Speed exceeded human limits (max 300 WPM)"
+                          : lastResultInvalidReason?.includes("Burst chars")
+                            ? "Text appeared too quickly (max 50 chars at once)"
+                            : lastResultInvalidReason?.includes("too fast")
+                              ? "Test completed too quickly (need full duration)"
+                              : "Could not verify real-time typing"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex gap-4 justify-center">
               {/* Save Results Button */}
@@ -1648,14 +1820,47 @@ export default function TypingPractice({
                 <button
                   type="button"
                   onClick={() => saveResults()}
-                  disabled={saveState === "saving" || saveState === "saved"}
+                  disabled={saveState === "saving" || saveState === "saved" || lastResultIsValid === false}
                   className="group relative inline-flex items-center justify-center px-8 py-3 font-medium transition-all duration-200 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   style={{ 
-                    backgroundColor: saveState === "saved" ? `${theme.correctText}20` : saveState === "error" ? `${theme.incorrectText}20` : theme.buttonSelected, 
-                    color: saveState === "saved" ? theme.correctText : saveState === "error" ? theme.incorrectText : theme.backgroundColor 
+                    backgroundColor: lastResultIsValid === false 
+                      ? `${theme.incorrectText}20` 
+                      : saveState === "saved" 
+                        ? `${theme.correctText}20` 
+                        : saveState === "error" 
+                          ? `${theme.incorrectText}20` 
+                          : theme.buttonSelected, 
+                    color: lastResultIsValid === false 
+                      ? theme.incorrectText 
+                      : saveState === "saved" 
+                        ? theme.correctText 
+                        : saveState === "error" 
+                          ? theme.incorrectText 
+                          : theme.backgroundColor 
                   }}
                 >
-                  {saveState === "idle" && (
+                  {lastResultIsValid === false && (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="15" y1="9" x2="9" y2="15" />
+                        <line x1="9" y1="9" x2="15" y2="15" />
+                      </svg>
+                      Invalid
+                    </>
+                  )}
+                  {lastResultIsValid !== false && saveState === "idle" && (
                     <>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1676,7 +1881,7 @@ export default function TypingPractice({
                       Save Results
                     </>
                   )}
-                  {saveState === "saving" && (
+                  {lastResultIsValid !== false && saveState === "saving" && (
                     <>
                       <div
                         className="h-4 w-4 rounded-full border-2 border-t-transparent animate-spin mr-2"
@@ -1685,7 +1890,7 @@ export default function TypingPractice({
                       Saving...
                     </>
                   )}
-                  {saveState === "saved" && (
+                  {lastResultIsValid !== false && saveState === "saved" && (
                     <>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1704,7 +1909,7 @@ export default function TypingPractice({
                       Saved
                     </>
                   )}
-                  {saveState === "error" && (
+                  {lastResultIsValid !== false && saveState === "error" && (
                     <>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1753,8 +1958,12 @@ export default function TypingPractice({
 
             <div className="mt-6 text-center text-sm" style={{ color: theme.defaultText }}>
               <div>
-                Press <kbd className="px-1.5 py-0.5 rounded font-sans" style={{ backgroundColor: theme.surfaceColor, color: theme.correctText }}>Space</kbd> to save
-                {" · "}
+                {lastResultIsValid !== false && (
+                  <>
+                    Press <kbd className="px-1.5 py-0.5 rounded font-sans" style={{ backgroundColor: theme.surfaceColor, color: theme.correctText }}>Space</kbd> to save
+                    {" · "}
+                  </>
+                )}
                 <kbd className="px-1.5 py-0.5 rounded font-sans" style={{ backgroundColor: theme.surfaceColor, color: theme.correctText }}>Enter</kbd> to continue
               </div>
               <div className="mt-1">

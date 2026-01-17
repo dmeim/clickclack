@@ -364,6 +364,35 @@ export default function LeaderboardModal({
             </p>
           </div>
         )}
+
+        {/* Footer - Verified tests info */}
+        {!isLoading && leaderboard && leaderboard.length > 0 && (
+          <div 
+            className="mt-4 pt-3 text-center text-xs border-t"
+            style={{ 
+              color: theme.defaultText, 
+              borderColor: `${theme.defaultText}20`,
+              opacity: 0.7
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="inline-block mr-1 -mt-0.5"
+            >
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            Leaderboard shows verified tests only
+          </div>
+        )}
       </div>
     </div>
   );

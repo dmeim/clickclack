@@ -174,6 +174,8 @@ export const getUserResults = query({
 });
 
 // Get aggregated stats for a user
+// Note: Aggregates (averages, best) only use valid results
+// History shows all results with isValid flag for UI distinction
 export const getUserStats = query({
   args: {
     clerkId: v.string(),
@@ -190,12 +192,12 @@ export const getUserStats = query({
     }
 
     // Get all results for this user
-    const results = await ctx.db
+    const allResults = await ctx.db
       .query("testResults")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    if (results.length === 0) {
+    if (allResults.length === 0) {
       return {
         totalTests: 0,
         averageWpm: 0,
@@ -208,20 +210,25 @@ export const getUserStats = query({
       };
     }
 
-    // Calculate stats
-    const totalTests = results.length;
-    const totalWpm = results.reduce((sum, r) => sum + r.wpm, 0);
-    const averageWpm = Math.round(totalWpm / totalTests);
-    const bestWpm = Math.max(...results.map((r) => r.wpm));
-    const totalAccuracy = results.reduce((sum, r) => sum + r.accuracy, 0);
-    const averageAccuracy = Math.round((totalAccuracy / totalTests) * 10) / 10;
-    const totalTimeTyped = results.reduce((sum, r) => sum + r.duration, 0);
-    const totalWordsTyped = results.reduce((sum, r) => sum + r.wordCount, 0);
+    // Filter to valid results for aggregate stats
+    // isValid !== false means valid (includes undefined for legacy data)
+    const validResults = allResults.filter((r) => r.isValid !== false);
+
+    // Calculate stats from valid results only
+    const totalTests = validResults.length;
+    const totalWpm = validResults.reduce((sum, r) => sum + r.wpm, 0);
+    const averageWpm = totalTests > 0 ? Math.round(totalWpm / totalTests) : 0;
+    const bestWpm = validResults.length > 0 ? Math.max(...validResults.map((r) => r.wpm)) : 0;
+    const totalAccuracy = validResults.reduce((sum, r) => sum + r.accuracy, 0);
+    const averageAccuracy = totalTests > 0 ? Math.round((totalAccuracy / totalTests) * 10) / 10 : 0;
+    const totalTimeTyped = validResults.reduce((sum, r) => sum + r.duration, 0);
+    const totalWordsTyped = validResults.reduce((sum, r) => sum + r.wordCount, 0);
     // Characters typed (5 characters per word, standard WPM calculation)
     const totalCharactersTyped = totalWordsTyped * 5;
 
-    // Get all results sorted by date (most recent first)
-    const allResults = results.sort((a, b) => b.createdAt - a.createdAt);
+    // Return all results (including invalid) for history display
+    // Sorted by date (most recent first)
+    const sortedResults = allResults.sort((a, b) => b.createdAt - a.createdAt);
 
     return {
       totalTests,
@@ -231,7 +238,7 @@ export const getUserStats = query({
       totalTimeTyped,
       totalWordsTyped,
       totalCharactersTyped,
-      allResults,
+      allResults: sortedResults,
     };
   },
 });
@@ -267,11 +274,13 @@ export const getLeaderboard = query({
     // Fetch all test results (we'll filter and group in memory)
     const allResults = await ctx.db.query("testResults").collect();
 
-    // Filter by time range and minimum accuracy (90% required to prevent spacebar spam exploit)
+    // Filter by time range, minimum accuracy (90%), and validity
+    // isValid !== false means valid (includes undefined for legacy data)
     const filteredResults = allResults.filter((r) => {
       const meetsAccuracy = r.accuracy >= 90;
       const meetsTimeRange = args.timeRange === "all-time" || r.createdAt >= timeCutoff;
-      return meetsAccuracy && meetsTimeRange;
+      const isValidResult = r.isValid !== false;
+      return meetsAccuracy && meetsTimeRange && isValidResult;
     });
 
     // Group by user and find best WPM for each user

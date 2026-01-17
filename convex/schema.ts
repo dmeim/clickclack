@@ -31,10 +31,36 @@ export default defineSchema({
     wordsIncorrect: v.optional(v.number()),
     charsMissed: v.optional(v.number()),
     charsExtra: v.optional(v.number()),
+    // Anti-cheat validity fields
+    isValid: v.optional(v.boolean()), // undefined = legacy (treated as valid)
+    invalidReason: v.optional(v.string()), // For debugging/admin review
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_date", ["userId", "createdAt"]),
+
+  // Typing sessions for anti-cheat validation
+  typingSessions: defineTable({
+    userId: v.id("users"),
+    settings: v.object({
+      mode: v.string(),
+      duration: v.optional(v.number()),
+      wordTarget: v.optional(v.number()),
+      difficulty: v.string(),
+      punctuation: v.boolean(),
+      numbers: v.boolean(),
+    }),
+    targetText: v.string(),
+    createdAt: v.number(),
+    startedAt: v.optional(v.number()), // Set on first recordProgress
+    lastEventAt: v.number(),
+    eventCount: v.number(),
+    lastTypedLength: v.number(), // For monotonic validation
+    maxCharsPerSecond: v.number(),
+    maxBurstChars: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created_at", ["createdAt"]),
 
   // Rooms for multiplayer Connect mode
   rooms: defineTable({

@@ -497,10 +497,12 @@ export const checkAndAwardAchievements = internalMutation({
     args
   ): Promise<{ newAchievements: string[]; totalAchievements: number }> => {
     // Get all test results for this user to compute aggregate stats
-    const allResults = await ctx.db
+    // Filter to valid results only (isValid !== false includes legacy data)
+    const allResultsRaw = await ctx.db
       .query("testResults")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
+    const allResults = allResultsRaw.filter((r) => r.isValid !== false);
 
     // Get user's streak
     const streak = await ctx.db
