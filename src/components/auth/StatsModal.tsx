@@ -70,14 +70,13 @@ function formatDateTime(timestamp: number): string {
   return `${month}/${day}/${year} at ${hour12}:${minutes} ${ampm}`;
 }
 
-// Chip data with optional special styling
+// Chip data for test type
 interface ChipData {
   label: string;
-  isUnverified?: boolean;
 }
 
 // Helper to get test type chips data
-// Order: Mode, Difficulty, Mode-specific value, Modifiers, [UNVERIFIED if applicable]
+// Order: Mode, Difficulty, Mode-specific value, Modifiers
 function getTestTypeChips(result: TestResult): ChipData[] {
   const chips: ChipData[] = [];
   
@@ -101,11 +100,6 @@ function getTestTypeChips(result: TestResult): ChipData[] {
   if (result.punctuation) chips.push({ label: "punctuation" });
   if (result.numbers) chips.push({ label: "numbers" });
   
-  // 5. UNVERIFIED chip if result is invalid
-  if (result.isValid === false) {
-    chips.push({ label: "UNVERIFIED", isUnverified: true });
-  }
-  
   return chips;
 }
 
@@ -125,14 +119,64 @@ function TestTypeChips({
           key={idx}
           className="px-2 py-0.5 rounded text-xs font-medium"
           style={{ 
-            backgroundColor: chip.isUnverified ? `${theme.incorrectText}30` : theme.buttonSelected, 
-            color: chip.isUnverified ? theme.incorrectText : theme.backgroundColor 
+            backgroundColor: theme.buttonSelected, 
+            color: theme.backgroundColor 
           }}
-          title={chip.isUnverified && result.invalidReason ? `Reason: ${result.invalidReason}` : undefined}
         >
           {chip.label}
         </span>
       ))}
+    </div>
+  );
+}
+
+// Valid Icon Component - shows checkmark or X based on test validity
+function ValidIcon({ 
+  result, 
+  theme 
+}: { 
+  result: TestResult; 
+  theme: Theme;
+}) {
+  const isValid = result.isValid !== false; // undefined = legacy (treated as valid)
+  
+  return (
+    <div 
+      className="flex items-center justify-center"
+      title={!isValid && result.invalidReason ? `Invalid: ${result.invalidReason}` : undefined}
+    >
+      {isValid ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ color: theme.correctText }}
+        >
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      ) : (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ color: theme.incorrectText }}
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      )}
     </div>
   );
 }
@@ -324,10 +368,9 @@ function TestDetailModal({
                   key={idx}
                   className="px-3 py-1 rounded-full text-sm font-medium"
                   style={{ 
-                    backgroundColor: chip.isUnverified ? `${theme.incorrectText}30` : theme.buttonSelected, 
-                    color: chip.isUnverified ? theme.incorrectText : theme.backgroundColor 
+                    backgroundColor: theme.buttonSelected, 
+                    color: theme.backgroundColor 
                   }}
-                  title={chip.isUnverified && result.invalidReason ? `Reason: ${result.invalidReason}` : undefined}
                 >
                   {chip.label}
                 </span>
@@ -699,7 +742,7 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
                   style={{ 
                     color: theme.defaultText, 
                     borderColor: `${theme.defaultText}20`,
-                    gridTemplateColumns: "80px 1fr 50px 55px"
+                    gridTemplateColumns: "80px 1fr 40px 50px 55px"
                   }}
                 >
                   <SortableHeader
@@ -711,6 +754,7 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
                     theme={theme}
                   />
                   <div className="pl-2">Test Type</div>
+                  <div className="text-center">Valid</div>
                   <SortableHeader
                     label="WPM"
                     column="wpm"
@@ -746,7 +790,7 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
                         className="grid gap-4 px-4 py-2.5 border-b last:border-b-0 hover:bg-white/10 transition-colors cursor-pointer items-center"
                         style={{ 
                           borderColor: `${theme.defaultText}10`,
-                          gridTemplateColumns: "80px 1fr 50px 55px"
+                          gridTemplateColumns: "80px 1fr 40px 50px 55px"
                         }}
                         onClick={() => setSelectedTest(result as TestResult)}
                       >
@@ -756,6 +800,7 @@ export default function StatsModal({ theme, onClose }: StatsModalProps) {
                         <div className="pl-2">
                           <TestTypeChips result={result as TestResult} theme={theme} />
                         </div>
+                        <ValidIcon result={result as TestResult} theme={theme} />
                         <div className="text-sm text-right font-medium" style={{ color: theme.correctText }}>
                           {result.wpm}
                         </div>
