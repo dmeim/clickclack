@@ -30,6 +30,7 @@ const DEFAULT_SETTINGS: Partial<SettingsState> = {
   wordTarget: 25,
   punctuation: false,
   numbers: false,
+  capitalization: false,
   difficulty: "beginner",
   quoteLength: "all",
   ghostWriterEnabled: false,
@@ -617,6 +618,23 @@ export default function PlanBuilderModal({
                   selectedItem.mode !== "zen" &&
                   selectedItem.mode !== "preset" && (
                     <div className="flex gap-4 pt-2">
+                      <button
+                        onClick={() =>
+                          handleUpdateItem(selectedItem.id, {
+                            settings: {
+                              ...selectedItem.settings,
+                              capitalization: !selectedItem.settings.capitalization,
+                            },
+                          })
+                        }
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors ${
+                          selectedItem.settings.capitalization
+                            ? "bg-sky-900/50 text-sky-400 border border-sky-500/50"
+                            : "bg-gray-700 text-gray-400"
+                        }`}
+                      >
+                        <span className="font-bold">Aa</span> Caps
+                      </button>
                       <button
                         onClick={() =>
                           handleUpdateItem(selectedItem.id, {

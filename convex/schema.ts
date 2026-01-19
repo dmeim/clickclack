@@ -26,6 +26,7 @@ export default defineSchema({
     difficulty: v.string(),
     punctuation: v.boolean(),
     numbers: v.boolean(),
+    capitalization: v.optional(v.boolean()),
     // Additional stats (optional for backwards compatibility with existing data)
     wordsCorrect: v.optional(v.number()),
     wordsIncorrect: v.optional(v.number()),
@@ -49,6 +50,7 @@ export default defineSchema({
       difficulty: v.string(),
       punctuation: v.boolean(),
       numbers: v.boolean(),
+      capitalization: v.optional(v.boolean()),
     }),
     targetText: v.string(),
     createdAt: v.number(),
@@ -75,6 +77,7 @@ export default defineSchema({
       difficulty: v.string(),
       punctuation: v.boolean(),
       numbers: v.boolean(),
+      capitalization: v.optional(v.boolean()),
       quoteLength: v.string(),
       presetText: v.optional(v.string()),
       presetModeType: v.optional(v.string()),
@@ -160,6 +163,7 @@ export default defineSchema({
     defaultQuoteLength: v.string(),
     defaultPunctuation: v.boolean(),
     defaultNumbers: v.boolean(),
+    defaultCapitalization: v.optional(v.boolean()),
 
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),

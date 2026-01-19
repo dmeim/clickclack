@@ -15,6 +15,7 @@ export const saveResult = mutation({
     difficulty: v.string(),
     punctuation: v.boolean(),
     numbers: v.boolean(),
+    capitalization: v.optional(v.boolean()),
     // Additional stats
     wordsCorrect: v.number(),
     wordsIncorrect: v.number(),
@@ -53,6 +54,7 @@ export const saveResult = mutation({
       difficulty: args.difficulty,
       punctuation: args.punctuation,
       numbers: args.numbers,
+      capitalization: args.capitalization,
       wordsCorrect: args.wordsCorrect,
       wordsIncorrect: args.wordsIncorrect,
       charsMissed: args.charsMissed,
@@ -82,6 +84,7 @@ export const saveResult = mutation({
           difficulty: args.difficulty,
           punctuation: args.punctuation,
           numbers: args.numbers,
+          capitalization: args.capitalization,
           wordsCorrect: args.wordsCorrect,
           wordsIncorrect: args.wordsIncorrect,
           createdAt,

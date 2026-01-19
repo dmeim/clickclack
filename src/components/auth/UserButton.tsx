@@ -13,10 +13,9 @@ import {
 
 interface UserButtonProps {
   theme: Theme;
-  onShowStats: () => void;
 }
 
-export default function UserButton({ theme, onShowStats }: UserButtonProps) {
+export default function UserButton({ theme }: UserButtonProps) {
   const { isSignedIn, user, isLoaded } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const getOrCreateUser = useMutation(api.users.getOrCreateUser);
@@ -129,7 +128,7 @@ export default function UserButton({ theme, onShowStats }: UserButtonProps) {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ color: theme.defaultText }}
+            style={{ color: theme.buttonUnselected }}
           >
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -149,29 +148,6 @@ export default function UserButton({ theme, onShowStats }: UserButtonProps) {
           </p>
         </div>
         <DropdownMenuSeparator style={{ backgroundColor: `${theme.defaultText}30` }} />
-        <DropdownMenuItem
-          onClick={onShowStats}
-          className="cursor-pointer"
-          style={{ color: theme.correctText }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2"
-          >
-            <line x1="18" x2="18" y1="20" y2="10" />
-            <line x1="12" x2="12" y1="20" y2="4" />
-            <line x1="6" x2="6" y1="20" y2="14" />
-          </svg>
-          View Stats
-        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => openUserProfile()}
           className="cursor-pointer"

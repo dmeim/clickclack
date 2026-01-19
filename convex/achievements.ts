@@ -66,6 +66,7 @@ interface TestResultData {
   difficulty: string;
   punctuation: boolean;
   numbers: boolean;
+  capitalization?: boolean;
   wordsCorrect: number;
   wordsIncorrect: number;
   createdAt: number;
@@ -481,6 +482,7 @@ export const checkAndAwardAchievements = internalMutation({
       difficulty: v.string(),
       punctuation: v.boolean(),
       numbers: v.boolean(),
+      capitalization: v.optional(v.boolean()),
       wordsCorrect: v.number(),
       wordsIncorrect: v.number(),
       createdAt: v.number(),

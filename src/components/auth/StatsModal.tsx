@@ -26,6 +26,7 @@ interface TestResult {
   difficulty: string;
   punctuation: boolean;
   numbers: boolean;
+  capitalization?: boolean;
   wordsCorrect?: number;
   wordsIncorrect?: number;
   charsMissed?: number;
@@ -97,6 +98,7 @@ function getTestTypeChips(result: TestResult): ChipData[] {
   }
   
   // 4. Modifiers
+  if (result.capitalization) chips.push({ label: "caps" });
   if (result.punctuation) chips.push({ label: "punctuation" });
   if (result.numbers) chips.push({ label: "numbers" });
   

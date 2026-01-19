@@ -128,6 +128,7 @@ function JoinRoomContent() {
         difficulty: room.settings.difficulty as SettingsState["difficulty"],
         punctuation: room.settings.punctuation,
         numbers: room.settings.numbers,
+        capitalization: room.settings.capitalization,
         quoteLength: room.settings.quoteLength as SettingsState["quoteLength"],
         presetText: room.settings.presetText,
         presetModeType:

@@ -34,6 +34,7 @@ export type SettingsState = {
   quoteLength: QuoteLength;
   punctuation: boolean;
   numbers: boolean;
+  capitalization: boolean;
   typingFontSize: number;
   iconFontSize: number;
   helpFontSize: number;

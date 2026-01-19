@@ -27,6 +27,7 @@ export const create = mutation({
         difficulty: "medium",
         punctuation: false,
         numbers: false,
+        capitalization: false,
         quoteLength: "all",
         ghostWriterEnabled: false,
         ghostWriterSpeed: 60,

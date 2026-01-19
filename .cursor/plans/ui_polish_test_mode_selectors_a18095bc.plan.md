@@ -4,28 +4,28 @@ overview: Refactor the test mode selection UI in TypingPractice.tsx to use shadc
 todos:
   - id: install-combobox-deps
     content: Install shadcn Popover and Command components for Combobox functionality
-    status: pending
+    status: completed
   - id: import-components
     content: Add imports for Select, Combobox, and DropdownMenu shadcn components
-    status: pending
+    status: completed
   - id: create-test-mode-select
     content: Create Test Mode Select with Zen, Time, Word, Quote options
-    status: pending
+    status: completed
   - id: create-length-combobox
     content: Create dynamic Length/Count Combobox with presets AND custom input support
-    status: pending
+    status: completed
   - id: create-difficulty-select
     content: Create Difficulty Select with all difficulty levels
-    status: pending
+    status: completed
   - id: create-modifiers-dropdown
     content: Create Modifiers DropdownMenu with punctuation, numbers, sound, and ghost writer
-    status: pending
+    status: completed
   - id: remove-old-ui
     content: Remove the old button-based UI and sub-settings row
-    status: pending
+    status: completed
   - id: apply-theme-styling
     content: Apply theme colors to match existing design
-    status: pending
+    status: completed
 ---
 
 # UI Polish: Test Mode Selection Refactor

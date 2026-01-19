@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import TypingPractice from "@/components/typing/TypingPractice";
 import Header from "@/components/layout/Header";
-import { StatsModal, LeaderboardModal } from "@/components/auth";
+import { StatsModal } from "@/components/auth";
 import type { Theme } from "@/lib/typing-constants";
 import { DEFAULT_THEME } from "@/lib/typing-constants";
 import { loadTheme, loadThemeName } from "@/lib/storage-utils";
@@ -24,7 +24,6 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
-  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
   return (
@@ -35,10 +34,7 @@ export default function Home() {
       {/* Header with action buttons */}
       <Header
         theme={theme}
-        onShowSettings={() => setShowSettings(true)}
-        onShowTheme={() => setShowThemeModal(true)}
         onShowStats={() => setShowStatsModal(true)}
-        onShowLeaderboard={() => setShowLeaderboardModal(true)}
         hidden={isTyping}
       />
 
@@ -58,11 +54,6 @@ export default function Home() {
       {/* Stats Modal */}
       {showStatsModal && (
         <StatsModal theme={theme} onClose={() => setShowStatsModal(false)} />
-      )}
-
-      {/* Leaderboard Modal */}
-      {showLeaderboardModal && (
-        <LeaderboardModal theme={theme} onClose={() => setShowLeaderboardModal(false)} />
       )}
 
       {/* Footer with legal links - always visible for Google verification compliance */}

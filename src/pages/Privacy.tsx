@@ -20,6 +20,16 @@ export default function Privacy() {
       }}
     >
       <div className="w-full max-w-3xl mx-auto animate-fade-in">
+        <div className="mb-6">
+          <Link
+            to="/"
+            className="transition text-sm hover:opacity-100"
+            style={{ color: theme.defaultText, opacity: 0.7 }}
+          >
+            ← Back to Homepage
+          </Link>
+        </div>
+
         <div className="text-center mb-12">
           <h1
             className="text-4xl font-bold mb-2"
@@ -168,15 +178,6 @@ export default function Privacy() {
           </section>
         </div>
 
-        <div className="text-center mt-12">
-          <Link
-            to="/"
-            className="transition text-sm hover:opacity-100"
-            style={{ color: theme.defaultText, opacity: 0.7 }}
-          >
-            ← Back to Typing
-          </Link>
-        </div>
       </div>
     </div>
   );

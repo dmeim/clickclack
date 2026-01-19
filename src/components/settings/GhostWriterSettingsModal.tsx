@@ -1,6 +1,12 @@
-import { useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import type { SettingsState, Theme } from "@/lib/typing-constants";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface GhostWriterSettingsModalProps {
   isOpen: boolean;
@@ -12,11 +18,6 @@ interface GhostWriterSettingsModalProps {
 
 const SPEED_PRESETS = [20, 40, 60, 80, 100, 120];
 
-// Use useSyncExternalStore for client-side check
-const emptySubscribe = () => () => {};
-const getSnapshot = () => true;
-const getServerSnapshot = () => false;
-
 export default function GhostWriterSettingsModal({
   isOpen,
   onClose,
@@ -24,37 +25,30 @@ export default function GhostWriterSettingsModal({
   onUpdateSettings,
   theme,
 }: GhostWriterSettingsModalProps) {
-  const mounted = useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
   const [customSpeed, setCustomSpeed] = useState(settings.ghostWriterSpeed);
 
   // Derive customSpeed from settings when it changes
   const displaySpeed = customSpeed !== settings.ghostWriterSpeed ? customSpeed : settings.ghostWriterSpeed;
 
-  if (!isOpen || !mounted) return null;
-
   const isCustomSpeed = !SPEED_PRESETS.includes(settings.ghostWriterSpeed);
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4 md:mx-0 border"
-        style={{ backgroundColor: theme.surfaceColor, borderColor: `${theme.defaultText}30` }}
-        onClick={(e) => e.stopPropagation()}
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="max-w-md"
+        style={{
+          backgroundColor: theme.surfaceColor,
+          borderColor: `${theme.defaultText}30`,
+        }}
       >
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold" style={{ color: theme.correctText }}>Ghost Writer</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="hover:opacity-75 transition"
-            style={{ color: theme.defaultText }}
-          >
-            ✕
-          </button>
-        </div>
+        <DialogHeader>
+          <DialogTitle style={{ color: theme.correctText }}>
+            Ghost Writer
+          </DialogTitle>
+          <DialogDescription style={{ color: theme.defaultText }}>
+            A visual guide that shows where you would be if typing at your target speed.
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="flex flex-col gap-6">
           {/* Master Toggle */}
@@ -184,16 +178,9 @@ export default function GhostWriterSettingsModal({
                 <span className="text-sm" style={{ color: theme.defaultText }}>WPM</span>
               </div>
             </div>
-
-            {/* Info text */}
-            <p className="text-xs text-center mt-4" style={{ color: theme.defaultText }}>
-              The ghost cursor shows where you would be typing at the target
-              speed
-            </p>
           </div>
         </div>
-      </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 }

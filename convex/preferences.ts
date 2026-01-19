@@ -45,6 +45,7 @@ const preferencesValidator = v.object({
   defaultQuoteLength: v.string(),
   defaultPunctuation: v.boolean(),
   defaultNumbers: v.boolean(),
+  defaultCapitalization: v.optional(v.boolean()),
 });
 
 // Save or update user preferences

@@ -1,8 +1,13 @@
-import { useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
 import type { SettingsState, Theme } from "@/lib/typing-constants";
 import { getRandomSoundUrl } from "@/lib/sounds";
 import type { SoundManifest } from "@/lib/sounds";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SoundSettingsModalProps {
   isOpen: boolean;
@@ -13,11 +18,6 @@ interface SoundSettingsModalProps {
   theme: Theme;
 }
 
-// Use useSyncExternalStore for client-side check
-const emptySubscribe = () => () => {};
-const getSnapshot = () => true;
-const getServerSnapshot = () => false;
-
 export default function SoundSettingsModal({
   isOpen,
   onClose,
@@ -26,10 +26,6 @@ export default function SoundSettingsModal({
   soundManifest,
   theme,
 }: SoundSettingsModalProps) {
-  const mounted = useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
-
-  if (!isOpen || !mounted) return null;
-
   const playPreview = (category: string, pack: string) => {
     const soundUrl = getRandomSoundUrl(soundManifest, category, pack);
     if (!soundUrl) return;
@@ -48,27 +44,23 @@ export default function SoundSettingsModal({
     return soundManifest[category] ? Object.keys(soundManifest[category]) : [];
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4 md:mx-0 border"
-        style={{ backgroundColor: theme.surfaceColor, borderColor: `${theme.defaultText}30` }}
-        onClick={(e) => e.stopPropagation()}
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="max-w-md"
+        style={{
+          backgroundColor: theme.surfaceColor,
+          borderColor: `${theme.defaultText}30`,
+        }}
       >
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold" style={{ color: theme.correctText }}>Sound Settings</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="hover:opacity-75 transition"
-            style={{ color: theme.defaultText }}
-          >
-            ✕
-          </button>
-        </div>
+        <DialogHeader>
+          <DialogTitle style={{ color: theme.correctText }}>
+            Sound Settings
+          </DialogTitle>
+          <DialogDescription style={{ color: theme.defaultText }}>
+            Customize the audio feedback for typing, warnings, and errors.
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="flex flex-col gap-6">
           {/* Master Toggle */}
@@ -256,8 +248,7 @@ export default function SoundSettingsModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 }

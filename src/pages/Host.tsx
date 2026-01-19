@@ -71,6 +71,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
     difficulty: "medium",
     punctuation: false,
     numbers: false,
+    capitalization: false,
     quoteLength: "all",
     presetText: "",
     presetModeType: "finish",
@@ -234,6 +235,7 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
           difficulty: updated.difficulty || "medium",
           punctuation: updated.punctuation || false,
           numbers: updated.numbers || false,
+          capitalization: updated.capitalization || false,
           quoteLength: updated.quoteLength || "all",
           presetText: updated.presetText,
           presetModeType: updated.presetModeType,
@@ -694,6 +696,25 @@ function ActiveHostSession({ hostName }: { hostName: string }) {
                 className="flex gap-4 rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: GLOBAL_COLORS.surface }}
               >
+                <button
+                  onClick={() => updateSettings({ capitalization: !settings.capitalization })}
+                  className={`flex items-center gap-2 transition ${settings.capitalization ? "" : "hover:text-gray-200"}`}
+                  style={{
+                    color: settings.capitalization ? theme.buttonSelected : undefined,
+                  }}
+                >
+                  <span
+                    className={`rounded px-1 text-xs ${settings.capitalization ? "text-gray-900 font-bold" : "bg-gray-700"}`}
+                    style={{
+                      backgroundColor: settings.capitalization
+                        ? theme.buttonSelected
+                        : undefined,
+                    }}
+                  >
+                    Aa
+                  </span>
+                  Caps
+                </button>
                 <button
                   onClick={() =>
                     updateSettings({ punctuation: !settings.punctuation })

@@ -45,7 +45,7 @@ const LINE_HEIGHT = 1.6;
 const generateWords = (
   count: number,
   pool: string[],
-  options: { punctuation: boolean; numbers: boolean }
+  options: { punctuation: boolean; numbers: boolean; capitalization: boolean }
 ) => {
   const words = [];
   if (pool.length === 0) return "";
@@ -53,15 +53,20 @@ const generateWords = (
   for (let i = 0; i < count; i++) {
     let word = pool[Math.floor(Math.random() * pool.length)];
 
-    if (options.numbers && Math.random() < 0.15) {
+    if (options.numbers && Math.random() < 0.2) {
       word =
         NUMBER_CHARS[Math.floor(Math.random() * NUMBER_CHARS.length)] +
         NUMBER_CHARS[Math.floor(Math.random() * NUMBER_CHARS.length)];
     }
 
-    if (options.punctuation && Math.random() < 0.1 && i > 0) {
+    if (options.punctuation && Math.random() < 0.15 && i > 0) {
       word =
         word + PUNCTUATION_CHARS[Math.floor(Math.random() * PUNCTUATION_CHARS.length)];
+    }
+
+    // Apply capitalization: capitalize first letter of some words
+    if (options.capitalization && Math.random() < 0.25) {
+      word = word.charAt(0).toUpperCase() + word.slice(1);
     }
 
     words.push(word);
@@ -227,6 +232,7 @@ export default function TypingPractice({
     wordTarget: 25,
     punctuation: false,
     numbers: false,
+    capitalization: false,
     typingFontSize: 3.25,
     iconFontSize: 1,
     helpFontSize: 1,
@@ -260,6 +266,7 @@ export default function TypingPractice({
   const setShowThemeModal = externalSetShowThemeModal ?? setInternalShowThemeModal;
 
   const [linePreview, setLinePreview] = useState(3);
+  const [maxWordsPerLine, setMaxWordsPerLine] = useState(7);
   const [isCustomThemeOpen, setIsCustomThemeOpen] = useState(false);
   const [availableThemes, setAvailableThemes] = useState<ThemeDefinition[]>([]);
   const [groupedThemes, setGroupedThemes] = useState<GroupedThemes[]>([]);
@@ -306,6 +313,7 @@ export default function TypingPractice({
     difficulty: string;
     punctuation: boolean;
     numbers: boolean;
+    capitalization: boolean;
     wordsCorrect: number;
     wordsIncorrect: number;
     charsMissed: number;
@@ -440,6 +448,7 @@ export default function TypingPractice({
         quoteLength: dbPreferences.defaultQuoteLength as typeof prev.quoteLength,
         punctuation: dbPreferences.defaultPunctuation,
         numbers: dbPreferences.defaultNumbers,
+        capitalization: dbPreferences.defaultCapitalization ?? false,
         soundEnabled: dbPreferences.soundEnabled,
         typingSound: dbPreferences.typingSound,
         warningSound: dbPreferences.warningSound,
@@ -494,6 +503,7 @@ export default function TypingPractice({
             defaultQuoteLength: settings.quoteLength,
             defaultPunctuation: settings.punctuation,
             defaultNumbers: settings.numbers,
+            defaultCapitalization: settings.capitalization,
           },
         });
       } catch (error) {
@@ -515,6 +525,7 @@ export default function TypingPractice({
     settings.quoteLength,
     settings.punctuation,
     settings.numbers,
+    settings.capitalization,
     settings.soundEnabled,
     settings.typingSound,
     settings.warningSound,
@@ -699,6 +710,7 @@ export default function TypingPractice({
       difficulty: settings.difficulty,
       punctuation: settings.punctuation,
       numbers: settings.numbers,
+      capitalization: settings.capitalization,
       wordsCorrect: wordResults.correctWords.length,
       wordsIncorrect: wordResults.incorrectWords.length,
       charsMissed: stats.missed,
@@ -768,7 +780,7 @@ export default function TypingPractice({
       console.error("Failed to save result:", error);
       setSaveState("error");
     }
-  }, [user, wpm, accuracy, settings.mode, settings.difficulty, settings.punctuation, settings.numbers, elapsedMs, typedText, wordResults, stats, openSignIn, getOrCreateUser, saveResultMutation, sessionId, finalizeSessionMutation]);
+  }, [user, wpm, accuracy, settings.mode, settings.difficulty, settings.punctuation, settings.numbers, settings.capitalization, elapsedMs, typedText, wordResults, stats, openSignIn, getOrCreateUser, saveResultMutation, sessionId, finalizeSessionMutation]);
 
   // Effect to save pending result after sign-in
   useEffect(() => {
@@ -794,6 +806,7 @@ export default function TypingPractice({
             difficulty: settings.difficulty,
             punctuation: settings.punctuation,
             numbers: settings.numbers,
+            capitalization: settings.capitalization,
           },
           targetText: words,
         });
@@ -819,6 +832,7 @@ export default function TypingPractice({
     settings.difficulty,
     settings.punctuation,
     settings.numbers,
+    settings.capitalization,
     words,
   ]);
 
@@ -874,6 +888,7 @@ export default function TypingPractice({
       generateWords(wordCount, wordPool, {
         punctuation: settings.punctuation,
         numbers: settings.numbers,
+        capitalization: settings.capitalization,
       })
     );
     resetSession(false);
@@ -882,6 +897,7 @@ export default function TypingPractice({
     settings.wordTarget,
     settings.punctuation,
     settings.numbers,
+    settings.capitalization,
     settings.presetText,
     wordPool,
     quotes,
@@ -1001,6 +1017,7 @@ export default function TypingPractice({
         const newWords = generateWords(50, wordPool, {
           punctuation: settings.punctuation,
           numbers: settings.numbers,
+          capitalization: settings.capitalization,
         });
         setWords((prev) => prev + " " + newWords);
       }
@@ -1240,6 +1257,10 @@ export default function TypingPractice({
         );
 
         acc.nodes.push(wordNode);
+        // Insert line break after every maxWordsPerLine words
+        if ((wordIdx + 1) % maxWordsPerLine === 0 && wordIdx < wordsArray.length - 1) {
+          acc.nodes.push(<br key={`br-${wordIdx}`} />);
+        }
         acc.currentIndex += word.length + 1;
         return acc;
       },
@@ -1255,14 +1276,90 @@ export default function TypingPractice({
       {/* Settings Controls - Fixed at top */}
       {!connectMode && !isRunning && !isFinished && (
         <div
-          className="fixed top-[130px] md:top-[15%] left-0 w-full flex flex-col items-center justify-center gap-4 transition-all duration-300 z-20"
-          style={{ fontSize: `${settings.iconFontSize}rem`, opacity: uiOpacity }}
+          className="fixed left-0 w-full flex flex-col items-center justify-center gap-4 transition-all duration-300 z-30"
+          style={{ 
+            fontSize: `${settings.iconFontSize}rem`, 
+            opacity: uiOpacity,
+            // Position settings above the typing area with more space for the settings panel
+            // Minimum 120px to stay below the header (which is ~80px tall with z-50)
+            top: `max(120px, calc(50vh - ${(linePreview * settings.typingFontSize * LINE_HEIGHT) / 2 + 12}rem))`,
+          }}
         >
-          {/* Modes Row: [modes] | [preset/plan] | [punctuation/numbers] | [sound/ghost] */}
-          <div className="flex flex-wrap items-center justify-center gap-4 text-gray-400">
-            {/* Group 1: Test Modes */}
+          {/* Row 1: Sound, Ghost Writer, Theme, Settings */}
+          <div className="flex items-center justify-center gap-4 text-gray-400">
+            <div className="flex items-center gap-3 rounded-lg px-4 py-2" style={{ backgroundColor: theme.surfaceColor }}>
+              <SoundController
+                settings={settings}
+                onUpdateSettings={updateSettings}
+                soundManifest={soundManifest}
+                theme={theme}
+              />
+              <div className="w-px h-4 bg-gray-700"></div>
+              <GhostWriterController
+                settings={settings}
+                onUpdateSettings={updateSettings}
+                theme={theme}
+              />
+              <div className="w-px h-4 bg-gray-700"></div>
+              {/* Theme Button */}
+              <button
+                type="button"
+                onClick={() => setShowThemeModal(true)}
+                className="flex items-center gap-2 transition hover:text-gray-200"
+                style={{ color: theme.buttonUnselected }}
+                title="Theme"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" stroke="none" />
+                  <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" stroke="none" />
+                  <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" stroke="none" />
+                  <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" stroke="none" />
+                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+                </svg>
+              </button>
+              <div className="w-px h-4 bg-gray-700"></div>
+              {/* Settings Button */}
+              <button
+                type="button"
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-2 transition hover:text-gray-200"
+                style={{ color: theme.buttonUnselected }}
+                title="Settings"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: Test Mode | Modifiers */}
+          <div className="flex flex-wrap items-center justify-center gap-3 text-gray-400">
+            {/* Test Modes */}
+            <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Mode</span>
             <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
-              {(["time", "words", "quote", "zen"] as const).map((m) => (
+              {(["zen", "time", "words", "quote"] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
@@ -1283,188 +1380,172 @@ export default function TypingPractice({
 
             <div className="w-px h-4 bg-gray-700"></div>
 
-            {/* Group 2: Preset & Plan */}
-            <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
-              {/* Preset Mode */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (settings.mode === "preset") {
-                    setShowPresetInput(true);
-                  } else {
-                    updateSettings({ mode: "preset" });
-                  }
-                }}
-                className={`px-3 py-1 rounded transition ${settings.mode === "preset" ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
-                style={{ color: settings.mode === "preset" ? theme.buttonSelected : undefined }}
-              >
-                preset
-              </button>
-              {/* Plan Mode */}
-              <button
-                type="button"
-                onClick={() => setShowPlanBuilder(true)}
-                className={`px-3 py-1 rounded transition hover:text-gray-200 ${isPlanActive ? "font-medium bg-gray-800" : ""}`}
-                style={{ color: isPlanActive ? theme.buttonSelected : undefined }}
-                title="Plan Mode"
-              >
-                plan
-              </button>
-            </div>
-
-            <div className="w-px h-4 bg-gray-700"></div>
-
-            {/* Group 3: Punctuation & Numbers */}
+            {/* Modifiers: Caps, Punctuation & Numbers */}
+            <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Modifiers</span>
             <div className="flex gap-4 rounded-lg px-3 py-1.5" style={{ backgroundColor: theme.surfaceColor }}>
+              <button
+                type="button"
+                onClick={() => updateSettings({ capitalization: !settings.capitalization })}
+                className={`flex items-center gap-2 transition ${settings.capitalization ? "" : "hover:text-gray-200"}`}
+                style={{ color: settings.capitalization ? theme.buttonSelected : undefined }}
+                disabled={settings.mode === "quote"}
+                title={settings.mode === "quote" ? "Not available in quote mode" : "Toggle capitalization"}
+              >
+                <span
+                  className={settings.capitalization ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}
+                  style={{ 
+                    backgroundColor: settings.capitalization ? theme.buttonSelected : undefined,
+                    opacity: settings.mode === "quote" ? 0.5 : 1
+                  }}
+                >
+                  Aa
+                </span>
+                <span style={{ opacity: settings.mode === "quote" ? 0.5 : 1 }}>caps</span>
+              </button>
               <button
                 type="button"
                 onClick={() => updateSettings({ punctuation: !settings.punctuation })}
                 className={`flex items-center gap-2 transition ${settings.punctuation ? "" : "hover:text-gray-200"}`}
                 style={{ color: settings.punctuation ? theme.buttonSelected : undefined }}
-                disabled={settings.mode === "preset"}
-                title={settings.mode === "preset" ? "Not available in preset mode" : "Toggle punctuation"}
+                disabled={settings.mode === "quote"}
+                title={settings.mode === "quote" ? "Not available in quote mode" : "Toggle punctuation"}
               >
                 <span
                   className={settings.punctuation ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}
                   style={{ 
                     backgroundColor: settings.punctuation ? theme.buttonSelected : undefined,
-                    opacity: settings.mode === "preset" ? 0.5 : 1
+                    opacity: settings.mode === "quote" ? 0.5 : 1
                   }}
                 >
                   @
                 </span>
-                <span style={{ opacity: settings.mode === "preset" ? 0.5 : 1 }}>punctuation</span>
+                <span style={{ opacity: settings.mode === "quote" ? 0.5 : 1 }}>punctuation</span>
               </button>
               <button
                 type="button"
                 onClick={() => updateSettings({ numbers: !settings.numbers })}
                 className={`flex items-center gap-2 transition ${settings.numbers ? "" : "hover:text-gray-200"}`}
                 style={{ color: settings.numbers ? theme.buttonSelected : undefined }}
-                disabled={settings.mode === "preset"}
-                title={settings.mode === "preset" ? "Not available in preset mode" : "Toggle numbers"}
+                disabled={settings.mode === "quote"}
+                title={settings.mode === "quote" ? "Not available in quote mode" : "Toggle numbers"}
               >
                 <span
                   className={settings.numbers ? "text-gray-900 rounded px-1 text-[0.75em] font-bold" : "bg-gray-700 rounded px-1 text-[0.75em]"}
                   style={{ 
                     backgroundColor: settings.numbers ? theme.buttonSelected : undefined,
-                    opacity: settings.mode === "preset" ? 0.5 : 1
+                    opacity: settings.mode === "quote" ? 0.5 : 1
                   }}
                 >
                   #
                 </span>
-                <span style={{ opacity: settings.mode === "preset" ? 0.5 : 1 }}>numbers</span>
+                <span style={{ opacity: settings.mode === "quote" ? 0.5 : 1 }}>numbers</span>
               </button>
-            </div>
-
-            <div className="w-px h-4 bg-gray-700"></div>
-
-            {/* Group 4: Sound & Ghost Writer */}
-            <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ backgroundColor: theme.surfaceColor }}>
-              <SoundController
-                settings={settings}
-                onUpdateSettings={updateSettings}
-                soundManifest={soundManifest}
-                theme={theme}
-              />
-              <GhostWriterController
-                settings={settings}
-                onUpdateSettings={updateSettings}
-                theme={theme}
-              />
             </div>
           </div>
 
-          {/* Line 3: Sub-settings */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-gray-400">
-            {/* Time Presets */}
+          {/* Row 3: Time/Word Count/Quote Length + Difficulty with labels */}
+          <div className="flex flex-wrap items-center justify-center gap-3 text-gray-400">
+            {/* Time Duration */}
             {settings.mode === "time" && (
-              <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
-                {TIME_PRESETS.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => {
-                      if (settings.duration === d) generateTest();
-                      else updateSettings({ duration: d });
-                    }}
-                    className={`px-3 py-1 rounded transition ${settings.duration === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
-                    style={{ color: settings.duration === d ? theme.buttonSelected : undefined }}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
+              <>
+                <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Duration</span>
+                <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
+                  {TIME_PRESETS.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        if (settings.duration === d) generateTest();
+                        else updateSettings({ duration: d });
+                      }}
+                      className={`px-3 py-1 rounded transition ${settings.duration === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                      style={{ color: settings.duration === d ? theme.buttonSelected : undefined }}
+                    >
+                      {d}s
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
 
-            {/* Word Presets */}
+            {/* Word Count */}
             {settings.mode === "words" && (
-              <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
-                {WORD_PRESETS.map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => {
-                      if (settings.wordTarget === w) generateTest();
-                      else updateSettings({ wordTarget: w });
-                    }}
-                    className={`px-3 py-1 rounded transition ${settings.wordTarget === w ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
-                    style={{ color: settings.wordTarget === w ? theme.buttonSelected : undefined }}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
+              <>
+                <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Word Count</span>
+                <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
+                  {WORD_PRESETS.map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => {
+                        if (settings.wordTarget === w) generateTest();
+                        else updateSettings({ wordTarget: w });
+                      }}
+                      className={`px-3 py-1 rounded transition ${settings.wordTarget === w ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                      style={{ color: settings.wordTarget === w ? theme.buttonSelected : undefined }}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
 
             {/* Quote Length */}
             {settings.mode === "quote" && quotesManifest && (
-              <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
-                {["all", ...quotesManifest.lengths].map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => {
-                      if (settings.quoteLength === l) generateTest();
-                      else updateSettings({ quoteLength: l as typeof settings.quoteLength });
-                    }}
-                    className={`px-3 py-1 rounded transition ${settings.quoteLength === l ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
-                    style={{ color: settings.quoteLength === l ? theme.buttonSelected : undefined }}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
+              <>
+                <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Quote Length</span>
+                <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
+                  {["all", ...quotesManifest.lengths].map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => {
+                        if (settings.quoteLength === l) generateTest();
+                        else updateSettings({ quoteLength: l as typeof settings.quoteLength });
+                      }}
+                      className={`px-3 py-1 rounded transition ${settings.quoteLength === l ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                      style={{ color: settings.quoteLength === l ? theme.buttonSelected : undefined }}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
 
-            {/* Difficulty */}
-            {settings.mode !== "quote" && settings.mode !== "preset" && wordsManifest && (
-              <div className="flex rounded-lg p-1 ml-2" style={{ backgroundColor: theme.surfaceColor }}>
-                {wordsManifest.difficulties.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => {
-                      if (settings.difficulty === d) generateTest();
-                      else updateSettings({ difficulty: d as typeof settings.difficulty });
-                    }}
-                    className={`px-3 py-1 rounded transition ${settings.difficulty === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
-                    style={{ color: settings.difficulty === d ? theme.buttonSelected : undefined }}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
+            {/* Zen mode - show infinity symbol */}
+            {settings.mode === "zen" && (
+              <>
+                <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Duration</span>
+                <div className="flex rounded-lg px-4 py-1.5" style={{ backgroundColor: theme.surfaceColor }}>
+                  <span className="text-lg" style={{ color: theme.buttonSelected }}>∞</span>
+                </div>
+              </>
             )}
 
-            {/* Edit Preset Button */}
-            {settings.mode === "preset" && (
-              <button
-                type="button"
-                onClick={() => setShowPresetInput(true)}
-                className="ml-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition flex items-center gap-2"
-              >
-                <span>✎</span> Edit Text
-              </button>
+            {/* Difficulty (shown for time, words, zen modes) */}
+            {settings.mode !== "quote" && wordsManifest && (
+              <>
+                <div className="w-px h-4 bg-gray-700"></div>
+                <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Difficulty</span>
+                <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
+                  {wordsManifest.difficulties.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        if (settings.difficulty === d) generateTest();
+                        else updateSettings({ difficulty: d as typeof settings.difficulty });
+                      }}
+                      className={`px-3 py-1 rounded transition ${settings.difficulty === d ? "font-medium bg-gray-800" : "hover:text-gray-200"}`}
+                      style={{ color: settings.difficulty === d ? theme.buttonSelected : undefined }}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -1472,7 +1553,15 @@ export default function TypingPractice({
 
       {/* Live Stats Floating Pills */}
       {isRunning && !isFinished && (
-        <div className="fixed top-[80px] md:top-[20%] left-0 w-full flex flex-row flex-nowrap items-center justify-center gap-2 md:gap-4 select-none z-10 transition-opacity duration-500">
+        <div 
+          className="fixed left-0 w-full flex flex-row flex-nowrap items-center justify-center gap-2 md:gap-4 select-none z-10 transition-all duration-300"
+          style={{
+            // Position stats above the typing area: center minus half content height minus gap
+            // Typing area height = linePreview * typingFontSize * LINE_HEIGHT rem
+            // Stats appear 4rem above the typing area top, with a minimum of 60px from top
+            top: `max(60px, calc(50vh - ${(linePreview * settings.typingFontSize * LINE_HEIGHT) / 2 + 4}rem))`,
+          }}
+        >
           {/* WPM Pill */}
           <div
             className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
@@ -1550,9 +1639,9 @@ export default function TypingPractice({
       )}
 
       {/* Typing Area */}
-      <div className="w-[95%] md:w-[80%] max-w-none">
+      <div className="w-[95%] md:w-[80%] max-w-none relative z-0">
         {!isFinished ? (
-          <div className="relative">
+          <div className="relative z-0">
             <input
               ref={inputRef}
               name="typing-test-input"
@@ -2332,7 +2421,7 @@ export default function TypingPractice({
           onClick={() => setShowSettings(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg p-6 shadow-xl mx-4"
+            className="w-full max-w-xl rounded-lg p-6 shadow-xl mx-4"
             style={{ backgroundColor: theme.surfaceColor }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2345,10 +2434,10 @@ export default function TypingPractice({
 
             <div className="space-y-6">
               {/* Line Preview */}
-              <div>
+              <div className="text-center">
                 <label className="mb-2 block text-sm text-gray-400">Lines to Preview</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((num) => (
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
                     <button
                       key={num}
                       onClick={() => setLinePreview(num)}
@@ -2361,35 +2450,52 @@ export default function TypingPractice({
                 </div>
               </div>
 
-              {/* Font Size */}
-              <div>
-                <label className="mb-2 block text-sm text-gray-400">Text Size (rem)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  step="0.25"
-                  value={settings.typingFontSize}
-                  onChange={(e) => updateSettings({ typingFontSize: parseFloat(e.target.value) || 3 })}
-                  className="w-full rounded bg-gray-700 px-3 py-2 text-gray-200 focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": theme.buttonSelected } as React.CSSProperties}
-                />
-              </div>
-
-              {/* Text Alignment */}
-              <div>
-                <label className="mb-2 block text-sm text-gray-400">Text Alignment</label>
-                <div className="flex gap-2">
-                  {(["left", "center", "right", "justify"] as const).map((align) => (
+              {/* Max Words per Line */}
+              <div className="text-center">
+                <label className="mb-2 block text-sm text-gray-400">Max Words per Line</label>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                     <button
-                      key={align}
-                      onClick={() => updateSettings({ textAlign: align })}
-                      className={`rounded px-3 py-1 text-sm capitalize transition ${settings.textAlign === align ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
-                      style={{ color: settings.textAlign === align ? theme.buttonSelected : "#d1d5db" }}
+                      key={num}
+                      onClick={() => setMaxWordsPerLine(num)}
+                      className={`rounded px-4 py-2 text-sm transition ${maxWordsPerLine === num ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                      style={{ color: maxWordsPerLine === num ? theme.buttonSelected : "#d1d5db" }}
                     >
-                      {align}
+                      {num}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Font Size & Text Alignment */}
+              <div className="flex gap-4 justify-center">
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Text Size (rem)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="0.25"
+                    value={settings.typingFontSize}
+                    onChange={(e) => updateSettings({ typingFontSize: parseFloat(e.target.value) || 3 })}
+                    className="w-28 rounded bg-gray-700 px-3 py-2 text-gray-200 text-center focus:outline-none focus:ring-2"
+                    style={{ "--tw-ring-color": theme.buttonSelected } as React.CSSProperties}
+                  />
+                </div>
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Text Alignment</label>
+                  <div className="flex gap-2 justify-center">
+                    {(["left", "center", "right", "justify"] as const).map((align) => (
+                      <button
+                        key={align}
+                        onClick={() => updateSettings({ textAlign: align })}
+                        className={`rounded px-3 py-2 text-sm capitalize transition ${settings.textAlign === align ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                        style={{ color: settings.textAlign === align ? theme.buttonSelected : "#d1d5db" }}
+                      >
+                        {align}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
