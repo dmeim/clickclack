@@ -784,6 +784,25 @@ export const getUserAchievements = query({
 });
 
 /**
+ * Query to get a user's achievements by Convex user ID (for public profile pages)
+ * Returns a record of achievementId -> earnedAt timestamp
+ */
+export const getUserAchievementsByUserId = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<Record<string, number>> => {
+    // Get the user's achievements record
+    const achievementRecord = await ctx.db
+      .query("userAchievements")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    return achievementRecord?.achievements ?? {};
+  },
+});
+
+/**
  * Recheck achievements after a test result is deleted
  * Removes achievements the user no longer qualifies for
  */

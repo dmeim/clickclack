@@ -1,18 +1,29 @@
 import { Link } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import type { Theme } from "@/lib/typing-constants";
 import { UserButton } from "@/components/auth";
 
 interface HeaderProps {
   theme: Theme;
-  onShowStats: () => void;
   hidden?: boolean;
 }
 
 export default function Header({
   theme,
-  onShowStats,
   hidden = false,
 }: HeaderProps) {
+  const { user: clerkUser, isSignedIn } = useUser();
+  
+  // Fetch current user's Convex ID for stats link
+  const convexUser = useQuery(
+    api.users.getUser,
+    isSignedIn && clerkUser ? { clerkId: clerkUser.id } : "skip"
+  );
+
+  const statsUrl = convexUser?._id ? `/user/${convexUser._id}` : null;
+
   return (
     <header className="absolute top-0 left-0 w-full p-4 md:p-6 z-50 flex items-center justify-between transition-opacity duration-300" style={{ opacity: hidden ? 0 : 1, pointerEvents: hidden ? "none" : "auto" }}>
       {/* Logo */}
@@ -81,31 +92,32 @@ export default function Header({
           </svg>
         </Link>
 
-        {/* Stats */}
-        <button
-          type="button"
-          onClick={onShowStats}
-          className="flex h-10 w-10 items-center justify-center rounded-lg transition hover:bg-gray-800/50"
-          style={{ color: theme.buttonUnselected }}
-          title="Stats"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        {/* Stats - only show if signed in */}
+        {statsUrl && (
+          <Link
+            to={statsUrl}
+            className="flex h-10 w-10 items-center justify-center rounded-lg transition hover:bg-gray-800/50"
+            style={{ color: theme.buttonUnselected }}
+            title="Your Stats"
           >
-            <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-            <path d="M7 16h8" />
-            <path d="M7 11h12" />
-            <path d="M7 6h3" />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+              <path d="M7 16h8" />
+              <path d="M7 11h12" />
+              <path d="M7 6h3" />
+            </svg>
+          </Link>
+        )}
 
         {/* User Button - Sign In / Avatar Dropdown */}
         <UserButton theme={theme} />

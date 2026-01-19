@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Theme } from "@/lib/typing-constants";
 import {
   ALL_ACHIEVEMENTS,
@@ -14,6 +14,7 @@ interface AchievementsModalProps {
   earnedAchievements: Record<string, number>;
   theme: Theme;
   onClose: () => void;
+  initialCategory?: AchievementCategory | null;
 }
 
 // Achievement card component
@@ -111,18 +112,20 @@ function CategorySection({
   earnedIds,
   theme,
   onAchievementClick,
+  sectionRef,
 }: {
   category: AchievementCategory;
   earnedIds: Set<string>;
   theme: Theme;
   onAchievementClick: (achievement: Achievement, index: number, allInCategory: Achievement[]) => void;
+  sectionRef?: (el: HTMLDivElement | null) => void;
 }) {
   const categoryInfo = ACHIEVEMENT_CATEGORIES[category];
   const achievements = getAchievementsByCategory(category);
   const earnedCount = achievements.filter((a) => earnedIds.has(a.id)).length;
 
   return (
-    <div className="mb-6 last:mb-0">
+    <div ref={sectionRef} className="mb-6 last:mb-0">
       {/* Category Header */}
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xl">{categoryInfo.icon}</span>
@@ -160,6 +163,7 @@ export default function AchievementsModal({
   earnedAchievements,
   theme,
   onClose,
+  initialCategory,
 }: AchievementsModalProps) {
   const earnedIds = new Set(Object.keys(earnedAchievements));
   const totalEarned = earnedIds.size;
@@ -190,6 +194,23 @@ export default function AchievementsModal({
     "quirky",
     "collection",
   ];
+
+  // Refs for category sections to enable scrolling to specific category
+  const categoryRefs = useRef<Map<AchievementCategory, HTMLDivElement>>(new Map());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to initial category when modal opens
+  useEffect(() => {
+    if (initialCategory && scrollContainerRef.current) {
+      // Small delay to ensure refs are populated
+      setTimeout(() => {
+        const categoryElement = categoryRefs.current.get(initialCategory);
+        if (categoryElement && scrollContainerRef.current) {
+          categoryElement.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
+  }, [initialCategory]);
 
   // Handle achievement card click - open carousel with all achievements in that category
   const handleAchievementClick = (
@@ -284,6 +305,7 @@ export default function AchievementsModal({
 
           {/* Scrollable Content */}
           <div
+            ref={scrollContainerRef}
             className="flex-1 overflow-y-auto p-6"
             style={{ backgroundColor: `${theme.backgroundColor}40` }}
           >
@@ -294,6 +316,11 @@ export default function AchievementsModal({
                 earnedIds={earnedIds}
                 theme={theme}
                 onAchievementClick={handleAchievementClick}
+                sectionRef={(el) => {
+                  if (el) {
+                    categoryRefs.current.set(category, el);
+                  }
+                }}
               />
             ))}
           </div>

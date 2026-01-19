@@ -246,6 +246,66 @@ export const getUserStats = query({
   },
 });
 
+// Get aggregated stats for a user by Convex user ID (for public profile pages)
+// Note: Aggregates (averages, best) only use valid results
+// History shows all results with isValid flag for UI distinction
+export const getUserStatsByUserId = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Get all results for this user
+    const allResults = await ctx.db
+      .query("testResults")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    if (allResults.length === 0) {
+      return {
+        totalTests: 0,
+        averageWpm: 0,
+        bestWpm: 0,
+        averageAccuracy: 0,
+        totalTimeTyped: 0,
+        totalWordsTyped: 0,
+        totalCharactersTyped: 0,
+        allResults: [],
+      };
+    }
+
+    // Filter to valid results for aggregate stats
+    // isValid !== false means valid (includes undefined for legacy data)
+    const validResults = allResults.filter((r) => r.isValid !== false);
+
+    // Calculate stats from valid results only
+    const totalTests = validResults.length;
+    const totalWpm = validResults.reduce((sum, r) => sum + r.wpm, 0);
+    const averageWpm = totalTests > 0 ? Math.round(totalWpm / totalTests) : 0;
+    const bestWpm = validResults.length > 0 ? Math.max(...validResults.map((r) => r.wpm)) : 0;
+    const totalAccuracy = validResults.reduce((sum, r) => sum + r.accuracy, 0);
+    const averageAccuracy = totalTests > 0 ? Math.round((totalAccuracy / totalTests) * 10) / 10 : 0;
+    const totalTimeTyped = validResults.reduce((sum, r) => sum + r.duration, 0);
+    const totalWordsTyped = validResults.reduce((sum, r) => sum + r.wordCount, 0);
+    // Characters typed (5 characters per word, standard WPM calculation)
+    const totalCharactersTyped = totalWordsTyped * 5;
+
+    // Return all results (including invalid) for history display
+    // Sorted by date (most recent first)
+    const sortedResults = allResults.sort((a, b) => b.createdAt - a.createdAt);
+
+    return {
+      totalTests,
+      averageWpm,
+      bestWpm,
+      averageAccuracy,
+      totalTimeTyped,
+      totalWordsTyped,
+      totalCharactersTyped,
+      allResults: sortedResults,
+    };
+  },
+});
+
 // Get leaderboard data for top WPM scores
 export const getLeaderboard = query({
   args: {

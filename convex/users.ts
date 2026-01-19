@@ -60,6 +60,16 @@ export const getUser = query({
   },
 });
 
+// Get user by Convex user ID (for public profile pages)
+export const getUserById = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId);
+  },
+});
+
 // Update user profile (username and/or avatar)
 export const updateProfile = mutation({
   args: {

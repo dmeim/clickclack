@@ -868,7 +868,7 @@ function generateQuirkyAchievements(): Achievement[] {
     {
       id: "quirky-67",
       category: "quirky",
-      title: "The Meme",
+      title: "SIIIX SEEEVVVEEENNN",
       description: "Get exactly 67 WPM",
       icon: "🎲",
       tier: "copper",
