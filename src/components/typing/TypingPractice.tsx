@@ -749,6 +749,7 @@ export default function TypingPractice({
           const finalizeResult = await finalizeSessionMutation({
             sessionId,
             typedText,
+            clientElapsedMs: elapsedMs,
             localDate,
             localHour,
             isWeekend,

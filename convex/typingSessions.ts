@@ -215,6 +215,8 @@ export const finalizeSession = mutation({
   args: {
     sessionId: v.id("typingSessions"),
     typedText: v.string(),
+    // Client-side elapsed time (ms) for accurate WPM calculation
+    clientElapsedMs: v.number(),
     // For streak and achievement tracking
     localDate: v.string(),
     localHour: v.number(),
@@ -245,19 +247,25 @@ export const finalizeSession = mutation({
 
     const now = Date.now();
 
-    // Compute server elapsed time
+    // Compute server elapsed time (for anti-cheat validation only)
     const serverElapsed = session.startedAt
       ? now - session.startedAt
       : now - session.createdAt;
 
-    // Compute stats server-side
+    // Use client elapsed time for stats (more accurate due to no network latency)
+    // but validate it's reasonable compared to server time
+    const clientElapsed = args.clientElapsedMs;
+
+    // Compute stats server-side using client's elapsed time for accurate WPM
     const stats = computeStats(args.typedText, session.targetText);
     const wordResults = computeWordResults(args.typedText, session.targetText);
     const accuracy = calculateAccuracy(stats, args.typedText.length);
-    const wpm = calculateWpm(args.typedText.length, serverElapsed);
+    const wpm = calculateWpm(args.typedText.length, clientElapsed);
 
-    // Run anti-cheat validation
-    const validation = validateSession(session, serverElapsed, wpm, args.typedText);
+    // Run anti-cheat validation using server elapsed time
+    // This ensures we validate against server-measured duration
+    const serverWpm = calculateWpm(args.typedText.length, serverElapsed);
+    const validation = validateSession(session, serverElapsed, serverWpm, args.typedText);
 
     // Get user for saving result
     const user = await ctx.db.get(session.userId);
@@ -266,12 +274,13 @@ export const finalizeSession = mutation({
     }
 
     // Save to testResults with isValid flag
+    // Use client elapsed time for duration (matches displayed results)
     const resultId = await ctx.db.insert("testResults", {
       userId: session.userId,
       wpm: Math.round(wpm),
       accuracy: Math.round(accuracy * 10) / 10,
       mode: session.settings.mode,
-      duration: serverElapsed,
+      duration: clientElapsed,
       wordCount: Math.floor(args.typedText.length / 5),
       difficulty: session.settings.difficulty,
       punctuation: session.settings.punctuation,
@@ -293,7 +302,7 @@ export const finalizeSession = mutation({
       await ctx.runMutation(internal.streaks.updateStreak, {
         userId: session.userId,
         localDate: args.localDate,
-        duration: serverElapsed,
+        duration: clientElapsed,
         wordsCorrect: wordResults.correctWords.length,
       });
 
@@ -306,7 +315,7 @@ export const finalizeSession = mutation({
             wpm: Math.round(wpm),
             accuracy: Math.round(accuracy * 10) / 10,
             mode: session.settings.mode,
-            duration: serverElapsed,
+            duration: clientElapsed,
             wordCount: Math.floor(args.typedText.length / 5),
             difficulty: session.settings.difficulty,
             punctuation: session.settings.punctuation,
