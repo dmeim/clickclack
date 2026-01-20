@@ -25,9 +25,9 @@ export default function Header({
   const statsUrl = convexUser?._id ? `/user/${convexUser._id}` : null;
 
   return (
-    <header className="absolute top-0 left-0 w-full p-4 md:p-6 z-50 flex items-center justify-between transition-opacity duration-300" style={{ opacity: hidden ? 0 : 1, pointerEvents: hidden ? "none" : "auto" }}>
+    <header className="absolute top-0 inset-x-0 p-4 md:p-6 z-50 flex items-center justify-between transition-opacity duration-300 pointer-events-none" style={{ opacity: hidden ? 0 : 1 }}>
       {/* Logo */}
-      <div className="w-[200px] md:w-[400px]">
+      <div className={`w-[200px] md:w-[450px] ${hidden ? "" : "pointer-events-auto"}`}>
         <Link to="/">
           <img
             src="/assets/Banner-Color.svg"
@@ -38,7 +38,7 @@ export default function Header({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center gap-3 ${hidden ? "" : "pointer-events-auto"}`}>
         {/* Connect - temporarily hidden while feature is in development
         <Link
           to="/connect"

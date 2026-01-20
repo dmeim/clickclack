@@ -1276,7 +1276,7 @@ export default function TypingPractice({
       {/* Settings Controls - Fixed at top */}
       {!connectMode && !isRunning && !isFinished && (
         <div
-          className="fixed left-0 w-full flex flex-col items-center justify-center gap-4 transition-all duration-300 z-30"
+          className="fixed inset-x-0 flex flex-col items-center justify-center gap-4 transition-opacity duration-300 z-30 pointer-events-none"
           style={{ 
             fontSize: `${settings.iconFontSize}rem`, 
             opacity: uiOpacity,
@@ -1286,7 +1286,7 @@ export default function TypingPractice({
           }}
         >
           {/* Row 1: Sound, Ghost Writer, Theme, Settings */}
-          <div className="flex items-center justify-center gap-4 text-gray-400">
+          <div className="flex items-center justify-center gap-4 text-gray-400 pointer-events-auto">
             <div className="flex items-center gap-3 rounded-lg px-4 py-2" style={{ backgroundColor: theme.surfaceColor }}>
               <SoundController
                 settings={settings}
@@ -1355,7 +1355,7 @@ export default function TypingPractice({
           </div>
 
           {/* Row 2: Test Mode | Modifiers */}
-          <div className="flex flex-wrap items-center justify-center gap-3 text-gray-400">
+          <div className="flex flex-wrap items-center justify-center gap-3 text-gray-400 pointer-events-auto">
             {/* Test Modes */}
             <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Mode</span>
             <div className="flex rounded-lg p-1" style={{ backgroundColor: theme.surfaceColor }}>
@@ -1554,7 +1554,7 @@ export default function TypingPractice({
       {/* Live Stats Floating Pills */}
       {isRunning && !isFinished && (
         <div 
-          className="fixed left-0 w-full flex flex-row flex-nowrap items-center justify-center gap-2 md:gap-4 select-none z-10 transition-all duration-300"
+          className="fixed inset-x-0 flex flex-row flex-nowrap items-center justify-center gap-2 md:gap-4 select-none z-10 transition-opacity duration-300 pointer-events-none"
           style={{
             // Position stats above the typing area: center minus half content height minus gap
             // Typing area height = linePreview * typingFontSize * LINE_HEIGHT rem
@@ -2066,7 +2066,7 @@ export default function TypingPractice({
       {/* Instructions */}
       {!isRunning && !isFinished && (
         <div
-          className="fixed bottom-[15%] left-0 w-full text-center text-gray-600 transition-opacity duration-300"
+          className="fixed bottom-[15%] inset-x-0 text-center text-gray-600 transition-opacity duration-300 pointer-events-none"
           style={{ fontSize: `${settings.helpFontSize}rem`, opacity: uiOpacity }}
         >
           {isRepeated && <div className="mb-2 text-red-500 font-medium">REPEATED</div>}
