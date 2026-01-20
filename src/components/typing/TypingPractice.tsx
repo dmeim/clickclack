@@ -743,27 +743,33 @@ export default function TypingPractice({
       const month = now.getMonth(); // 0-11
       const day = now.getDate(); // 1-31
 
-      // If we have a session, use the new finalize flow (server-authoritative)
+      // If we have a session, try the new finalize flow (server-authoritative)
       if (sessionId) {
-        const finalizeResult = await finalizeSessionMutation({
-          sessionId,
-          typedText,
-          localDate,
-          localHour,
-          isWeekend,
-          dayOfWeek,
-          month,
-          day,
-        });
-        setLastResultIsValid(finalizeResult.isValid);
-        setLastResultInvalidReason(finalizeResult.invalidReason);
-        setSessionId(null);
-        setSaveState("saved");
-        pendingResultRef.current = null;
-        return;
+        try {
+          const finalizeResult = await finalizeSessionMutation({
+            sessionId,
+            typedText,
+            localDate,
+            localHour,
+            isWeekend,
+            dayOfWeek,
+            month,
+            day,
+          });
+          setLastResultIsValid(finalizeResult.isValid);
+          setLastResultInvalidReason(finalizeResult.invalidReason);
+          setSessionId(null);
+          setSaveState("saved");
+          pendingResultRef.current = null;
+          return;
+        } catch (finalizeError) {
+          // Session may have been cancelled or expired - fall back to legacy save
+          console.warn("Finalize session failed, falling back to legacy save:", finalizeError);
+          setSessionId(null);
+        }
       }
 
-      // Fall back to legacy save (no session) - result won't have server validation
+      // Fall back to legacy save (no session or finalize failed) - result won't have server validation
       await saveResultMutation({
         clerkId: user.id,
         ...dataToSave,

@@ -88,6 +88,7 @@ function validateSession(
 /**
  * Start a new typing session
  * Returns existing session if one exists and is within grace period (for page refresh)
+ * AND the targetText matches (to prevent using stale sessions after test reset)
  */
 export const startSession = mutation({
   args: {
@@ -124,11 +125,15 @@ export const startSession = mutation({
       .first();
 
     if (existingSession) {
-      // If session is recent (within grace period), return it for resume
-      if (now - existingSession.createdAt < SESSION_RESUME_GRACE_MS) {
+      // Only resume if session is recent AND has matching targetText
+      // This prevents using stale sessions after test reset where cancel may not have completed
+      const isRecent = now - existingSession.createdAt < SESSION_RESUME_GRACE_MS;
+      const sameTargetText = existingSession.targetText === args.targetText;
+      
+      if (isRecent && sameTargetText) {
         return { sessionId: existingSession._id };
       }
-      // Otherwise, delete the old session
+      // Delete old session - either expired or has different targetText (test was reset)
       await ctx.db.delete(existingSession._id);
     }
 
