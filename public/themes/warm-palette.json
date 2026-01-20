@@ -1,0 +1,13 @@
+{
+  "category": "color-theory",
+  "backgroundColor": "#2d1f1a",
+  "surfaceColor": "#241814",
+  "cursor": "#ff7043",
+  "ghostCursor": "#ffab91",
+  "defaultText": "#5a4035",
+  "upcomingText": "#5a4035",
+  "correctText": "#ffccbc",
+  "incorrectText": "#ff5252",
+  "buttonUnselected": "#ff8a65",
+  "buttonSelected": "#ffd54f"
+}

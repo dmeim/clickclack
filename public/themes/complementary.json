@@ -3,11 +3,11 @@
   "backgroundColor": "#FFF3E0",
   "surfaceColor": "#FFE0B2",
   "cursor": "#1976D2",
-  "ghostCursor": "#FF9800",
-  "defaultText": "#FFCC80",
-  "upcomingText": "#FFCC80",
-  "correctText": "#E65100",
-  "incorrectText": "#D32F2F",
-  "buttonUnselected": "#1976D2",
-  "buttonSelected": "#FF9800"
+  "ghostCursor": "#E65100",
+  "defaultText": "#b38a4d",
+  "upcomingText": "#b38a4d",
+  "correctText": "#BF360C",
+  "incorrectText": "#C62828",
+  "buttonUnselected": "#1565C0",
+  "buttonSelected": "#E65100"
 }

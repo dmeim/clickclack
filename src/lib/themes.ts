@@ -12,7 +12,6 @@ export type ThemeCategory =
   | "fun"
   | "color-theory"
   | "cultural"
-  | "material"
   | "brand"
   | "weather"
   | "productivity";
@@ -48,8 +47,7 @@ export const CATEGORY_CONFIG: Record<ThemeCategory, { displayName: string; order
   brand: { displayName: "Brand", order: 10 },
   "color-theory": { displayName: "Color Theory", order: 11 },
   cultural: { displayName: "Cultural", order: 12 },
-  material: { displayName: "Material Design", order: 13 },
-  productivity: { displayName: "Productivity", order: 14 },
+  productivity: { displayName: "Productivity", order: 13 },
 };
 
 // Cache for loaded data
@@ -151,7 +149,6 @@ export function groupThemesByCategory(themes: ThemeDefinition[]): GroupedThemes[
     brand: [],
     "color-theory": [],
     cultural: [],
-    material: [],
     productivity: [],
   };
 

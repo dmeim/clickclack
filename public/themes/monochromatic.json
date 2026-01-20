@@ -2,12 +2,12 @@
   "category": "color-theory",
   "backgroundColor": "#E3F2FD",
   "surfaceColor": "#BBDEFB",
-  "cursor": "#1976D2",
+  "cursor": "#1565C0",
   "ghostCursor": "#0D47A1",
-  "defaultText": "#64B5F6",
-  "upcomingText": "#64B5F6",
+  "defaultText": "#4a8ac7",
+  "upcomingText": "#4a8ac7",
   "correctText": "#0D47A1",
-  "incorrectText": "#D32F2F",
-  "buttonUnselected": "#1976D2",
+  "incorrectText": "#C62828",
+  "buttonUnselected": "#1565C0",
   "buttonSelected": "#0D47A1"
 }

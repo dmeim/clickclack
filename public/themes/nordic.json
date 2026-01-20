@@ -1,0 +1,13 @@
+{
+  "category": "cultural",
+  "backgroundColor": "#f8f8f5",
+  "surfaceColor": "#ececea",
+  "cursor": "#2c3e50",
+  "ghostCursor": "#5d8aa8",
+  "defaultText": "#a0a0a0",
+  "upcomingText": "#a0a0a0",
+  "correctText": "#2c3e50",
+  "incorrectText": "#c0392b",
+  "buttonUnselected": "#5d8aa8",
+  "buttonSelected": "#c9b896"
+}

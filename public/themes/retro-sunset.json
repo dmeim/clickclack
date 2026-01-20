@@ -1,0 +1,13 @@
+{
+  "category": "fun",
+  "backgroundColor": "#1a1035",
+  "surfaceColor": "#140c2a",
+  "cursor": "#fff700",
+  "ghostCursor": "#ff6b6b",
+  "defaultText": "#4a3a6a",
+  "upcomingText": "#4a3a6a",
+  "correctText": "#ffeaa7",
+  "incorrectText": "#ff4757",
+  "buttonUnselected": "#ff6b6b",
+  "buttonSelected": "#ff9f43"
+}

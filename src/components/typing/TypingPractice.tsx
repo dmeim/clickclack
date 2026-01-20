@@ -2123,7 +2123,7 @@ export default function TypingPractice({
           }}
         >
           <div
-            className="w-full max-w-2xl rounded-lg p-6 shadow-xl mx-4 max-h-[90vh] flex flex-col"
+            className="w-full max-w-3xl rounded-lg p-6 shadow-xl mx-4 max-h-[90vh] flex flex-col"
             style={{ backgroundColor: theme.surfaceColor }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2148,14 +2148,14 @@ export default function TypingPractice({
                   <h3 className="text-sm font-medium text-gray-400 mb-3 sticky top-0 py-1" style={{ backgroundColor: theme.surfaceColor }}>
                     {group.displayName}
                   </h3>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {group.themes.map((themeData) => (
                       <button
                         key={themeData.name}
                         onClick={() => {
                           handleThemeSelect(themeData.name);
                         }}
-                        className={`p-3 rounded-lg border transition ${
+                        className={`p-2 rounded-lg border transition ${
                           selectedThemeName.toLowerCase() === themeData.name.toLowerCase()
                             ? "border-gray-400 ring-1 ring-gray-400"
                             : "border-gray-700 hover:border-gray-500"

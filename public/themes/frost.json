@@ -1,0 +1,13 @@
+{
+  "category": "weather",
+  "backgroundColor": "#e8f4f8",
+  "surfaceColor": "#d4e8f0",
+  "cursor": "#2980b9",
+  "ghostCursor": "#85c1e9",
+  "defaultText": "#a0b8c8",
+  "upcomingText": "#a0b8c8",
+  "correctText": "#1a5276",
+  "incorrectText": "#e74c3c",
+  "buttonUnselected": "#5dade2",
+  "buttonSelected": "#2980b9"
+}

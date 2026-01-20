@@ -2,12 +2,12 @@
   "category": "aesthetic",
   "backgroundColor": "#1a1a1a",
   "surfaceColor": "#141414",
-  "cursor": "#666666",
-  "ghostCursor": "#444444",
-  "defaultText": "#333333",
-  "upcomingText": "#333333",
-  "correctText": "#888888",
-  "incorrectText": "#994444",
-  "buttonUnselected": "#555555",
-  "buttonSelected": "#777777"
+  "cursor": "#777777",
+  "ghostCursor": "#555555",
+  "defaultText": "#4d4d4d",
+  "upcomingText": "#4d4d4d",
+  "correctText": "#999999",
+  "incorrectText": "#aa5555",
+  "buttonUnselected": "#666666",
+  "buttonSelected": "#888888"
 }
