@@ -812,10 +812,12 @@ export const recheckAchievementsAfterDeletion = internalMutation({
   },
   handler: async (ctx, args): Promise<{ removedAchievements: string[] }> => {
     // Get all remaining test results for this user
-    const allResults = await ctx.db
+    // Filter to valid results only (isValid !== false includes legacy data)
+    const allResultsRaw = await ctx.db
       .query("testResults")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
+    const allResults = allResultsRaw.filter((r) => r.isValid !== false);
 
     // Get user's streak
     const streak = await ctx.db
@@ -835,33 +837,28 @@ export const recheckAchievementsAfterDeletion = internalMutation({
 
     const existingAchievements = existingAchievementRecord.achievements ?? {};
 
-    // Filter to only qualifying tests for non-exempt achievements
-    // Qualifying: 90%+ accuracy AND (30s+ duration OR 50+ words)
-    const qualifyingResults = allResults.filter(r => 
-      qualifiesForAchievement(r.duration, r.wordsCorrect ?? 0, r.accuracy)
-    );
-
-    // Compute current stats from QUALIFYING results only (for non-exempt achievements)
-    const totalQualifyingTests = qualifyingResults.length;
-    const totalWordsCorrect = qualifyingResults.reduce(
+    // Compute stats from ALL valid results (matching checkAndAwardAchievements behavior)
+    // This ensures consistency between save-time and recheck-time achievement evaluation
+    const totalTests = allResults.length;
+    const totalWordsCorrect = allResults.reduce(
       (sum, r) => sum + (r.wordsCorrect ?? 0),
       0
     );
-    const totalTimeTyped = qualifyingResults.reduce((sum, r) => sum + r.duration, 0);
+    const totalTimeTyped = allResults.reduce((sum, r) => sum + r.duration, 0);
     const totalMinutesTyped = totalTimeTyped / (60 * 1000);
 
-    // Count qualifying tests with 95%+ accuracy
-    const testsWithHighAccuracy = qualifyingResults.filter(
+    // Count tests with 95%+ accuracy
+    const testsWithHighAccuracy = allResults.filter(
       (r) => r.accuracy >= 95
     ).length;
 
-    // Best WPM from qualifying tests only
-    const bestWpm = qualifyingResults.length > 0 ? Math.max(...qualifyingResults.map(r => r.wpm)) : 0;
+    // Best WPM from all valid tests
+    const bestWpm = allResults.length > 0 ? Math.max(...allResults.map(r => r.wpm)) : 0;
 
-    // Perfect accuracy streak (consecutive 100% from most recent qualifying tests)
-    const sortedQualifyingResults = [...qualifyingResults].sort((a, b) => b.createdAt - a.createdAt);
+    // Perfect accuracy streak (consecutive 100% from most recent tests)
+    const sortedResults = [...allResults].sort((a, b) => b.createdAt - a.createdAt);
     let perfectAccuracyStreak = 0;
-    for (const result of sortedQualifyingResults) {
+    for (const result of sortedResults) {
       if (result.accuracy === 100) {
         perfectAccuracyStreak++;
       } else {
@@ -869,9 +866,9 @@ export const recheckAchievementsAfterDeletion = internalMutation({
       }
     }
 
-    // Consecutive 90%+ accuracy streak (from qualifying tests)
+    // Consecutive 90%+ accuracy streak
     let consecutiveHighAccuracyStreak = 0;
-    for (const result of sortedQualifyingResults) {
+    for (const result of sortedResults) {
       if (result.accuracy >= 90) {
         consecutiveHighAccuracyStreak++;
       } else {
@@ -879,34 +876,34 @@ export const recheckAchievementsAfterDeletion = internalMutation({
       }
     }
 
-    // WPM variance for consistency (from qualifying tests)
-    const last10QualifyingResults = sortedQualifyingResults.slice(0, 10);
+    // WPM variance for consistency
+    const last10Results = sortedResults.slice(0, 10);
     let lowVarianceTestCount = 0;
-    if (last10QualifyingResults.length >= 5) {
-      const wpms = last10QualifyingResults.map((r) => r.wpm);
+    if (last10Results.length >= 5) {
+      const wpms = last10Results.map((r) => r.wpm);
       const mean = wpms.reduce((a, b) => a + b, 0) / wpms.length;
       const variance = wpms.reduce((sum, wpm) => sum + Math.pow(wpm - mean, 2), 0) / wpms.length;
       const stdDev = Math.sqrt(variance);
       if (stdDev < 5) {
-        lowVarianceTestCount = last10QualifyingResults.length;
+        lowVarianceTestCount = last10Results.length;
       }
     }
 
-    // PB improvement count (from qualifying tests only)
-    const oldestFirstQualifying = [...qualifyingResults].sort((a, b) => a.createdAt - b.createdAt);
+    // PB improvement count
+    const oldestFirst = [...allResults].sort((a, b) => a.createdAt - b.createdAt);
     let pbImprovementCount = 0;
     let runningMax = 0;
-    for (const result of oldestFirstQualifying) {
+    for (const result of oldestFirst) {
       if (result.wpm > runningMax) {
         if (runningMax > 0) pbImprovementCount++;
         runningMax = result.wpm;
       }
     }
 
-    // Qualifying tests today
+    // Tests today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const testsToday = qualifyingResults.filter((r) => r.createdAt >= todayStart.getTime()).length;
+    const testsToday = allResults.filter((r) => r.createdAt >= todayStart.getTime()).length;
 
     // Now determine which achievements the user should still have
     const stillQualifies: Set<string> = new Set();
@@ -914,12 +911,12 @@ export const recheckAchievementsAfterDeletion = internalMutation({
     // Helper to add multiple IDs to set
     const addAll = (ids: string[]) => ids.forEach(id => stillQualifies.add(id));
 
-    // Progressive achievements - use thresholds (based on QUALIFYING tests)
+    // Progressive achievements - use thresholds (based on ALL valid tests)
     addAll(getQualifyingAchievementIds("speed", bestWpm));
     addAll(getQualifyingAchievementIds("words", totalWordsCorrect));
     addAll(getQualifyingAchievementIds("time", totalMinutesTyped));
     addAll(getQualifyingAchievementIds("streak", streak?.currentStreak ?? 0));
-    addAll(getQualifyingAchievementIds("tests", totalQualifyingTests));
+    addAll(getQualifyingAchievementIds("tests", totalTests));
     addAll(getQualifyingAchievementIds("accuracy-95", testsWithHighAccuracy));
     addAll(getQualifyingAchievementIds("accuracy-streak", perfectAccuracyStreak));
     addAll(getQualifyingAchievementIds("consistency-90plus", consecutiveHighAccuracyStreak));
@@ -927,15 +924,15 @@ export const recheckAchievementsAfterDeletion = internalMutation({
     addAll(getQualifyingAchievementIds("improvement-pb", pbImprovementCount));
     addAll(getQualifyingAchievementIds("endurance-daily", testsToday));
 
-    // Non-progressive achievements that depend on test data (qualifying tests only)
-    // Perfect accuracy on any qualifying test
-    if (qualifyingResults.some(r => r.accuracy === 100)) {
+    // Non-progressive achievements that depend on test data
+    // Perfect accuracy on any valid test
+    if (allResults.some(r => r.accuracy === 100)) {
       stillQualifies.add("accuracy-perfect-1");
     }
 
-    // Same WPM 3 times (from qualifying tests)
+    // Same WPM 3 times (from valid tests)
     const wpmCounts = new Map<number, number>();
-    for (const result of qualifyingResults) {
+    for (const result of allResults) {
       const roundedWpm = Math.round(result.wpm);
       wpmCounts.set(roundedWpm, (wpmCounts.get(roundedWpm) || 0) + 1);
     }
@@ -976,48 +973,48 @@ export const recheckAchievementsAfterDeletion = internalMutation({
       stillQualifies.add("explorer-all-difficulties");
     }
 
-    // Challenge mode achievements (from qualifying tests only)
-    const hardQualifyingTests = qualifyingResults.filter(r => r.difficulty === "hard");
-    if (hardQualifyingTests.some(r => r.punctuation)) stillQualifies.add("challenge-hard-punctuation");
-    if (hardQualifyingTests.some(r => r.numbers)) stillQualifies.add("challenge-hard-numbers");
-    if (hardQualifyingTests.some(r => r.punctuation && r.numbers)) stillQualifies.add("challenge-hard-both");
-    if (hardQualifyingTests.some(r => r.wpm >= 80)) stillQualifies.add("challenge-hard-80wpm");
-    if (hardQualifyingTests.some(r => r.punctuation && r.numbers && r.wpm >= 80)) stillQualifies.add("challenge-hard-both-80wpm");
-    if (hardQualifyingTests.some(r => r.accuracy === 100)) stillQualifies.add("challenge-hard-100-accuracy");
+    // Challenge mode achievements (from hard tests)
+    const hardTests = allResults.filter(r => r.difficulty === "hard");
+    if (hardTests.some(r => r.punctuation)) stillQualifies.add("challenge-hard-punctuation");
+    if (hardTests.some(r => r.numbers)) stillQualifies.add("challenge-hard-numbers");
+    if (hardTests.some(r => r.punctuation && r.numbers)) stillQualifies.add("challenge-hard-both");
+    if (hardTests.some(r => r.wpm >= 80)) stillQualifies.add("challenge-hard-80wpm");
+    if (hardTests.some(r => r.punctuation && r.numbers && r.wpm >= 80)) stillQualifies.add("challenge-hard-both-80wpm");
+    if (hardTests.some(r => r.accuracy === 100)) stillQualifies.add("challenge-hard-100-accuracy");
 
-    // Speed and precision (from qualifying tests)
-    if (qualifyingResults.some(r => r.wpm >= 100 && r.accuracy >= 95)) {
+    // Speed and precision (from valid tests)
+    if (allResults.some(r => r.wpm >= 100 && r.accuracy >= 95)) {
       stillQualifies.add("special-speed-accuracy");
     }
 
-    // Milestone achievements (from qualifying tests only)
-    if (qualifyingResults.some(r => r.wpm >= 100 && r.accuracy === 100)) {
+    // Milestone achievements (from valid tests)
+    if (allResults.some(r => r.wpm >= 100 && r.accuracy === 100)) {
       stillQualifies.add("milestone-100wpm-100acc");
     }
-    if (qualifyingResults.some(r => r.wpm >= 80 && r.accuracy >= 98)) {
+    if (allResults.some(r => r.wpm >= 80 && r.accuracy >= 98)) {
       stillQualifies.add("milestone-80wpm-98acc");
     }
-    if (hardQualifyingTests.some(r => r.wpm >= 50 && r.accuracy === 100)) {
+    if (hardTests.some(r => r.wpm >= 50 && r.accuracy === 100)) {
       stillQualifies.add("milestone-50wpm-100acc-hard");
     }
-    if (qualifyingResults.some(r => r.wpm >= 100 && r.wordCount >= 100 && r.duration >= 100000)) {
+    if (allResults.some(r => r.wpm >= 100 && r.wordCount >= 100 && r.duration >= 100000)) {
       stillQualifies.add("milestone-triple-digits");
     }
-    if (qualifyingResults.some(r => r.wpm >= 80 && r.duration >= 120000)) {
+    if (allResults.some(r => r.wpm >= 80 && r.duration >= 120000)) {
       stillQualifies.add("milestone-speed-endurance");
     }
 
-    // Average accuracy check (from qualifying tests)
-    const avgAccuracy = qualifyingResults.length > 0 
-      ? qualifyingResults.reduce((sum, r) => sum + r.accuracy, 0) / qualifyingResults.length 
+    // Average accuracy check (from valid tests)
+    const avgAccuracy = allResults.length > 0 
+      ? allResults.reduce((sum, r) => sum + r.accuracy, 0) / allResults.length 
       : 0;
     if (totalWordsCorrect >= 1000 && avgAccuracy >= 95) {
       stillQualifies.add("milestone-1000-words-95acc");
     }
 
-    // Mode master (80+ WPM in multiple modes from qualifying tests)
+    // Mode master (80+ WPM in multiple modes from valid tests)
     const wpmByMode = new Map<string, number>();
-    for (const result of qualifyingResults) {
+    for (const result of allResults) {
       const current = wpmByMode.get(result.mode) || 0;
       if (result.wpm > current) {
         wpmByMode.set(result.mode, result.wpm);
@@ -1029,18 +1026,18 @@ export const recheckAchievementsAfterDeletion = internalMutation({
       stillQualifies.add("milestone-all-modes-80wpm");
     }
 
-    // Improvement achievements (standalone, from qualifying tests)
-    const firstQualifyingTestWpm = oldestFirstQualifying.length > 0 ? oldestFirstQualifying[0].wpm : 0;
-    if (firstQualifyingTestWpm > 0 && bestWpm >= firstQualifyingTestWpm * 2) {
+    // Improvement achievements (standalone, from valid tests)
+    const firstTestWpm = oldestFirst.length > 0 ? oldestFirst[0].wpm : 0;
+    if (firstTestWpm > 0 && bestWpm >= firstTestWpm * 2) {
       stillQualifies.add("improvement-double-wpm");
     }
 
-    const first5Qualifying = oldestFirstQualifying.slice(0, 5);
-    const firstFiveAvgWpm = first5Qualifying.length > 0 
-      ? first5Qualifying.reduce((sum, r) => sum + r.wpm, 0) / first5Qualifying.length 
+    const first5 = oldestFirst.slice(0, 5);
+    const firstFiveAvgWpm = first5.length > 0 
+      ? first5.reduce((sum, r) => sum + r.wpm, 0) / first5.length 
       : 0;
-    const currentAvgWpm = qualifyingResults.length > 0 
-      ? qualifyingResults.reduce((sum, r) => sum + r.wpm, 0) / qualifyingResults.length 
+    const currentAvgWpm = allResults.length > 0 
+      ? allResults.reduce((sum, r) => sum + r.wpm, 0) / allResults.length 
       : 0;
     if (firstFiveAvgWpm > 0 && currentAvgWpm >= firstFiveAvgWpm + 20) {
       stillQualifies.add("improvement-avg-increase");
@@ -1116,10 +1113,12 @@ export const recheckAllAchievements = mutation({
     }
 
     // Get all test results for this user
-    const allResults = await ctx.db
+    // Filter to valid results only (isValid !== false includes legacy data)
+    const allResultsRaw = await ctx.db
       .query("testResults")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
+    const allResults = allResultsRaw.filter((r) => r.isValid !== false);
 
     // Get user's streak
     const streak = await ctx.db
@@ -1135,33 +1134,28 @@ export const recheckAllAchievements = mutation({
 
     const existingAchievements = existingAchievementRecord?.achievements ?? {};
 
-    // Filter to only qualifying tests for non-exempt achievements
-    // Qualifying: 90%+ accuracy AND (30s+ duration OR 50+ words)
-    const qualifyingResults = allResults.filter(r => 
-      qualifiesForAchievement(r.duration, r.wordsCorrect ?? 0, r.accuracy)
-    );
-
-    // Compute current stats from QUALIFYING results only (for non-exempt achievements)
-    const totalQualifyingTests = qualifyingResults.length;
-    const totalWordsCorrect = qualifyingResults.reduce(
+    // Compute stats from ALL valid results (matching checkAndAwardAchievements behavior)
+    // This ensures consistency between save-time and recheck-time achievement evaluation
+    const totalTests = allResults.length;
+    const totalWordsCorrect = allResults.reduce(
       (sum, r) => sum + (r.wordsCorrect ?? 0),
       0
     );
-    const totalTimeTyped = qualifyingResults.reduce((sum, r) => sum + r.duration, 0);
+    const totalTimeTyped = allResults.reduce((sum, r) => sum + r.duration, 0);
     const totalMinutesTyped = totalTimeTyped / (60 * 1000);
 
-    // Count qualifying tests with 95%+ accuracy
-    const testsWithHighAccuracy = qualifyingResults.filter(
+    // Count tests with 95%+ accuracy
+    const testsWithHighAccuracy = allResults.filter(
       (r) => r.accuracy >= 95
     ).length;
 
-    // Best WPM from qualifying tests only
-    const bestWpm = qualifyingResults.length > 0 ? Math.max(...qualifyingResults.map(r => r.wpm)) : 0;
+    // Best WPM from all valid tests
+    const bestWpm = allResults.length > 0 ? Math.max(...allResults.map(r => r.wpm)) : 0;
 
-    // Perfect accuracy streak (consecutive 100% from most recent qualifying tests)
-    const sortedQualifyingResults = [...qualifyingResults].sort((a, b) => b.createdAt - a.createdAt);
+    // Perfect accuracy streak (consecutive 100% from most recent tests)
+    const sortedResults = [...allResults].sort((a, b) => b.createdAt - a.createdAt);
     let perfectAccuracyStreak = 0;
-    for (const result of sortedQualifyingResults) {
+    for (const result of sortedResults) {
       if (result.accuracy === 100) {
         perfectAccuracyStreak++;
       } else {
@@ -1169,9 +1163,9 @@ export const recheckAllAchievements = mutation({
       }
     }
 
-    // Consecutive 90%+ accuracy streak (from qualifying tests)
+    // Consecutive 90%+ accuracy streak
     let consecutiveHighAccuracyStreak = 0;
-    for (const result of sortedQualifyingResults) {
+    for (const result of sortedResults) {
       if (result.accuracy >= 90) {
         consecutiveHighAccuracyStreak++;
       } else {
@@ -1179,34 +1173,34 @@ export const recheckAllAchievements = mutation({
       }
     }
 
-    // WPM variance for consistency (from qualifying tests)
-    const last10QualifyingResults = sortedQualifyingResults.slice(0, 10);
+    // WPM variance for consistency
+    const last10Results = sortedResults.slice(0, 10);
     let lowVarianceTestCount = 0;
-    if (last10QualifyingResults.length >= 5) {
-      const wpms = last10QualifyingResults.map((r) => r.wpm);
+    if (last10Results.length >= 5) {
+      const wpms = last10Results.map((r) => r.wpm);
       const mean = wpms.reduce((a, b) => a + b, 0) / wpms.length;
       const variance = wpms.reduce((sum, wpm) => sum + Math.pow(wpm - mean, 2), 0) / wpms.length;
       const stdDev = Math.sqrt(variance);
       if (stdDev < 5) {
-        lowVarianceTestCount = last10QualifyingResults.length;
+        lowVarianceTestCount = last10Results.length;
       }
     }
 
-    // PB improvement count (from qualifying tests only)
-    const oldestFirstQualifying = [...qualifyingResults].sort((a, b) => a.createdAt - b.createdAt);
+    // PB improvement count
+    const oldestFirst = [...allResults].sort((a, b) => a.createdAt - b.createdAt);
     let pbImprovementCount = 0;
     let runningMax = 0;
-    for (const result of oldestFirstQualifying) {
+    for (const result of oldestFirst) {
       if (result.wpm > runningMax) {
         if (runningMax > 0) pbImprovementCount++;
         runningMax = result.wpm;
       }
     }
 
-    // Qualifying tests today
+    // Tests today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const testsToday = qualifyingResults.filter((r) => r.createdAt >= todayStart.getTime()).length;
+    const testsToday = allResults.filter((r) => r.createdAt >= todayStart.getTime()).length;
 
     // Now determine which achievements the user should have
     const shouldHave: Set<string> = new Set();
@@ -1214,12 +1208,12 @@ export const recheckAllAchievements = mutation({
     // Helper to add multiple IDs to set
     const addAll = (ids: string[]) => ids.forEach(id => shouldHave.add(id));
 
-    // Progressive achievements - use thresholds (based on QUALIFYING tests)
+    // Progressive achievements - use thresholds (based on ALL valid tests)
     addAll(getQualifyingAchievementIds("speed", bestWpm));
     addAll(getQualifyingAchievementIds("words", totalWordsCorrect));
     addAll(getQualifyingAchievementIds("time", totalMinutesTyped));
     addAll(getQualifyingAchievementIds("streak", streak?.currentStreak ?? 0));
-    addAll(getQualifyingAchievementIds("tests", totalQualifyingTests));
+    addAll(getQualifyingAchievementIds("tests", totalTests));
     addAll(getQualifyingAchievementIds("accuracy-95", testsWithHighAccuracy));
     addAll(getQualifyingAchievementIds("accuracy-streak", perfectAccuracyStreak));
     addAll(getQualifyingAchievementIds("consistency-90plus", consecutiveHighAccuracyStreak));
@@ -1227,15 +1221,15 @@ export const recheckAllAchievements = mutation({
     addAll(getQualifyingAchievementIds("improvement-pb", pbImprovementCount));
     addAll(getQualifyingAchievementIds("endurance-daily", testsToday));
 
-    // Non-progressive achievements that depend on test data (qualifying tests only)
-    // Perfect accuracy on any qualifying test
-    if (qualifyingResults.some(r => r.accuracy === 100)) {
+    // Non-progressive achievements that depend on test data
+    // Perfect accuracy on any valid test
+    if (allResults.some(r => r.accuracy === 100)) {
       shouldHave.add("accuracy-perfect-1");
     }
 
-    // Same WPM 3 times (from qualifying tests)
+    // Same WPM 3 times (from valid tests)
     const wpmCounts = new Map<number, number>();
-    for (const result of qualifyingResults) {
+    for (const result of allResults) {
       const roundedWpm = Math.round(result.wpm);
       wpmCounts.set(roundedWpm, (wpmCounts.get(roundedWpm) || 0) + 1);
     }
@@ -1276,48 +1270,48 @@ export const recheckAllAchievements = mutation({
       shouldHave.add("explorer-all-difficulties");
     }
 
-    // Challenge mode achievements (from qualifying tests only)
-    const hardQualifyingTests = qualifyingResults.filter(r => r.difficulty === "hard");
-    if (hardQualifyingTests.some(r => r.punctuation)) shouldHave.add("challenge-hard-punctuation");
-    if (hardQualifyingTests.some(r => r.numbers)) shouldHave.add("challenge-hard-numbers");
-    if (hardQualifyingTests.some(r => r.punctuation && r.numbers)) shouldHave.add("challenge-hard-both");
-    if (hardQualifyingTests.some(r => r.wpm >= 80)) shouldHave.add("challenge-hard-80wpm");
-    if (hardQualifyingTests.some(r => r.punctuation && r.numbers && r.wpm >= 80)) shouldHave.add("challenge-hard-both-80wpm");
-    if (hardQualifyingTests.some(r => r.accuracy === 100)) shouldHave.add("challenge-hard-100-accuracy");
+    // Challenge mode achievements (from hard tests)
+    const hardTests = allResults.filter(r => r.difficulty === "hard");
+    if (hardTests.some(r => r.punctuation)) shouldHave.add("challenge-hard-punctuation");
+    if (hardTests.some(r => r.numbers)) shouldHave.add("challenge-hard-numbers");
+    if (hardTests.some(r => r.punctuation && r.numbers)) shouldHave.add("challenge-hard-both");
+    if (hardTests.some(r => r.wpm >= 80)) shouldHave.add("challenge-hard-80wpm");
+    if (hardTests.some(r => r.punctuation && r.numbers && r.wpm >= 80)) shouldHave.add("challenge-hard-both-80wpm");
+    if (hardTests.some(r => r.accuracy === 100)) shouldHave.add("challenge-hard-100-accuracy");
 
-    // Speed and precision (from qualifying tests)
-    if (qualifyingResults.some(r => r.wpm >= 100 && r.accuracy >= 95)) {
+    // Speed and precision (from valid tests)
+    if (allResults.some(r => r.wpm >= 100 && r.accuracy >= 95)) {
       shouldHave.add("special-speed-accuracy");
     }
 
-    // Milestone achievements (from qualifying tests only)
-    if (qualifyingResults.some(r => r.wpm >= 100 && r.accuracy === 100)) {
+    // Milestone achievements (from valid tests)
+    if (allResults.some(r => r.wpm >= 100 && r.accuracy === 100)) {
       shouldHave.add("milestone-100wpm-100acc");
     }
-    if (qualifyingResults.some(r => r.wpm >= 80 && r.accuracy >= 98)) {
+    if (allResults.some(r => r.wpm >= 80 && r.accuracy >= 98)) {
       shouldHave.add("milestone-80wpm-98acc");
     }
-    if (hardQualifyingTests.some(r => r.wpm >= 50 && r.accuracy === 100)) {
+    if (hardTests.some(r => r.wpm >= 50 && r.accuracy === 100)) {
       shouldHave.add("milestone-50wpm-100acc-hard");
     }
-    if (qualifyingResults.some(r => r.wpm >= 100 && r.wordCount >= 100 && r.duration >= 100000)) {
+    if (allResults.some(r => r.wpm >= 100 && r.wordCount >= 100 && r.duration >= 100000)) {
       shouldHave.add("milestone-triple-digits");
     }
-    if (qualifyingResults.some(r => r.wpm >= 80 && r.duration >= 120000)) {
+    if (allResults.some(r => r.wpm >= 80 && r.duration >= 120000)) {
       shouldHave.add("milestone-speed-endurance");
     }
 
-    // Average accuracy check (from qualifying tests)
-    const avgAccuracy = qualifyingResults.length > 0 
-      ? qualifyingResults.reduce((sum, r) => sum + r.accuracy, 0) / qualifyingResults.length 
+    // Average accuracy check (from valid tests)
+    const avgAccuracy = allResults.length > 0 
+      ? allResults.reduce((sum, r) => sum + r.accuracy, 0) / allResults.length 
       : 0;
     if (totalWordsCorrect >= 1000 && avgAccuracy >= 95) {
       shouldHave.add("milestone-1000-words-95acc");
     }
 
-    // Mode master (80+ WPM in multiple modes from qualifying tests)
+    // Mode master (80+ WPM in multiple modes from valid tests)
     const wpmByMode = new Map<string, number>();
-    for (const result of qualifyingResults) {
+    for (const result of allResults) {
       const current = wpmByMode.get(result.mode) || 0;
       if (result.wpm > current) {
         wpmByMode.set(result.mode, result.wpm);
@@ -1329,18 +1323,18 @@ export const recheckAllAchievements = mutation({
       shouldHave.add("milestone-all-modes-80wpm");
     }
 
-    // Improvement achievements (standalone, from qualifying tests)
-    const firstQualifyingTestWpm = oldestFirstQualifying.length > 0 ? oldestFirstQualifying[0].wpm : 0;
-    if (firstQualifyingTestWpm > 0 && bestWpm >= firstQualifyingTestWpm * 2) {
+    // Improvement achievements (standalone, from valid tests)
+    const firstTestWpm = oldestFirst.length > 0 ? oldestFirst[0].wpm : 0;
+    if (firstTestWpm > 0 && bestWpm >= firstTestWpm * 2) {
       shouldHave.add("improvement-double-wpm");
     }
 
-    const first5Qualifying = oldestFirstQualifying.slice(0, 5);
-    const firstFiveAvgWpm = first5Qualifying.length > 0 
-      ? first5Qualifying.reduce((sum, r) => sum + r.wpm, 0) / first5Qualifying.length 
+    const first5 = oldestFirst.slice(0, 5);
+    const firstFiveAvgWpm = first5.length > 0 
+      ? first5.reduce((sum, r) => sum + r.wpm, 0) / first5.length 
       : 0;
-    const currentAvgWpm = qualifyingResults.length > 0 
-      ? qualifyingResults.reduce((sum, r) => sum + r.wpm, 0) / qualifyingResults.length 
+    const currentAvgWpm = allResults.length > 0 
+      ? allResults.reduce((sum, r) => sum + r.wpm, 0) / allResults.length 
       : 0;
     if (firstFiveAvgWpm > 0 && currentAvgWpm >= firstFiveAvgWpm + 20) {
       shouldHave.add("improvement-avg-increase");
