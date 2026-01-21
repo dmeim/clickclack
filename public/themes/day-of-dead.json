@@ -1,0 +1,13 @@
+{
+  "category": "holiday",
+  "backgroundColor": "#1a0a1a",
+  "surfaceColor": "#120812",
+  "cursor": "#ff6600",
+  "ghostCursor": "#9400d3",
+  "defaultText": "#4a2a4a",
+  "upcomingText": "#4a2a4a",
+  "correctText": "#ffcc00",
+  "incorrectText": "#dc143c",
+  "buttonUnselected": "#ff1493",
+  "buttonSelected": "#00ffff"
+}

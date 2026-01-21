@@ -1,0 +1,13 @@
+{
+  "category": "aesthetic",
+  "backgroundColor": "#1a1a14",
+  "surfaceColor": "#12120e",
+  "cursor": "#c89b3c",
+  "ghostCursor": "#8b4513",
+  "defaultText": "#4a4a3a",
+  "upcomingText": "#4a4a3a",
+  "correctText": "#b8a888",
+  "incorrectText": "#8b0000",
+  "buttonUnselected": "#6b5a4a",
+  "buttonSelected": "#daa520"
+}

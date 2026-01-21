@@ -1,0 +1,13 @@
+{
+  "category": "retro",
+  "backgroundColor": "#3a6ea5",
+  "surfaceColor": "#2d5a8a",
+  "cursor": "#ffffff",
+  "ghostCursor": "#90ee90",
+  "defaultText": "#5a8ab5",
+  "upcomingText": "#5a8ab5",
+  "correctText": "#ffffff",
+  "incorrectText": "#ff4444",
+  "buttonUnselected": "#245edb",
+  "buttonSelected": "#5fb958"
+}

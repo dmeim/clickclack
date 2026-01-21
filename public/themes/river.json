@@ -1,0 +1,13 @@
+{
+  "category": "nature",
+  "backgroundColor": "#0a1a2a",
+  "surfaceColor": "#081420",
+  "cursor": "#4682b4",
+  "ghostCursor": "#87ceeb",
+  "defaultText": "#2a3a4a",
+  "upcomingText": "#2a3a4a",
+  "correctText": "#b0e0e6",
+  "incorrectText": "#cd5c5c",
+  "buttonUnselected": "#5f9ea0",
+  "buttonSelected": "#00ced1"
+}

@@ -1,0 +1,13 @@
+{
+  "category": "editor",
+  "backgroundColor": "#1e1e1e",
+  "surfaceColor": "#161616",
+  "cursor": "#ff7ab2",
+  "ghostCursor": "#6bdfff",
+  "defaultText": "#4a4a4a",
+  "upcomingText": "#4a4a4a",
+  "correctText": "#d0d0d0",
+  "incorrectText": "#ff3b30",
+  "buttonUnselected": "#6bdfff",
+  "buttonSelected": "#ff7ab2"
+}

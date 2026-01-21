@@ -1,0 +1,13 @@
+{
+  "category": "time",
+  "backgroundColor": "#0a0a14",
+  "surfaceColor": "#05050c",
+  "cursor": "#9370db",
+  "ghostCursor": "#4b0082",
+  "defaultText": "#2a2a4a",
+  "upcomingText": "#2a2a4a",
+  "correctText": "#e6e6fa",
+  "incorrectText": "#8b0000",
+  "buttonUnselected": "#6a5acd",
+  "buttonSelected": "#9370db"
+}

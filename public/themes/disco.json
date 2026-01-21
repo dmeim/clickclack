@@ -1,0 +1,13 @@
+{
+  "category": "music",
+  "backgroundColor": "#1a0a2a",
+  "surfaceColor": "#120520",
+  "cursor": "#ffd700",
+  "ghostCursor": "#ff69b4",
+  "defaultText": "#4a3a5a",
+  "upcomingText": "#4a3a5a",
+  "correctText": "#ffffff",
+  "incorrectText": "#ff4444",
+  "buttonUnselected": "#00ced1",
+  "buttonSelected": "#ffd700"
+}

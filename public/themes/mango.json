@@ -1,0 +1,13 @@
+{
+  "category": "food",
+  "backgroundColor": "#2a2a0a",
+  "surfaceColor": "#202008",
+  "cursor": "#ff8c00",
+  "ghostCursor": "#ffd700",
+  "defaultText": "#5a5a2a",
+  "upcomingText": "#5a5a2a",
+  "correctText": "#ffa500",
+  "incorrectText": "#8b4513",
+  "buttonUnselected": "#ff6600",
+  "buttonSelected": "#ffcc00"
+}

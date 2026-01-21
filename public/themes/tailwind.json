@@ -1,0 +1,13 @@
+{
+  "category": "brand",
+  "backgroundColor": "#0f172a",
+  "surfaceColor": "#0a1120",
+  "cursor": "#38bdf8",
+  "ghostCursor": "#22d3ee",
+  "defaultText": "#334155",
+  "upcomingText": "#334155",
+  "correctText": "#e2e8f0",
+  "incorrectText": "#f43f5e",
+  "buttonUnselected": "#0ea5e9",
+  "buttonSelected": "#38bdf8"
+}

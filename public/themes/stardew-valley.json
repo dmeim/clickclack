@@ -1,0 +1,13 @@
+{
+  "category": "gaming",
+  "backgroundColor": "#2a4a2a",
+  "surfaceColor": "#1e3a1e",
+  "cursor": "#ffcc00",
+  "ghostCursor": "#ff9966",
+  "defaultText": "#4a6a4a",
+  "upcomingText": "#4a6a4a",
+  "correctText": "#f5f5dc",
+  "incorrectText": "#cd5c5c",
+  "buttonUnselected": "#8fbc8f",
+  "buttonSelected": "#daa520"
+}
