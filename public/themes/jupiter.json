@@ -1,0 +1,13 @@
+{
+  "category": "space",
+  "backgroundColor": "#1a140a",
+  "surfaceColor": "#141005",
+  "cursor": "#d4a574",
+  "ghostCursor": "#ffb347",
+  "defaultText": "#4a3a2a",
+  "upcomingText": "#4a3a2a",
+  "correctText": "#ffe4b5",
+  "incorrectText": "#ff6b6b",
+  "buttonUnselected": "#d4a574",
+  "buttonSelected": "#ffb347"
+}

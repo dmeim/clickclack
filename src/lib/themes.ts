@@ -14,7 +14,11 @@ export type ThemeCategory =
   | "cultural"
   | "brand"
   | "weather"
-  | "productivity";
+  | "productivity"
+  | "gaming"
+  | "music"
+  | "food"
+  | "space";
 
 export type ThemeDefinition = Theme & {
   name: string;
@@ -48,6 +52,10 @@ export const CATEGORY_CONFIG: Record<ThemeCategory, { displayName: string; order
   "color-theory": { displayName: "Color Theory", order: 11 },
   cultural: { displayName: "Cultural", order: 12 },
   productivity: { displayName: "Productivity", order: 13 },
+  gaming: { displayName: "Gaming", order: 14 },
+  music: { displayName: "Music", order: 15 },
+  food: { displayName: "Food", order: 16 },
+  space: { displayName: "Space", order: 17 },
 };
 
 // Cache for loaded data
@@ -150,6 +158,10 @@ export function groupThemesByCategory(themes: ThemeDefinition[]): GroupedThemes[
     "color-theory": [],
     cultural: [],
     productivity: [],
+    gaming: [],
+    music: [],
+    food: [],
+    space: [],
   };
 
   // Group themes
