@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Baby } from "lucide-react";
 import type { Quote, SettingsState, Theme } from "@/lib/typing-constants";
 import { DEFAULT_THEME } from "@/lib/typing-constants";
 import { fetchSoundManifest, getRandomSoundUrl, type SoundManifest } from "@/lib/sounds";
@@ -291,6 +292,20 @@ export default function TypingPractice({
   const [isWarningPlayed, setIsWarningPlayed] = useState(false);
   const [uiOpacity, setUiOpacity] = useState(1);
 
+  // Compact Mode (for zoomed/narrow viewports)
+  const [isCompactMode, setIsCompactMode] = useState(false);
+  const [showQuickSettings, setShowQuickSettings] = useState(false);
+
+  // Kid Mode State
+  const [isKidMode, setIsKidMode] = useState(false);
+  const [preKidModeSettings, setPreKidModeSettings] = useState<{
+    mode: typeof settings.mode;
+    typingFontSize: number;
+    ghostWriterEnabled: boolean;
+    linePreview: number;
+    maxWordsPerLine: number;
+  } | null>(null);
+
   // Plan Mode State
   const [plan, setPlan] = useState<Plan>([]);
   const [planIndex, setPlanIndex] = useState(0);
@@ -422,6 +437,22 @@ export default function TypingPractice({
     saveTheme(theme);
     saveThemeName(selectedThemeName);
   }, [theme, selectedThemeName]);
+
+  // --- Compact Mode Detection (for zoomed/narrow viewports) ---
+  useEffect(() => {
+    const COMPACT_THRESHOLD = 768;
+    
+    const checkCompactMode = () => {
+      setIsCompactMode(window.innerWidth < COMPACT_THRESHOLD);
+    };
+    
+    // Check on mount
+    checkCompactMode();
+    
+    // Listen for resize events
+    window.addEventListener("resize", checkCompactMode);
+    return () => window.removeEventListener("resize", checkCompactMode);
+  }, []);
 
   // --- Load Preferences from DB (for logged-in users) ---
   useEffect(() => {
@@ -1287,14 +1318,60 @@ export default function TypingPractice({
           style={{ 
             fontSize: `${settings.iconFontSize}rem`, 
             opacity: uiOpacity,
-            // Position settings above the typing area with more space for the settings panel
-            // Minimum 120px to stay below the header (which is ~80px tall with z-50)
-            top: `max(120px, calc(50vh - ${(linePreview * settings.typingFontSize * LINE_HEIGHT) / 2 + 12}rem))`,
+            // Fixed position below the header (which is ~80px tall with z-50)
+            top: "120px",
           }}
         >
-          {/* Row 1: Sound, Ghost Writer, Theme, Settings */}
+          {/* Row 1: Kid Mode, Sound, Ghost Writer, Theme, Settings */}
           <div className="flex items-center justify-center gap-4 text-gray-400 pointer-events-auto">
             <div className="flex items-center gap-3 rounded-lg px-4 py-2" style={{ backgroundColor: theme.surfaceColor }}>
+              {/* Kid Mode Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (isKidMode) {
+                    // Toggle OFF: restore previous settings
+                    if (preKidModeSettings) {
+                      updateSettings({
+                        mode: preKidModeSettings.mode,
+                        typingFontSize: preKidModeSettings.typingFontSize,
+                        ghostWriterEnabled: preKidModeSettings.ghostWriterEnabled,
+                      });
+                      setLinePreview(preKidModeSettings.linePreview);
+                      setMaxWordsPerLine(preKidModeSettings.maxWordsPerLine);
+                    }
+                    setPreKidModeSettings(null);
+                    setIsKidMode(false);
+                  } else {
+                    // Toggle ON: save current settings and apply kid presets
+                    setPreKidModeSettings({
+                      mode: settings.mode,
+                      typingFontSize: settings.typingFontSize,
+                      ghostWriterEnabled: settings.ghostWriterEnabled,
+                      linePreview,
+                      maxWordsPerLine,
+                    });
+                    updateSettings({
+                      mode: "zen",
+                      typingFontSize: 5.5,
+                      ghostWriterEnabled: false,
+                    });
+                    setLinePreview(2);
+                    setMaxWordsPerLine(5);
+                    setIsKidMode(true);
+                  }
+                }}
+                className="flex items-center gap-1 transition hover:opacity-75"
+                style={{ color: isKidMode ? theme.buttonSelected : theme.buttonUnselected }}
+                title={isKidMode ? "Exit Kid Mode" : "Kid Mode - Large text, simple layout, no timer"}
+              >
+                <Baby
+                  size={20}
+                  fill={isKidMode ? "currentColor" : "none"}
+                  strokeWidth={1.5}
+                />
+              </button>
+              <div className="w-px h-4 bg-gray-700"></div>
               <SoundController
                 settings={settings}
                 onUpdateSettings={updateSettings}
@@ -1358,10 +1435,46 @@ export default function TypingPractice({
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
               </button>
+              {/* Quick Settings Button (compact mode only) */}
+              {isCompactMode && (
+                <>
+                  <div className="w-px h-4 bg-gray-700"></div>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickSettings(true)}
+                    className="flex items-center gap-2 transition hover:text-gray-200"
+                    style={{ color: theme.buttonUnselected }}
+                    title="Quick Settings"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="4" y1="21" x2="4" y2="14" />
+                      <line x1="4" y1="10" x2="4" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12" y2="3" />
+                      <line x1="20" y1="21" x2="20" y2="16" />
+                      <line x1="20" y1="12" x2="20" y2="3" />
+                      <line x1="1" y1="14" x2="7" y2="14" />
+                      <line x1="9" y1="8" x2="15" y2="8" />
+                      <line x1="17" y1="16" x2="23" y2="16" />
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Row 2: Test Mode | Modifiers */}
+          {/* Row 2: Test Mode | Modifiers (hidden in compact mode or kid mode) */}
+          {!isCompactMode && !isKidMode && (
           <div className="flex flex-wrap items-center justify-center gap-3 text-gray-400 pointer-events-auto">
             {/* Test Modes */}
             <span className="text-sm font-medium" style={{ color: theme.defaultText }}>Mode</span>
@@ -1449,8 +1562,10 @@ export default function TypingPractice({
               </button>
             </div>
           </div>
+          )}
 
-          {/* Row 3: Time/Word Count/Quote Length + Difficulty with labels */}
+          {/* Row 3: Time/Word Count/Quote Length + Difficulty with labels (hidden in compact mode or kid mode) */}
+          {!isCompactMode && !isKidMode && (
           <div className="flex flex-wrap items-center justify-center gap-3 text-gray-400 pointer-events-auto">
             {/* Time Duration */}
             {settings.mode === "time" && (
@@ -1555,6 +1670,7 @@ export default function TypingPractice({
               </>
             )}
           </div>
+          )}
         </div>
       )}
 
@@ -1566,64 +1682,79 @@ export default function TypingPractice({
             // Position stats above the typing area: center minus half content height minus gap
             // Typing area height = linePreview * typingFontSize * LINE_HEIGHT rem
             // Stats appear 4rem above the typing area top, with a minimum of 60px from top
-            top: `max(60px, calc(50vh - ${(linePreview * settings.typingFontSize * LINE_HEIGHT) / 2 + 4}rem))`,
+            // In kid mode, typing area is shifted up by 6rem, so stats need to shift up too
+            top: `max(60px, calc(50vh - ${(linePreview * settings.typingFontSize * LINE_HEIGHT) / 2 + 4 + (isKidMode ? 6 : 0)}rem))`,
           }}
         >
-          {/* WPM Pill */}
-          <div
-            className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
-            style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
-          >
-            <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>
-              {Math.round(wpm)}
-            </span>
-            <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider" style={{ color: theme.defaultText }}>wpm</span>
-          </div>
-
-          {/* Accuracy Pill */}
-          <div
-            className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
-            style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
-          >
-            <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>
-              {Math.round(accuracy)}%
-            </span>
-            <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider" style={{ color: theme.defaultText }}>acc</span>
-          </div>
-
-          {/* Timer Pill */}
-          {settings.mode === "time" && (
-            <div
-              className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
-              style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
-            >
-              <span
-                className="text-xl md:text-3xl font-bold tabular-nums leading-none"
-                style={{ color: timeRemaining < 10 ? theme.incorrectText : theme.correctText }}
-              >
-                {formatTime(timeRemaining)}
-              </span>
-            </div>
-          )}
-
-          {/* Word Counter Pill */}
-          {settings.mode === "words" && (
+          {/* Kid Mode: Only show elapsed time (counting up) */}
+          {isKidMode ? (
             <div
               className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
               style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
             >
               <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.correctText }}>
-                {Math.min(typedText.trim() === "" ? 0 : typedText.trim().split(/\s+/).length, settings.wordTarget === 0 ? Infinity : settings.wordTarget)}
+                {formatTime(Math.floor(elapsedMs / 1000))}
               </span>
-              {settings.wordTarget > 0 && (
-                <>
-                  <span className="text-sm font-medium" style={{ color: theme.defaultText }}>/</span>
-                  <span className="text-lg md:text-xl font-semibold tabular-nums leading-none" style={{ color: theme.defaultText }}>
-                    {settings.wordTarget}
-                  </span>
-                </>
-              )}
             </div>
+          ) : (
+            <>
+              {/* WPM Pill */}
+              <div
+                className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
+                style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+              >
+                <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>
+                  {Math.round(wpm)}
+                </span>
+                <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider" style={{ color: theme.defaultText }}>wpm</span>
+              </div>
+
+              {/* Accuracy Pill */}
+              <div
+                className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
+                style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+              >
+                <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>
+                  {Math.round(accuracy)}%
+                </span>
+                <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider" style={{ color: theme.defaultText }}>acc</span>
+              </div>
+
+              {/* Timer Pill */}
+              {settings.mode === "time" && (
+                <div
+                  className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
+                  style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+                >
+                  <span
+                    className="text-xl md:text-3xl font-bold tabular-nums leading-none"
+                    style={{ color: timeRemaining < 10 ? theme.incorrectText : theme.correctText }}
+                  >
+                    {formatTime(timeRemaining)}
+                  </span>
+                </div>
+              )}
+
+              {/* Word Counter Pill */}
+              {settings.mode === "words" && (
+                <div
+                  className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
+                  style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+                >
+                  <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.correctText }}>
+                    {Math.min(typedText.trim() === "" ? 0 : typedText.trim().split(/\s+/).length, settings.wordTarget === 0 ? Infinity : settings.wordTarget)}
+                  </span>
+                  {settings.wordTarget > 0 && (
+                    <>
+                      <span className="text-sm font-medium" style={{ color: theme.defaultText }}>/</span>
+                      <span className="text-lg md:text-xl font-semibold tabular-nums leading-none" style={{ color: theme.defaultText }}>
+                        {settings.wordTarget}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -1646,7 +1777,10 @@ export default function TypingPractice({
       )}
 
       {/* Typing Area */}
-      <div className="w-[95%] md:w-[80%] max-w-none relative z-0">
+      <div 
+        className="w-[95%] md:w-[80%] max-w-none relative z-0 transition-all duration-300"
+        style={{ marginTop: isKidMode ? "-6rem" : undefined }}
+      >
         {!isFinished ? (
           <div className="relative z-0">
             <input
@@ -2493,6 +2627,244 @@ export default function TypingPractice({
                   <label className="mb-2 block text-sm text-gray-400">Text Alignment</label>
                   <div className="flex gap-2 justify-center">
                     {(["left", "center", "right", "justify"] as const).map((align) => (
+                      <button
+                        key={align}
+                        onClick={() => updateSettings({ textAlign: align })}
+                        className={`rounded px-3 py-2 text-sm capitalize transition ${settings.textAlign === align ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                        style={{ color: settings.textAlign === align ? theme.buttonSelected : "#d1d5db" }}
+                      >
+                        {align}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Settings Modal (for compact/zoomed mode) */}
+      {showQuickSettings && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowQuickSettings(false)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-lg p-6 shadow-xl mx-4"
+            style={{ backgroundColor: theme.surfaceColor }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-200">Quick Settings</h2>
+              <button onClick={() => setShowQuickSettings(false)} className="text-gray-400 hover:text-gray-200">
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Test Mode */}
+              <div className="text-center">
+                <label className="mb-2 block text-sm text-gray-400">Mode</label>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {(["zen", "time", "words", "quote"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        if (settings.mode === m) {
+                          generateTest();
+                        } else {
+                          updateSettings({ mode: m });
+                        }
+                      }}
+                      className={`rounded px-4 py-2 text-sm capitalize transition ${settings.mode === m ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                      style={{ color: settings.mode === m ? theme.buttonSelected : "#d1d5db" }}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Duration / Word Count / Quote Length */}
+              {settings.mode === "time" && (
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Duration</label>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {TIME_PRESETS.map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => {
+                          if (settings.duration === d) generateTest();
+                          else updateSettings({ duration: d });
+                        }}
+                        className={`rounded px-4 py-2 text-sm transition ${settings.duration === d ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                        style={{ color: settings.duration === d ? theme.buttonSelected : "#d1d5db" }}
+                      >
+                        {d}s
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {settings.mode === "words" && (
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Word Count</label>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {WORD_PRESETS.map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => {
+                          if (settings.wordTarget === w) generateTest();
+                          else updateSettings({ wordTarget: w });
+                        }}
+                        className={`rounded px-4 py-2 text-sm transition ${settings.wordTarget === w ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                        style={{ color: settings.wordTarget === w ? theme.buttonSelected : "#d1d5db" }}
+                      >
+                        {w}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {settings.mode === "quote" && quotesManifest && (
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Quote Length</label>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {["all", ...quotesManifest.lengths].map((l) => (
+                      <button
+                        key={l}
+                        onClick={() => {
+                          if (settings.quoteLength === l) generateTest();
+                          else updateSettings({ quoteLength: l as typeof settings.quoteLength });
+                        }}
+                        className={`rounded px-4 py-2 text-sm transition ${settings.quoteLength === l ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                        style={{ color: settings.quoteLength === l ? theme.buttonSelected : "#d1d5db" }}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Difficulty */}
+              {settings.mode !== "quote" && wordsManifest && (
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Difficulty</label>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {wordsManifest.difficulties.map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => {
+                          if (settings.difficulty === d) generateTest();
+                          else updateSettings({ difficulty: d as typeof settings.difficulty });
+                        }}
+                        className={`rounded px-4 py-2 text-sm capitalize transition ${settings.difficulty === d ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                        style={{ color: settings.difficulty === d ? theme.buttonSelected : "#d1d5db" }}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Modifiers */}
+              <div className="text-center">
+                <label className="mb-2 block text-sm text-gray-400">Modifiers</label>
+                <div className="flex gap-3 flex-wrap justify-center">
+                  <button
+                    onClick={() => updateSettings({ capitalization: !settings.capitalization })}
+                    disabled={settings.mode === "quote"}
+                    className={`rounded px-4 py-2 text-sm transition ${settings.capitalization ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                    style={{ 
+                      color: settings.capitalization ? theme.buttonSelected : "#d1d5db",
+                      opacity: settings.mode === "quote" ? 0.5 : 1
+                    }}
+                  >
+                    Aa caps
+                  </button>
+                  <button
+                    onClick={() => updateSettings({ punctuation: !settings.punctuation })}
+                    disabled={settings.mode === "quote"}
+                    className={`rounded px-4 py-2 text-sm transition ${settings.punctuation ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                    style={{ 
+                      color: settings.punctuation ? theme.buttonSelected : "#d1d5db",
+                      opacity: settings.mode === "quote" ? 0.5 : 1
+                    }}
+                  >
+                    @ punctuation
+                  </button>
+                  <button
+                    onClick={() => updateSettings({ numbers: !settings.numbers })}
+                    disabled={settings.mode === "quote"}
+                    className={`rounded px-4 py-2 text-sm transition ${settings.numbers ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                    style={{ 
+                      color: settings.numbers ? theme.buttonSelected : "#d1d5db",
+                      opacity: settings.mode === "quote" ? 0.5 : 1
+                    }}
+                  >
+                    # numbers
+                  </button>
+                </div>
+              </div>
+
+              {/* Line Preview */}
+              <div className="text-center">
+                <label className="mb-2 block text-sm text-gray-400">Lines to Preview</label>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setLinePreview(num)}
+                      className={`rounded px-3 py-2 text-sm transition ${linePreview === num ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                      style={{ color: linePreview === num ? theme.buttonSelected : "#d1d5db" }}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Max Words per Line */}
+              <div className="text-center">
+                <label className="mb-2 block text-sm text-gray-400">Max Words per Line</label>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setMaxWordsPerLine(num)}
+                      className={`rounded px-3 py-2 text-sm transition ${maxWordsPerLine === num ? "font-medium bg-gray-800" : "bg-gray-700 hover:bg-gray-600"}`}
+                      style={{ color: maxWordsPerLine === num ? theme.buttonSelected : "#d1d5db" }}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font Size & Text Alignment */}
+              <div className="flex gap-4 justify-center flex-wrap">
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Text Size (rem)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="0.25"
+                    value={settings.typingFontSize}
+                    onChange={(e) => updateSettings({ typingFontSize: parseFloat(e.target.value) || 3 })}
+                    className="w-28 rounded bg-gray-700 px-3 py-2 text-gray-200 text-center focus:outline-none focus:ring-2"
+                    style={{ "--tw-ring-color": theme.buttonSelected } as React.CSSProperties}
+                  />
+                </div>
+                <div className="text-center">
+                  <label className="mb-2 block text-sm text-gray-400">Text Alignment</label>
+                  <div className="flex gap-2 justify-center">
+                    {(["left", "center", "right"] as const).map((align) => (
                       <button
                         key={align}
                         onClick={() => updateSettings({ textAlign: align })}
