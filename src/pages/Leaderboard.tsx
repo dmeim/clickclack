@@ -33,6 +33,45 @@ function getMedalEmoji(rank: number): string {
   return "";
 }
 
+const TIMEZONE = "America/New_York";
+
+// Get today's date formatted as "Tuesday, Jan 12" in ET
+function getTodayTitleET(): string {
+  return new Date().toLocaleDateString("en-US", {
+    timeZone: TIMEZONE,
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// Get the 7-day range title formatted as "Jan 15 - Jan 22" in ET
+function getWeekRangeTitleET(): string {
+  const now = new Date();
+
+  // Get today's date in ET
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+  const parts = formatter.formatToParts(now);
+  const year = parseInt(parts.find((p) => p.type === "year")!.value);
+  const month = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
+  const day = parseInt(parts.find((p) => p.type === "day")!.value);
+
+  // Create dates for today and 7 days ago
+  const endDate = new Date(year, month, day);
+  const startDate = new Date(year, month, day - 7);
+
+  const formatDateShort = (d: Date) => {
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  return `${formatDateShort(startDate)} - ${formatDateShort(endDate)}`;
+}
+
 interface PodiumCardProps {
   entry: LeaderboardEntry;
   theme: Theme;
@@ -371,7 +410,7 @@ export default function Leaderboard() {
             style={{ backgroundColor: theme.surfaceColor }}
           >
             <LeaderboardColumn
-              title="Today"
+              title={getTodayTitleET()}
               leaderboard={todayLeaderboard}
               theme={theme}
               isLoading={isTodayLoading}
@@ -385,7 +424,7 @@ export default function Leaderboard() {
             style={{ backgroundColor: theme.surfaceColor }}
           >
             <LeaderboardColumn
-              title="This Week"
+              title={getWeekRangeTitleET()}
               leaderboard={weekLeaderboard}
               theme={theme}
               isLoading={isWeekLoading}

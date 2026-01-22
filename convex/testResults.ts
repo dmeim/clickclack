@@ -3,6 +3,41 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
+const TIMEZONE = "America/New_York";
+
+// Helper to get timezone offset in milliseconds (positive = timezone behind UTC)
+function getTimezoneOffset(date: Date): number {
+  const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
+  const tzDate = new Date(date.toLocaleString("en-US", { timeZone: TIMEZONE }));
+  return utcDate.getTime() - tzDate.getTime();
+}
+
+// Get start of day (midnight) in ET, optionally daysAgo
+function getStartOfDayET(daysAgo: number = 0): number {
+  const now = new Date();
+
+  // Get today's date in ET
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIMEZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+  const parts = formatter.formatToParts(now);
+  const year = parseInt(parts.find((p) => p.type === "year")!.value);
+  const month = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
+  const day = parseInt(parts.find((p) => p.type === "day")!.value) - daysAgo;
+
+  // Midnight UTC for the target date
+  const midnightUTC = Date.UTC(year, month, day, 0, 0, 0, 0);
+
+  // Get timezone offset at that time
+  const offset = getTimezoneOffset(new Date(midnightUTC));
+
+  // Midnight in ET as UTC timestamp
+  return midnightUTC + offset;
+}
+
 // Save a test result
 export const saveResult = mutation({
   args: {
@@ -319,18 +354,15 @@ export const getLeaderboard = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
 
-    // Calculate time cutoff based on range
-    const now = Date.now();
+    // Calculate time cutoff based on range (using America/New_York timezone)
     let timeCutoff = 0;
 
     if (args.timeRange === "today") {
-      // Start of today (midnight UTC)
-      const today = new Date(now);
-      today.setUTCHours(0, 0, 0, 0);
-      timeCutoff = today.getTime();
+      // Midnight today in ET
+      timeCutoff = getStartOfDayET(0);
     } else if (args.timeRange === "week") {
-      // 7 days ago
-      timeCutoff = now - 7 * 24 * 60 * 60 * 1000;
+      // Midnight 7 days ago in ET
+      timeCutoff = getStartOfDayET(7);
     }
     // For "all-time", timeCutoff stays 0
 
