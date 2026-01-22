@@ -1,0 +1,13 @@
+{
+  "category": "productivity",
+  "backgroundColor": "#0f0f1a",
+  "surfaceColor": "#0a0a14",
+  "cursor": "#6366f1",
+  "ghostCursor": "#4338ca",
+  "defaultText": "#252540",
+  "upcomingText": "#252540",
+  "correctText": "#818cf8",
+  "incorrectText": "#ef4444",
+  "buttonUnselected": "#4338ca",
+  "buttonSelected": "#6366f1"
+}
