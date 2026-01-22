@@ -26,6 +26,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Progress } from "@/components/ui/progress";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -1674,30 +1675,15 @@ export default function TypingPractice({
         </div>
       )}
 
-      {/* Live Stats Floating Pills */}
+      {/* Live Stats Widget - Unified 2-row layout */}
       {isRunning && !isFinished && (
         <div 
-          className="fixed inset-x-0 flex flex-row flex-nowrap items-center justify-center gap-2 md:gap-4 select-none z-10 transition-opacity duration-300 pointer-events-none"
-          style={{
-            // Position stats above the typing area: center minus half content height minus gap
-            // Typing area height = linePreview * typingFontSize * LINE_HEIGHT rem
-            // Stats appear 4rem above the typing area top, with a minimum of 60px from top
-            // In kid mode, typing area is shifted up by 6rem, so stats need to shift up too
-            top: `max(60px, calc(50vh - ${(linePreview * settings.typingFontSize * LINE_HEIGHT) / 2 + 4 + (isKidMode ? 6 : 0)}rem))`,
-          }}
+          className="fixed inset-x-0 flex flex-col items-center gap-2 select-none z-30 transition-opacity duration-300 pointer-events-none"
+          style={{ top: "120px" }}
         >
-          {/* Kid Mode: Only show elapsed time (counting up) */}
-          {isKidMode ? (
-            <div
-              className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
-              style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
-            >
-              <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.correctText }}>
-                {formatTime(Math.floor(elapsedMs / 1000))}
-              </span>
-            </div>
-          ) : (
-            <>
+          {/* Row 1: WPM + Mode-specific stat + Accuracy - hidden in kid mode */}
+          {!isKidMode && (
+            <div className="flex gap-2 md:gap-3">
               {/* WPM Pill */}
               <div
                 className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
@@ -1709,18 +1695,7 @@ export default function TypingPractice({
                 <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider" style={{ color: theme.defaultText }}>wpm</span>
               </div>
 
-              {/* Accuracy Pill */}
-              <div
-                className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
-                style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
-              >
-                <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>
-                  {Math.round(accuracy)}%
-                </span>
-                <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider" style={{ color: theme.defaultText }}>acc</span>
-              </div>
-
-              {/* Timer Pill */}
+              {/* Time Mode: Countdown Timer */}
               {settings.mode === "time" && (
                 <div
                   className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
@@ -1735,7 +1710,7 @@ export default function TypingPractice({
                 </div>
               )}
 
-              {/* Word Counter Pill */}
+              {/* Words Mode: Word Counter */}
               {settings.mode === "words" && (
                 <div
                   className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
@@ -1754,7 +1729,71 @@ export default function TypingPractice({
                   )}
                 </div>
               )}
-            </>
+
+              {/* Zen Mode: Count-up Timer */}
+              {settings.mode === "zen" && (
+                <div
+                  className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
+                  style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+                >
+                  <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.correctText }}>
+                    {formatTime(Math.floor(elapsedMs / 1000))}
+                  </span>
+                </div>
+              )}
+
+              {/* Accuracy Pill */}
+              <div
+                className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
+                style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+              >
+                <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.buttonSelected }}>
+                  {Math.round(accuracy)}%
+                </span>
+                <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider" style={{ color: theme.defaultText }}>acc</span>
+              </div>
+            </div>
+          )}
+
+          {/* Row 2: Progress Bar - shown only in time and words modes, hidden in kid mode */}
+          {(settings.mode === "time" || settings.mode === "words") && !isKidMode && (
+            <div className="flex gap-2 md:gap-3 items-center">
+              <div
+                className="w-56 md:w-80 px-3 py-2.5 md:px-4 md:py-4 backdrop-blur-md rounded-full shadow-lg"
+                style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+              >
+                <Progress
+                  value={
+                    settings.mode === "time"
+                      ? settings.duration > 0 ? (timeRemaining / settings.duration) * 100 : 0
+                      : settings.wordTarget > 0
+                        ? Math.min(((typedText.trim() === "" ? 0 : typedText.trim().split(/\s+/).length) / settings.wordTarget) * 100, 100)
+                        : 0
+                  }
+                  className="h-2 md:h-2.5"
+                  style={{ backgroundColor: `${theme.defaultText}30` }}
+                  indicatorStyle={{
+                    backgroundColor: settings.mode === "time" && timeRemaining < 10
+                      ? theme.incorrectText
+                      : theme.correctText,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Kid Mode: Count-up Timer only */}
+          {isKidMode && (
+            <div className="flex gap-2 md:gap-3">
+              <div
+                className="flex items-baseline gap-2 px-3 py-1.5 md:px-6 md:py-3 backdrop-blur-md rounded-full shadow-lg min-w-[70px] md:min-w-[100px] justify-center"
+                style={{ backgroundColor: `${theme.surfaceColor}E6`, borderWidth: 1, borderColor: `${theme.defaultText}30` }}
+              >
+                <span className="text-xl md:text-3xl font-bold tabular-nums leading-none" style={{ color: theme.correctText }}>
+                  {formatTime(Math.floor(elapsedMs / 1000))}
+                </span>
+              </div>
+            </div>
           )}
         </div>
       )}
