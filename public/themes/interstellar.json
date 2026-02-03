@@ -1,0 +1,13 @@
+{
+  "category": "movies",
+  "backgroundColor": "#050508",
+  "surfaceColor": "#020204",
+  "cursor": "#d4a574",
+  "ghostCursor": "#4a5a6a",
+  "defaultText": "#2a3040",
+  "upcomingText": "#2a3040",
+  "correctText": "#d4a574",
+  "incorrectText": "#c44536",
+  "buttonUnselected": "#4a5a6a",
+  "buttonSelected": "#d4a574"
+}

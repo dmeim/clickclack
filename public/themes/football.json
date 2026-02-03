@@ -1,0 +1,13 @@
+{
+  "category": "sports",
+  "backgroundColor": "#0a1a0a",
+  "surfaceColor": "#051005",
+  "cursor": "#8b4513",
+  "ghostCursor": "#228b22",
+  "defaultText": "#2a4a2a",
+  "upcomingText": "#2a4a2a",
+  "correctText": "#cd853f",
+  "incorrectText": "#ff4500",
+  "buttonUnselected": "#228b22",
+  "buttonSelected": "#8b4513"
+}

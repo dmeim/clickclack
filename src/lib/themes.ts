@@ -18,7 +18,11 @@ export type ThemeCategory =
   | "gaming"
   | "music"
   | "food"
-  | "space";
+  | "space"
+  | "sports"
+  | "tv-shows"
+  | "movies"
+  | "anime";
 
 export type ThemeDefinition = Theme & {
   name: string;
@@ -56,6 +60,10 @@ export const CATEGORY_CONFIG: Record<ThemeCategory, { displayName: string; order
   music: { displayName: "Music", order: 15 },
   food: { displayName: "Food", order: 16 },
   space: { displayName: "Space", order: 17 },
+  sports: { displayName: "Sports", order: 18 },
+  "tv-shows": { displayName: "TV Shows", order: 19 },
+  movies: { displayName: "Movies", order: 20 },
+  anime: { displayName: "Anime", order: 21 },
 };
 
 // Cache for loaded data
@@ -110,6 +118,27 @@ const THEME_DISPLAY_NAMES: Record<string, string> = {
   "fourth-of-july": "Fourth of July",
   "cinco-de-mayo": "Cinco de Mayo",
   "shades-of-purple": "Shades of Purple",
+  
+  // TV Shows
+  "game-of-thrones": "Game of Thrones",
+  "the-office": "The Office",
+  "squid-game": "Squid Game",
+  "the-mandalorian": "The Mandalorian",
+  "peaky-blinders": "Peaky Blinders",
+  
+  // Movies
+  "lord-of-the-rings": "Lord of the Rings",
+  "harry-potter": "Harry Potter",
+  
+  // Anime
+  "attack-on-titan": "Attack on Titan",
+  "demon-slayer": "Demon Slayer",
+  "one-piece": "One Piece",
+  "my-hero-academia": "My Hero Academia",
+  "sailor-moon": "Sailor Moon",
+  "death-note": "Death Note",
+  "solo-leveling": "Solo Leveling",
+  "jujutsu-kaisen": "Jujutsu Kaisen",
 };
 
 // Format theme name for display (capitalize first letter of each word)
@@ -218,6 +247,10 @@ export function groupThemesByCategory(themes: ThemeDefinition[]): GroupedThemes[
     music: [],
     food: [],
     space: [],
+    sports: [],
+    "tv-shows": [],
+    movies: [],
+    anime: [],
   };
 
   // Group themes

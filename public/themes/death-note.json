@@ -1,0 +1,13 @@
+{
+  "category": "anime",
+  "backgroundColor": "#0a0a0a",
+  "surfaceColor": "#050505",
+  "cursor": "#dc143c",
+  "ghostCursor": "#2a2a2a",
+  "defaultText": "#3a3a3a",
+  "upcomingText": "#3a3a3a",
+  "correctText": "#dc143c",
+  "incorrectText": "#8b0000",
+  "buttonUnselected": "#2a2a2a",
+  "buttonSelected": "#dc143c"
+}

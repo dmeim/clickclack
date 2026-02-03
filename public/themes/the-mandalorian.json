@@ -1,0 +1,13 @@
+{
+  "category": "tv-shows",
+  "backgroundColor": "#1a1510",
+  "surfaceColor": "#120f0a",
+  "cursor": "#b8b8b8",
+  "ghostCursor": "#8b7355",
+  "defaultText": "#4a4035",
+  "upcomingText": "#4a4035",
+  "correctText": "#b8b8b8",
+  "incorrectText": "#c44536",
+  "buttonUnselected": "#8b7355",
+  "buttonSelected": "#b8b8b8"
+}
