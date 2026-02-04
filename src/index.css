@@ -140,3 +140,8 @@ body {
   color: var(--theme-text-primary);
   font-family: var(--font-mono);
 }
+
+/* Toast notification styling */
+[data-sonner-toast] [data-content] {
+  margin-left: 0.75rem;
+}

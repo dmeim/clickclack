@@ -817,7 +817,7 @@ export default function TypingPractice({
             // Show toast notification
             toast.success(achievement.title, {
               description: achievement.description,
-              icon: <span style={{ fontSize: "1.25rem" }}>{achievement.icon}</span>,
+              icon: <span style={{ fontSize: "1.75rem" }}>{achievement.icon}</span>,
               duration: 5000,
               style: {
                 borderLeft: `4px solid ${tierColor}`,

@@ -132,6 +132,27 @@ export const saveResult = mutation({
       }
     );
 
+    // Update user stats cache (always, for valid results)
+    await ctx.runMutation(internal.statsCache.updateUserStatsCache, {
+      userId: user._id,
+      wpm: args.wpm,
+      accuracy: args.accuracy,
+      duration: args.duration,
+      wordCount: args.wordCount,
+      isValid: true, // New results are valid by default
+    });
+
+    // Update leaderboard cache (only if accuracy >= 90%)
+    if (args.accuracy >= 90) {
+      await ctx.runMutation(internal.statsCache.updateLeaderboardCache, {
+        userId: user._id,
+        wpm: args.wpm,
+        createdAt,
+        username: user.username,
+        avatarUrl: user.avatarUrl,
+      });
+    }
+
     return {
       resultId,
       newAchievements: achievementResult.newAchievements,
@@ -168,6 +189,13 @@ export const deleteResult = mutation({
       throw new Error("You can only delete your own test results.");
     }
 
+    // Check if this was the user's best WPM (for cache recalculation)
+    const cachedStats = await ctx.db
+      .query("userStatsCache")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+    const wasBestWpm = cachedStats ? result.wpm === cachedStats.bestWpm : false;
+
     // Delete the result
     await ctx.db.delete(args.resultId);
 
@@ -176,6 +204,25 @@ export const deleteResult = mutation({
       internal.achievements.recheckAchievementsAfterDeletion,
       { userId: user._id }
     );
+
+    // Update user stats cache
+    await ctx.runMutation(internal.statsCache.decrementUserStatsCache, {
+      userId: user._id,
+      wpm: result.wpm,
+      accuracy: result.accuracy,
+      duration: result.duration,
+      wordCount: result.wordCount,
+      wasValid: result.isValid !== false,
+      wasBestWpm,
+    });
+
+    // Update leaderboard cache if the deleted result was eligible
+    await ctx.runMutation(internal.statsCache.updateLeaderboardCacheAfterDeletion, {
+      userId: user._id,
+      deletedWpm: result.wpm,
+      deletedAccuracy: result.accuracy,
+      deletedCreatedAt: result.createdAt,
+    });
 
     return { success: true, removedAchievements };
   },
@@ -212,7 +259,8 @@ export const getUserResults = query({
 });
 
 // Get aggregated stats for a user
-// Note: Aggregates (averages, best) only use valid results
+// Uses userStatsCache for aggregates (efficient), fetches results only for history
+// Note: Aggregates only use valid results
 // History shows all results with isValid flag for UI distinction
 export const getUserStats = query({
   args: {
@@ -229,13 +277,22 @@ export const getUserStats = query({
       return null;
     }
 
-    // Get all results for this user
-    const allResults = await ctx.db
+    // Try to get cached stats first (single row read)
+    const cachedStats = await ctx.db
+      .query("userStatsCache")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+
+    // Get recent results for history display (limited to avoid excessive reads)
+    // We still need this for the allResults field
+    const recentResults = await ctx.db
       .query("testResults")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+      .order("desc")
+      .take(100); // Limit history to last 100 results
 
-    if (allResults.length === 0) {
+    if (!cachedStats) {
+      // No cache yet - return empty stats with whatever results exist
       return {
         totalTests: 0,
         averageWpm: 0,
@@ -244,29 +301,18 @@ export const getUserStats = query({
         totalTimeTyped: 0,
         totalWordsTyped: 0,
         totalCharactersTyped: 0,
-        allResults: [],
+        allResults: recentResults,
       };
     }
 
-    // Filter to valid results for aggregate stats
-    // isValid !== false means valid (includes undefined for legacy data)
-    const validResults = allResults.filter((r) => r.isValid !== false);
-
-    // Calculate stats from valid results only
-    const totalTests = validResults.length;
-    const totalWpm = validResults.reduce((sum, r) => sum + r.wpm, 0);
-    const averageWpm = totalTests > 0 ? Math.round(totalWpm / totalTests) : 0;
-    const bestWpm = validResults.length > 0 ? Math.max(...validResults.map((r) => r.wpm)) : 0;
-    const totalAccuracy = validResults.reduce((sum, r) => sum + r.accuracy, 0);
-    const averageAccuracy = totalTests > 0 ? Math.round((totalAccuracy / totalTests) * 10) / 10 : 0;
-    const totalTimeTyped = validResults.reduce((sum, r) => sum + r.duration, 0);
-    const totalWordsTyped = validResults.reduce((sum, r) => sum + r.wordCount, 0);
-    // Characters typed (5 characters per word, standard WPM calculation)
+    // Calculate derived stats from cache
+    const totalTests = cachedStats.totalTests;
+    const averageWpm = totalTests > 0 ? Math.round(cachedStats.totalWpm / totalTests) : 0;
+    const bestWpm = cachedStats.bestWpm;
+    const averageAccuracy = totalTests > 0 ? Math.round((cachedStats.totalAccuracy / totalTests) * 10) / 10 : 0;
+    const totalTimeTyped = cachedStats.totalTimeTyped;
+    const totalWordsTyped = cachedStats.totalWordsTyped;
     const totalCharactersTyped = totalWordsTyped * 5;
-
-    // Return all results (including invalid) for history display
-    // Sorted by date (most recent first)
-    const sortedResults = allResults.sort((a, b) => b.createdAt - a.createdAt);
 
     return {
       totalTests,
@@ -276,26 +322,35 @@ export const getUserStats = query({
       totalTimeTyped,
       totalWordsTyped,
       totalCharactersTyped,
-      allResults: sortedResults,
+      allResults: recentResults,
     };
   },
 });
 
 // Get aggregated stats for a user by Convex user ID (for public profile pages)
-// Note: Aggregates (averages, best) only use valid results
+// Uses userStatsCache for aggregates (efficient), fetches results only for history
+// Note: Aggregates only use valid results
 // History shows all results with isValid flag for UI distinction
 export const getUserStatsByUserId = query({
   args: {
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Get all results for this user
-    const allResults = await ctx.db
+    // Try to get cached stats first (single row read)
+    const cachedStats = await ctx.db
+      .query("userStatsCache")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    // Get recent results for history display (limited to avoid excessive reads)
+    const recentResults = await ctx.db
       .query("testResults")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
+      .order("desc")
+      .take(100); // Limit history to last 100 results
 
-    if (allResults.length === 0) {
+    if (!cachedStats) {
+      // No cache yet - return empty stats with whatever results exist
       return {
         totalTests: 0,
         averageWpm: 0,
@@ -304,29 +359,18 @@ export const getUserStatsByUserId = query({
         totalTimeTyped: 0,
         totalWordsTyped: 0,
         totalCharactersTyped: 0,
-        allResults: [],
+        allResults: recentResults,
       };
     }
 
-    // Filter to valid results for aggregate stats
-    // isValid !== false means valid (includes undefined for legacy data)
-    const validResults = allResults.filter((r) => r.isValid !== false);
-
-    // Calculate stats from valid results only
-    const totalTests = validResults.length;
-    const totalWpm = validResults.reduce((sum, r) => sum + r.wpm, 0);
-    const averageWpm = totalTests > 0 ? Math.round(totalWpm / totalTests) : 0;
-    const bestWpm = validResults.length > 0 ? Math.max(...validResults.map((r) => r.wpm)) : 0;
-    const totalAccuracy = validResults.reduce((sum, r) => sum + r.accuracy, 0);
-    const averageAccuracy = totalTests > 0 ? Math.round((totalAccuracy / totalTests) * 10) / 10 : 0;
-    const totalTimeTyped = validResults.reduce((sum, r) => sum + r.duration, 0);
-    const totalWordsTyped = validResults.reduce((sum, r) => sum + r.wordCount, 0);
-    // Characters typed (5 characters per word, standard WPM calculation)
+    // Calculate derived stats from cache
+    const totalTests = cachedStats.totalTests;
+    const averageWpm = totalTests > 0 ? Math.round(cachedStats.totalWpm / totalTests) : 0;
+    const bestWpm = cachedStats.bestWpm;
+    const averageAccuracy = totalTests > 0 ? Math.round((cachedStats.totalAccuracy / totalTests) * 10) / 10 : 0;
+    const totalTimeTyped = cachedStats.totalTimeTyped;
+    const totalWordsTyped = cachedStats.totalWordsTyped;
     const totalCharactersTyped = totalWordsTyped * 5;
-
-    // Return all results (including invalid) for history display
-    // Sorted by date (most recent first)
-    const sortedResults = allResults.sort((a, b) => b.createdAt - a.createdAt);
 
     return {
       totalTests,
@@ -336,12 +380,13 @@ export const getUserStatsByUserId = query({
       totalTimeTyped,
       totalWordsTyped,
       totalCharactersTyped,
-      allResults: sortedResults,
+      allResults: recentResults,
     };
   },
 });
 
 // Get leaderboard data for top WPM scores
+// Now reads from pre-computed leaderboardCache table for efficiency
 export const getLeaderboard = query({
   args: {
     timeRange: v.union(
@@ -354,73 +399,41 @@ export const getLeaderboard = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
 
-    // Calculate time cutoff based on range (using America/New_York timezone)
+    // For time-based ranges, we need to filter out stale entries
+    // "today" entries older than midnight today are stale
+    // "week" entries older than 7 days ago are stale
     let timeCutoff = 0;
-
     if (args.timeRange === "today") {
-      // Midnight today in ET
       timeCutoff = getStartOfDayET(0);
     } else if (args.timeRange === "week") {
-      // Midnight 7 days ago in ET
       timeCutoff = getStartOfDayET(7);
     }
-    // For "all-time", timeCutoff stays 0
 
-    // Fetch all test results (we'll filter and group in memory)
-    const allResults = await ctx.db.query("testResults").collect();
+    // Query from the cache table
+    // Note: We query more than limit to account for potentially stale entries
+    const cacheEntries = await ctx.db
+      .query("leaderboardCache")
+      .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", args.timeRange))
+      .order("desc")
+      .take(limit * 2); // Get extra in case some are stale
 
-    // Filter by time range, minimum accuracy (90%), and validity
-    // isValid !== false means valid (includes undefined for legacy data)
-    const filteredResults = allResults.filter((r) => {
-      const meetsAccuracy = r.accuracy >= 90;
-      const meetsTimeRange = args.timeRange === "all-time" || r.createdAt >= timeCutoff;
-      const isValidResult = r.isValid !== false;
-      return meetsAccuracy && meetsTimeRange && isValidResult;
-    });
+    // Filter out stale entries for time-based ranges
+    const validEntries =
+      args.timeRange === "all-time"
+        ? cacheEntries
+        : cacheEntries.filter((entry) => entry.bestWpmAt >= timeCutoff);
 
-    // Group by user and find best WPM for each user
-    // Use a Map keyed by the string representation of userId
-    const userBestMap = new Map<
-      string,
-      { wpm: number; createdAt: number; userId: typeof filteredResults[0]["userId"] }
-    >();
+    // Take the top N valid entries
+    const topEntries = validEntries.slice(0, limit);
 
-    for (const result of filteredResults) {
-      const userIdStr = result.userId as unknown as string;
-      const existing = userBestMap.get(userIdStr);
-
-      if (!existing || result.wpm > existing.wpm) {
-        userBestMap.set(userIdStr, {
-          wpm: result.wpm,
-          createdAt: result.createdAt,
-          userId: result.userId,
-        });
-      }
-    }
-
-    // Convert to array and sort by WPM descending
-    const sortedBests = Array.from(userBestMap.values()).sort(
-      (a, b) => b.wpm - a.wpm
-    );
-
-    // Take top N
-    const topBests = sortedBests.slice(0, limit);
-
-    // Fetch user details for each entry
-    const leaderboard = await Promise.all(
-      topBests.map(async (entry, index) => {
-        // Get user by ID directly
-        const user = await ctx.db.get(entry.userId);
-
-        return {
-          rank: index + 1,
-          username: user?.username ?? "Unknown",
-          avatarUrl: user?.avatarUrl ?? null,
-          wpm: entry.wpm,
-          createdAt: entry.createdAt,
-        };
-      })
-    );
+    // Map to leaderboard format
+    const leaderboard = topEntries.map((entry, index) => ({
+      rank: index + 1,
+      username: entry.username,
+      avatarUrl: entry.avatarUrl ?? null,
+      wpm: entry.bestWpm,
+      createdAt: entry.bestWpmAt,
+    }));
 
     return leaderboard;
   },

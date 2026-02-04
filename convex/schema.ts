@@ -184,4 +184,35 @@ export default defineSchema({
     lastActivityDate: v.string(), // "YYYY-MM-DD" in user's local time
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  // Pre-computed user stats cache (one row per user)
+  // Stores aggregated stats to avoid scanning all testResults
+  userStatsCache: defineTable({
+    userId: v.id("users"),
+    totalTests: v.number(),
+    totalWpm: v.number(), // Sum for computing average
+    bestWpm: v.number(),
+    totalAccuracy: v.number(), // Sum for computing average
+    totalTimeTyped: v.number(),
+    totalWordsTyped: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Pre-computed leaderboard entries (one row per user per time range)
+  // Avoids scanning entire testResults table for leaderboard queries
+  leaderboardCache: defineTable({
+    userId: v.id("users"),
+    timeRange: v.union(
+      v.literal("all-time"),
+      v.literal("week"),
+      v.literal("today")
+    ),
+    bestWpm: v.number(),
+    bestWpmAt: v.number(), // Timestamp of when this score was achieved
+    username: v.string(),
+    avatarUrl: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_time_range_wpm", ["timeRange", "bestWpm"])
+    .index("by_user_time_range", ["userId", "timeRange"]),
 });
