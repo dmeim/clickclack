@@ -74,7 +74,7 @@ function AchievementCard({
         {/* Title (bottom) */}
         <div
           className="text-xs font-medium text-center leading-tight line-clamp-2"
-          style={{ color: theme.correctText }}
+          style={{ color: theme.textPrimary }}
         >
           {achievement.title}
         </div>
@@ -91,9 +91,9 @@ function AchievementCard({
         isHighlighted ? "ring-2 ring-offset-2 animate-pulse" : ""
       }`}
       style={{
-        backgroundColor: `${theme.defaultText}10`,
+        backgroundColor: theme.surfaceColor,
         borderWidth: 2,
-        borderColor: `${theme.defaultText}20`,
+        borderColor: theme.borderSubtle,
       }}
       title={`Locked: ${achievement.description}`}
     >
@@ -101,7 +101,7 @@ function AchievementCard({
       <div
         className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1.5"
         style={{
-          backgroundColor: `${theme.defaultText}40`,
+          backgroundColor: theme.textMuted,
           color: theme.backgroundColor,
         }}
       >
@@ -114,7 +114,7 @@ function AchievementCard({
       {/* Title (bottom) */}
       <div
         className="text-xs font-medium text-center leading-tight line-clamp-2"
-        style={{ color: theme.defaultText }}
+        style={{ color: theme.textMuted }}
       >
         {achievement.title}
       </div>
@@ -151,7 +151,7 @@ function CategorySection({
         <span className="text-xl">{categoryInfo.icon}</span>
         <h3
           className="text-sm font-semibold"
-          style={{ color: theme.correctText }}
+          style={{ color: theme.textPrimary }}
         >
           {categoryInfo.name}
         </h3>
@@ -200,11 +200,29 @@ export default function AchievementsModal({
     upcomingText: "#4b5563",
     correctText: "#d1d5db",
     incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
     buttonUnselected: "#3cb5ee",
     buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
     backgroundColor: "#323437",
     surfaceColor: "#2c2e31",
-    ghostCursor: "#a855f7",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
 
   const earnedIds = new Set(Object.keys(earnedAchievements));
@@ -332,16 +350,16 @@ export default function AchievementsModal({
           {/* Header */}
           <div
             className="flex items-center justify-between p-6 border-b"
-            style={{ borderColor: `${theme.defaultText}20` }}
+            style={{ borderColor: theme.borderSubtle }}
           >
             <div>
               <h2
                 className="text-xl font-semibold"
-                style={{ color: theme.correctText }}
+                style={{ color: theme.textPrimary }}
               >
                 All Achievements
               </h2>
-              <p className="text-sm mt-1" style={{ color: theme.defaultText }}>
+              <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>
                 Progress:{" "}
                 <span
                   className="font-medium"
@@ -356,8 +374,8 @@ export default function AchievementsModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg transition hover:bg-gray-700/50"
-              style={{ color: theme.defaultText }}
+              className="p-2 rounded-lg transition hover:opacity-80"
+              style={{ color: theme.textMuted }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

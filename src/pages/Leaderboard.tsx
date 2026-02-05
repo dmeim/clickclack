@@ -91,7 +91,7 @@ function PodiumCard({ entry, theme, height }: PodiumCardProps) {
       style={{
         backgroundColor: `${theme.backgroundColor}90`,
         height: `${height}px`,
-        border: `1px solid ${theme.defaultText}20`,
+        border: `1px solid ${theme.borderSubtle}`,
         borderBottom: "none",
       }}
     >
@@ -121,7 +121,7 @@ function PodiumCard({ entry, theme, height }: PodiumCardProps) {
       <div
         className="font-medium w-full text-center mb-1.5 break-words leading-tight"
         style={{ 
-          color: theme.correctText,
+          color: theme.textPrimary,
           fontSize: getUsernameFontSize(entry.username),
         }}
       >
@@ -139,7 +139,7 @@ function PodiumCard({ entry, theme, height }: PodiumCardProps) {
       {/* Row 4: Date */}
       <div
         className="text-xs"
-        style={{ color: theme.defaultText }}
+        style={{ color: theme.textSecondary }}
       >
         {formatDate(entry.createdAt)}
       </div>
@@ -175,7 +175,7 @@ function LeaderboardColumn({
       <div className="shrink-0 mb-3">
         <h2
           className="text-lg font-semibold text-center"
-          style={{ color: theme.correctText }}
+          style={{ color: theme.textPrimary }}
         >
           {title}
         </h2>
@@ -200,11 +200,11 @@ function LeaderboardColumn({
           <div className="text-3xl mb-2">🏆</div>
           <p
             className="text-sm font-medium text-center"
-            style={{ color: theme.correctText }}
+            style={{ color: theme.textPrimary }}
           >
             No scores yet
           </p>
-          <p className="text-xs text-center px-4" style={{ color: theme.defaultText }}>
+          <p className="text-xs text-center px-4" style={{ color: theme.textSecondary }}>
             {emptyMessage}
           </p>
         </div>
@@ -232,8 +232,8 @@ function LeaderboardColumn({
               <div
                 className="grid gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-b shrink-0"
                 style={{
-                  color: theme.defaultText,
-                  borderColor: `${theme.defaultText}20`,
+                  color: theme.textSecondary,
+                  borderColor: theme.borderSubtle,
                   gridTemplateColumns: "28px 28px 1fr 50px",
                 }}
               >
@@ -250,14 +250,14 @@ function LeaderboardColumn({
                     key={`${entry.username}-${entry.rank}`}
                     className="grid gap-2 px-3 py-1.5 border-b last:border-b-0 items-center"
                     style={{
-                      borderColor: `${theme.defaultText}10`,
+                      borderColor: theme.borderSubtle,
                       gridTemplateColumns: "28px 28px 1fr 50px",
                     }}
                   >
                     {/* Rank */}
                     <div
                       className="text-center text-xs font-medium"
-                      style={{ color: theme.defaultText }}
+                      style={{ color: theme.textSecondary }}
                     >
                       {entry.rank}
                     </div>
@@ -286,7 +286,7 @@ function LeaderboardColumn({
                     {/* Username */}
                     <div
                       className="font-medium truncate text-xs"
-                      style={{ color: theme.correctText }}
+                      style={{ color: theme.textPrimary }}
                     >
                       {entry.username}
                     </div>
@@ -319,11 +319,29 @@ export default function Leaderboard() {
     upcomingText: "#4b5563",
     correctText: "#d1d5db",
     incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
     buttonUnselected: "#3cb5ee",
     buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
     backgroundColor: "#323437",
     surfaceColor: "#2c2e31",
-    ghostCursor: "#a855f7",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
 
   // Fetch all three leaderboards in parallel
@@ -354,7 +372,7 @@ export default function Leaderboard() {
         <Link
           to="/"
           className="transition text-sm hover:opacity-100"
-          style={{ color: theme.defaultText, opacity: 0.7 }}
+          style={{ color: theme.textSecondary, opacity: 0.7 }}
         >
           ← Back to Homepage
         </Link>
@@ -380,7 +398,7 @@ export default function Leaderboard() {
           </svg>
           <h1
             className="text-xl font-semibold"
-            style={{ color: theme.correctText }}
+            style={{ color: theme.textPrimary }}
           >
             Leaderboard
           </h1>
@@ -392,7 +410,7 @@ export default function Leaderboard() {
       <div className="shrink-0 px-4 pb-3 md:px-6">
         <p
           className="text-xs text-center"
-          style={{ color: theme.defaultText }}
+          style={{ color: theme.textSecondary }}
         >
           Requires 90%+ accuracy and at least 30 seconds or 50 words to qualify
         </p>
@@ -448,7 +466,7 @@ export default function Leaderboard() {
       {/* Footer */}
       <footer
         className="shrink-0 px-4 pb-4 md:px-6 text-center"
-        style={{ color: theme.defaultText, opacity: 0.7 }}
+        style={{ color: theme.textSecondary, opacity: 0.7 }}
       >
         <div className="text-xs flex items-center justify-center gap-1">
           <svg

@@ -153,7 +153,7 @@ function ValidIcon({
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ color: theme.correctText }}
+          style={{ color: theme.statusSuccess }}
         >
           <path d="M20 6 9 17l-5-5" />
         </svg>
@@ -168,7 +168,7 @@ function ValidIcon({
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ color: theme.incorrectText }}
+          style={{ color: theme.statusError }}
         >
           <path d="M18 6 6 18" />
           <path d="m6 6 12 12" />
@@ -204,7 +204,7 @@ function SortableHeader({
       className={`flex items-center gap-1 hover:opacity-80 transition-opacity ${
         align === "right" ? "justify-end ml-auto" : ""
       }`}
-      style={{ color: isActive ? theme.buttonSelected : theme.defaultText }}
+      style={{ color: isActive ? theme.buttonSelected : theme.textSecondary }}
     >
       <span>{label}</span>
       <svg
@@ -251,7 +251,7 @@ function DeleteConfirmModal({
         style={{ backgroundColor: theme.surfaceColor }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-xl font-semibold text-center mb-6" style={{ color: theme.correctText }}>
+        <h3 className="text-xl font-semibold text-center mb-6" style={{ color: theme.textPrimary }}>
           Are You Sure?
         </h3>
         <div className="flex gap-3">
@@ -332,13 +332,13 @@ function TestDetailModal({
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold" style={{ color: theme.correctText }}>
+            <h3 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>
               Test Details
             </h3>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg transition hover:bg-gray-700/50"
-              style={{ color: theme.defaultText }}
+              className="p-1.5 rounded-lg transition hover:opacity-80"
+              style={{ color: theme.textSecondary }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -359,7 +359,7 @@ function TestDetailModal({
 
           {/* Date & Test Type Chips */}
           <div className="mb-5 text-center">
-            <div className="text-sm mb-2" style={{ color: theme.defaultText }}>
+            <div className="text-sm mb-2" style={{ color: theme.textSecondary }}>
               {formatDateTime(result.createdAt)}
             </div>
             <div className="flex flex-wrap gap-1.5 justify-center">
@@ -384,7 +384,7 @@ function TestDetailModal({
               className="p-5 rounded-xl text-center"
               style={{ backgroundColor: `${theme.backgroundColor}80` }}
             >
-              <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.defaultText }}>
+              <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.textSecondary }}>
                 WPM
               </div>
               <div className="text-5xl font-bold" style={{ color: theme.buttonSelected }}>
@@ -395,7 +395,7 @@ function TestDetailModal({
               className="p-5 rounded-xl text-center"
               style={{ backgroundColor: `${theme.backgroundColor}80` }}
             >
-              <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.defaultText }}>
+              <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: theme.textSecondary }}>
                 Accuracy
               </div>
               <div className="text-5xl font-bold" style={{ color: theme.buttonSelected }}>
@@ -411,21 +411,21 @@ function TestDetailModal({
               className="p-4 rounded-xl"
               style={{ backgroundColor: `${theme.backgroundColor}80` }}
             >
-              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.defaultText }}>
+              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.textSecondary }}>
                 Words
               </div>
               <div className="flex justify-around">
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.textPrimary }}>
                     {result.wordsCorrect ?? 0}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Correct</div>
+                  <div className="text-xs mt-1" style={{ color: theme.textSecondary }}>Correct</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: theme.incorrectText }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.statusError }}>
                     {result.wordsIncorrect ?? 0}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Incorrect</div>
+                  <div className="text-xs mt-1" style={{ color: theme.textSecondary }}>Incorrect</div>
                 </div>
               </div>
             </div>
@@ -435,21 +435,21 @@ function TestDetailModal({
               className="p-4 rounded-xl"
               style={{ backgroundColor: `${theme.backgroundColor}80` }}
             >
-              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.defaultText }}>
+              <div className="text-xs font-semibold uppercase tracking-wide mb-3 text-center" style={{ color: theme.textSecondary }}>
                 Characters
               </div>
               <div className="flex justify-around">
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.textPrimary }}>
                     {result.charsMissed ?? 0}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Missed</div>
+                  <div className="text-xs mt-1" style={{ color: theme.textSecondary }}>Missed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: theme.correctText }}>
+                  <div className="text-2xl font-bold" style={{ color: theme.textPrimary }}>
                     {result.charsExtra ?? 0}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: theme.defaultText }}>Extra</div>
+                  <div className="text-xs mt-1" style={{ color: theme.textSecondary }}>Extra</div>
                 </div>
               </div>
             </div>
@@ -461,7 +461,7 @@ function TestDetailModal({
               onClick={() => setShowDeleteConfirm(true)}
               className="w-full py-2.5 rounded-lg font-medium transition-opacity hover:opacity-80"
               style={{ 
-                backgroundColor: `${theme.incorrectText}20`, 
+                backgroundColor: theme.statusErrorMuted, 
                 color: theme.incorrectText 
               }}
             >
@@ -504,7 +504,7 @@ function StatCard({
         border: `1px solid ${theme.defaultText}20`
       }}
     >
-      <div className="text-sm font-semibold uppercase tracking-wide mb-1.5" style={{ color: theme.defaultText }}>
+      <div className="text-sm font-semibold uppercase tracking-wide mb-1.5" style={{ color: theme.textSecondary }}>
         {label}
       </div>
       <div className="text-2xl font-bold" style={{ color: theme[color] }}>
@@ -525,11 +525,29 @@ export default function UserStats() {
     upcomingText: "#4b5563",
     correctText: "#d1d5db",
     incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
     buttonUnselected: "#3cb5ee",
     buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
     backgroundColor: "#323437",
     surfaceColor: "#2c2e31",
-    ghostCursor: "#a855f7",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
   const { user: clerkUser } = useUser();
 
@@ -599,10 +617,10 @@ export default function UserStats() {
         style={{ backgroundColor: theme.backgroundColor }}
       >
         <div className="text-4xl mb-4">404</div>
-        <h1 className="text-xl font-semibold mb-2" style={{ color: theme.correctText }}>
+        <h1 className="text-xl font-semibold mb-2" style={{ color: theme.textPrimary }}>
           User Not Found
         </h1>
-        <p className="text-sm mb-6" style={{ color: theme.defaultText }}>
+        <p className="text-sm mb-6" style={{ color: theme.textSecondary }}>
           The user profile you're looking for doesn't exist.
         </p>
         <Link
@@ -649,7 +667,7 @@ export default function UserStats() {
           )}
           <h1
             className="text-xl font-semibold"
-            style={{ color: theme.correctText }}
+            style={{ color: theme.textPrimary }}
           >
             {profileUser?.username ?? "User"}
           </h1>
@@ -701,7 +719,7 @@ export default function UserStats() {
                 className="grid gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wide border-b shrink-0"
                 style={{ 
                   color: theme.defaultText, 
-                  borderColor: `${theme.defaultText}20`,
+                  borderColor: theme.borderSubtle,
                   gridTemplateColumns: "80px 1fr 40px 50px 55px"
                 }}
               >
@@ -743,19 +761,19 @@ export default function UserStats() {
                       key={result._id}
                       className="grid gap-4 px-4 py-2.5 border-b last:border-b-0 hover:bg-white/10 transition-colors cursor-pointer items-center"
                       style={{ 
-                        borderColor: `${theme.defaultText}10`,
+                        borderColor: theme.borderSubtle,
                         gridTemplateColumns: "80px 1fr 40px 50px 55px"
                       }}
                       onClick={() => setSelectedTest(result as TestResult)}
                     >
-                      <div className="text-sm" style={{ color: theme.correctText }}>
+                      <div className="text-sm" style={{ color: theme.textPrimary }}>
                         {formatDate(result.createdAt)}
                       </div>
                       <div className="pl-2">
                         <TestTypeChips result={result as TestResult} theme={theme} />
                       </div>
                       <ValidIcon result={result as TestResult} theme={theme} />
-                      <div className="text-sm text-right font-medium" style={{ color: theme.correctText }}>
+                      <div className="text-sm text-right font-medium" style={{ color: theme.textPrimary }}>
                         {result.wpm}
                       </div>
                       <div className="text-sm text-right font-medium" style={{ color: theme.buttonSelected }}>
@@ -766,7 +784,7 @@ export default function UserStats() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="text-3xl mb-2 opacity-50">📊</div>
-                    <p className="text-sm" style={{ color: theme.defaultText }}>
+                    <p className="text-sm" style={{ color: theme.textSecondary }}>
                       No tests saved yet
                     </p>
                   </div>

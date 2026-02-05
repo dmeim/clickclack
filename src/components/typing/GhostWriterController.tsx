@@ -1,11 +1,12 @@
 import { useState } from "react";
-import type { SettingsState, Theme } from "@/lib/typing-constants";
+import type { SettingsState } from "@/lib/typing-constants";
+import type { LegacyTheme } from "@/types/theme";
 import GhostWriterSettingsModal from "@/components/settings/GhostWriterSettingsModal";
 
 interface GhostWriterControllerProps {
   settings: SettingsState | Partial<SettingsState>;
   onUpdateSettings: (updates: Partial<SettingsState>) => void;
-  theme: Theme;
+  theme: LegacyTheme;
 }
 
 export default function GhostWriterController({

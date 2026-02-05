@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { SettingsState, Theme } from "@/lib/typing-constants";
+import type { SettingsState } from "@/lib/typing-constants";
+import type { LegacyTheme } from "@/types/theme";
 import type { SoundManifest } from "@/lib/sounds";
 import SoundSettingsModal from "@/components/settings/SoundSettingsModal";
 
@@ -7,7 +8,7 @@ interface SoundControllerProps {
   settings: SettingsState | Partial<SettingsState>;
   onUpdateSettings: (updates: Partial<SettingsState>) => void;
   soundManifest: SoundManifest | null;
-  theme: Theme;
+  theme: LegacyTheme;
 }
 
 export default function SoundController({

@@ -3,6 +3,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useEffect, useRef } from "react";
 import { useTheme } from "@/hooks/useTheme";
+import type { LegacyTheme } from "@/types/theme";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,14 +20,35 @@ export default function UserButton() {
   const { legacyTheme } = useTheme();
 
   // Fallback theme for when context is loading
-  const theme = legacyTheme ?? {
-    surfaceColor: "#2c2e31",
+  const theme: LegacyTheme = legacyTheme ?? {
+    cursor: "#3cb5ee",
+    defaultText: "#4b5563",
+    upcomingText: "#4b5563",
+    correctText: "#d1d5db",
+    incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
     buttonUnselected: "#3cb5ee",
     buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
     backgroundColor: "#323437",
-    correctText: "#d1d5db",
-    defaultText: "#4b5563",
-    incorrectText: "#ef4444",
+    surfaceColor: "#2c2e31",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
 
   // Sync user to Convex when they sign in
@@ -122,7 +144,7 @@ export default function UserButton() {
           )}
           <span
             className="text-sm font-medium hidden sm:inline max-w-[100px] truncate"
-            style={{ color: theme.correctText }}
+            style={{ color: theme.textPrimary }}
           >
             {user?.username ?? user?.firstName ?? "User"}
           </span>
@@ -145,21 +167,21 @@ export default function UserButton() {
       <DropdownMenuContent
         align="end"
         className="w-48"
-        style={{ backgroundColor: theme.surfaceColor, borderColor: `${theme.defaultText}30` }}
+        style={{ backgroundColor: theme.surfaceColor, borderColor: theme.borderSubtle }}
       >
         <div className="px-3 py-2">
-          <p className="text-sm font-medium" style={{ color: theme.correctText }}>
+          <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>
             {user?.username ?? user?.firstName ?? "User"}
           </p>
-          <p className="text-xs truncate" style={{ color: theme.defaultText }}>
+          <p className="text-xs truncate" style={{ color: theme.textSecondary }}>
             {user?.primaryEmailAddress?.emailAddress}
           </p>
         </div>
-        <DropdownMenuSeparator style={{ backgroundColor: `${theme.defaultText}30` }} />
+        <DropdownMenuSeparator style={{ backgroundColor: theme.borderSubtle }} />
         <DropdownMenuItem
           onClick={() => openUserProfile()}
           className="cursor-pointer"
-          style={{ color: theme.correctText }}
+          style={{ color: theme.textPrimary }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -178,11 +200,11 @@ export default function UserButton() {
           </svg>
           Account
         </DropdownMenuItem>
-        <DropdownMenuSeparator style={{ backgroundColor: `${theme.defaultText}30` }} />
+        <DropdownMenuSeparator style={{ backgroundColor: theme.borderSubtle }} />
         <DropdownMenuItem
           onClick={() => signOut()}
           className="cursor-pointer"
-          style={{ color: theme.incorrectText }}
+          style={{ color: theme.statusError }}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

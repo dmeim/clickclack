@@ -1,4 +1,5 @@
-import type { SettingsState, Theme } from "@/lib/typing-constants";
+import type { SettingsState } from "@/lib/typing-constants";
+import type { LegacyTheme } from "@/types/theme";
 import { getRandomSoundUrl } from "@/lib/sounds";
 import type { SoundManifest } from "@/lib/sounds";
 import {
@@ -15,7 +16,7 @@ interface SoundSettingsModalProps {
   settings: SettingsState;
   onUpdateSettings: (updates: Partial<SettingsState>) => void;
   soundManifest: SoundManifest | null;
-  theme: Theme;
+  theme: LegacyTheme;
 }
 
 export default function SoundSettingsModal({
@@ -50,14 +51,14 @@ export default function SoundSettingsModal({
         className="max-w-md"
         style={{
           backgroundColor: theme.surfaceColor,
-          borderColor: `${theme.defaultText}30`,
+          borderColor: theme.borderSubtle,
         }}
       >
         <DialogHeader>
-          <DialogTitle style={{ color: theme.correctText }}>
+          <DialogTitle style={{ color: theme.textPrimary }}>
             Sound Settings
           </DialogTitle>
-          <DialogDescription style={{ color: theme.defaultText }}>
+          <DialogDescription style={{ color: theme.textSecondary }}>
             Customize the audio feedback for typing, warnings, and errors.
           </DialogDescription>
         </DialogHeader>
@@ -102,7 +103,7 @@ export default function SoundSettingsModal({
           >
             {/* Typing Sound */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm" style={{ color: theme.defaultText }}>Typing Sound</label>
+              <label className="text-sm" style={{ color: theme.textSecondary }}>Typing Sound</label>
               <div className="flex items-center gap-2">
                 <select
                   value={settings.typingSound}
@@ -126,7 +127,7 @@ export default function SoundSettingsModal({
                   type="button"
                   onClick={() => playPreview("typing", settings.typingSound)}
                   className="p-2 rounded hover:opacity-75 transition"
-                  style={{ color: theme.defaultText }}
+                  style={{ color: theme.textSecondary }}
                   title="Preview sound"
                 >
                   <svg
@@ -149,7 +150,7 @@ export default function SoundSettingsModal({
 
             {/* Warning Sound */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm" style={{ color: theme.defaultText }}>Warning Sound</label>
+              <label className="text-sm" style={{ color: theme.textSecondary }}>Warning Sound</label>
               <div className="flex items-center gap-2">
                 <select
                   value={settings.warningSound}
@@ -173,7 +174,7 @@ export default function SoundSettingsModal({
                   type="button"
                   onClick={() => playPreview("warning", settings.warningSound)}
                   className="p-2 rounded hover:opacity-75 transition"
-                  style={{ color: theme.defaultText }}
+                  style={{ color: theme.textSecondary }}
                   title="Preview sound"
                 >
                   <svg
@@ -196,7 +197,7 @@ export default function SoundSettingsModal({
 
             {/* Error Sound (Placeholder) */}
             <div className="flex flex-col gap-2">
-              <label className="text-sm" style={{ color: theme.defaultText }}>Error Sound</label>
+              <label className="text-sm" style={{ color: theme.textSecondary }}>Error Sound</label>
               <div className="flex items-center gap-2">
                 <select
                   value={settings.errorSound}
@@ -225,7 +226,7 @@ export default function SoundSettingsModal({
                     playPreview("error", settings.errorSound)
                   }
                   className={`p-2 rounded hover:opacity-75 transition ${!settings.errorSound ? "opacity-50 cursor-not-allowed" : ""}`}
-                  style={{ color: theme.defaultText }}
+                  style={{ color: theme.textSecondary }}
                   title="Preview sound"
                   disabled={!settings.errorSound}
                 >

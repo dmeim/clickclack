@@ -3,6 +3,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useTheme } from "@/hooks/useTheme";
+import type { LegacyTheme } from "@/types/theme";
 import {
   getAchievementById,
   TIER_COLORS,
@@ -29,17 +30,35 @@ export default function AchievementsGrid({
   const { legacyTheme } = useTheme();
   
   // Fallback theme (complete)
-  const theme = legacyTheme ?? {
+  const theme: LegacyTheme = legacyTheme ?? {
     cursor: "#3cb5ee",
     defaultText: "#4b5563",
     upcomingText: "#4b5563",
     correctText: "#d1d5db",
     incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
     buttonUnselected: "#3cb5ee",
     buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
     backgroundColor: "#323437",
     surfaceColor: "#2c2e31",
-    ghostCursor: "#a855f7",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
   const recheckAchievements = useMutation(api.achievements.recheckAllAchievements);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -114,13 +133,13 @@ export default function AchievementsGrid({
         <div className="text-3xl mb-2 opacity-50">🏆</div>
         <div
           className="text-sm text-center"
-          style={{ color: theme.defaultText }}
+          style={{ color: theme.textSecondary }}
         >
           No achievements yet
         </div>
         <div
           className="text-xs text-center mt-1 opacity-70"
-          style={{ color: theme.defaultText }}
+          style={{ color: theme.textSecondary }}
         >
           Complete tests to earn achievements!
         </div>
@@ -138,7 +157,7 @@ export default function AchievementsGrid({
         <div className="flex items-center justify-between mb-2 px-1">
           <div
             className="text-xs font-semibold uppercase tracking-wide"
-            style={{ color: theme.defaultText }}
+            style={{ color: theme.textSecondary }}
           >
             Achievements
           </div>
@@ -147,7 +166,7 @@ export default function AchievementsGrid({
               onClick={handleRefresh}
               disabled={isRefreshing || !user}
               className="p-1 rounded transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ color: theme.defaultText }}
+              style={{ color: theme.textSecondary }}
               title="Refresh achievements"
             >
               <svg
@@ -216,7 +235,7 @@ export default function AchievementsGrid({
                   {/* Title (bottom) */}
                   <div
                     className="text-[10px] font-medium text-center leading-tight line-clamp-2"
-                    style={{ color: theme.correctText }}
+                    style={{ color: theme.textPrimary }}
                   >
                     {achievement.title}
                   </div>

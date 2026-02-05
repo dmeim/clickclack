@@ -81,13 +81,13 @@ function AchievementSlide({
         <div className="flex flex-col min-w-0">
           <h3
             className="text-2xl font-bold mb-1 truncate"
-            style={{ color: theme.correctText }}
+            style={{ color: theme.textPrimary }}
           >
             {achievement.title}
           </h3>
           <div
             className="text-sm flex items-center gap-1.5"
-            style={{ color: theme.defaultText }}
+            style={{ color: theme.textSecondary }}
           >
             <span>{category.icon}</span>
             <span>{category.name}</span>
@@ -100,7 +100,7 @@ function AchievementSlide({
         className="text-base text-center px-5 py-4 rounded-lg mb-4 w-full"
         style={{
           backgroundColor: `${theme.backgroundColor}80`,
-          color: theme.correctText,
+          color: theme.textPrimary,
         }}
       >
         {achievement.description}
@@ -108,7 +108,7 @@ function AchievementSlide({
 
       <div
         className="text-xs text-center"
-        style={{ color: theme.defaultText }}
+        style={{ color: theme.textSecondary }}
       >
         {isLocked ? (
           <span className="opacity-70">Not yet earned</span>
@@ -139,11 +139,29 @@ export default function AchievementDetailModal({
     upcomingText: "#4b5563",
     correctText: "#d1d5db",
     incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
     buttonUnselected: "#3cb5ee",
     buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
     backgroundColor: "#323437",
     surfaceColor: "#2c2e31",
-    ghostCursor: "#a855f7",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
 
   const [api, setApi] = useState<CarouselApi>();
@@ -216,8 +234,8 @@ export default function AchievementDetailModal({
         <div className="flex justify-end mb-2">
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg transition hover:bg-gray-700/50"
-            style={{ color: theme.defaultText }}
+            className="p-1.5 rounded-lg transition hover:opacity-80"
+            style={{ color: theme.textMuted }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -268,7 +286,7 @@ export default function AchievementDetailModal({
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full transition-all disabled:opacity-20"
                 style={{
                   backgroundColor: `${theme.surfaceColor}ee`,
-                  color: canScrollPrev ? theme.buttonSelected : theme.defaultText,
+                  color: canScrollPrev ? theme.buttonSelected : theme.textMuted,
                 }}
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -279,7 +297,7 @@ export default function AchievementDetailModal({
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full transition-all disabled:opacity-20"
                 style={{
                   backgroundColor: `${theme.surfaceColor}ee`,
-                  color: canScrollNext ? theme.buttonSelected : theme.defaultText,
+                  color: canScrollNext ? theme.buttonSelected : theme.textMuted,
                 }}
               >
                 <ChevronRight className="w-5 h-5" />
@@ -300,7 +318,7 @@ export default function AchievementDetailModal({
                   backgroundColor:
                     index === currentIndex
                       ? theme.buttonSelected
-                      : `${theme.defaultText}40`,
+                      : theme.textMuted,
                   transform: index === currentIndex ? "scale(1.2)" : "scale(1)",
                 }}
               />

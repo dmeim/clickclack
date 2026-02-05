@@ -106,11 +106,11 @@ function CategoryCard({
       style={{
         backgroundColor: hasEarned
           ? `${tierColors?.bg}15`
-          : `${theme.defaultText}08`,
+          : theme.surfaceColor,
         borderWidth: 1,
         borderColor: hasEarned
           ? `${tierColors?.border}40`
-          : `${theme.defaultText}15`,
+          : theme.borderSubtle,
       }}
     >
       {/* Category Header */}
@@ -118,7 +118,7 @@ function CategoryCard({
         <span className="text-lg">{categoryInfo.icon}</span>
         <span
           className="text-xs font-semibold truncate flex-1"
-          style={{ color: theme.correctText }}
+          style={{ color: theme.textPrimary }}
         >
           {categoryInfo.name}
         </span>
@@ -147,7 +147,7 @@ function CategoryCard({
           <div className="flex-1 min-w-0">
             <div
               className="text-[11px] font-medium line-clamp-1"
-              style={{ color: theme.correctText }}
+              style={{ color: theme.textPrimary }}
             >
               {highestAchievement.title}
             </div>
@@ -166,12 +166,12 @@ function CategoryCard({
         <div
           className="flex items-center justify-center p-2 rounded-lg opacity-40 flex-1"
           style={{
-            backgroundColor: `${theme.defaultText}10`,
+            backgroundColor: theme.backgroundColor,
             borderWidth: 1,
-            borderColor: `${theme.defaultText}20`,
+            borderColor: theme.borderSubtle,
           }}
         >
-          <span className="text-xs" style={{ color: theme.defaultText }}>
+          <span className="text-xs" style={{ color: theme.textMuted }}>
             None yet
           </span>
         </div>
@@ -193,11 +193,29 @@ export default function AchievementsCategoryGrid({
     upcomingText: "#4b5563",
     correctText: "#d1d5db",
     incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
     buttonUnselected: "#3cb5ee",
     buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
     backgroundColor: "#323437",
     surfaceColor: "#2c2e31",
-    ghostCursor: "#a855f7",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
   const recheckAchievements = useMutation(
     api.achievements.recheckAllAchievements
@@ -245,12 +263,12 @@ export default function AchievementsCategoryGrid({
             className="p-3 rounded-xl flex flex-col justify-center"
             style={{
               backgroundColor: `${theme.backgroundColor}80`,
-              border: `1px solid ${theme.defaultText}20`,
+              border: `1px solid ${theme.borderSubtle}`,
             }}
           >
             <div
               className="text-xs font-semibold uppercase tracking-wide mb-1"
-              style={{ color: theme.defaultText }}
+              style={{ color: theme.textSecondary }}
             >
               Achievements
             </div>
@@ -269,7 +287,7 @@ export default function AchievementsCategoryGrid({
                 onClick={handleRefresh}
                 disabled={isRefreshing || !user}
                 className="p-1.5 rounded transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ color: theme.defaultText }}
+                style={{ color: theme.textSecondary }}
                 title="Refresh achievements"
               >
                 <svg
@@ -305,7 +323,7 @@ export default function AchievementsCategoryGrid({
               border: `1px solid ${
                 collectionAchievement
                   ? `${collectionTierColors?.border}40`
-                  : `${theme.defaultText}20`
+                  : theme.borderSubtle
               }`,
             }}
           >
@@ -326,7 +344,7 @@ export default function AchievementsCategoryGrid({
                 <div className="flex-1 min-w-0">
                   <div
                     className="text-sm font-semibold truncate"
-                    style={{ color: theme.correctText }}
+                    style={{ color: theme.textPrimary }}
                   >
                     {collectionAchievement.title}
                   </div>
@@ -345,13 +363,13 @@ export default function AchievementsCategoryGrid({
               <div className="flex-1 flex flex-col justify-center">
                 <div
                   className="text-xs font-semibold uppercase tracking-wide mb-1"
-                  style={{ color: theme.defaultText }}
+                  style={{ color: theme.textSecondary }}
                 >
                   Collector
                 </div>
                 <div
                   className="text-sm opacity-60"
-                  style={{ color: theme.defaultText }}
+                  style={{ color: theme.textMuted }}
                 >
                   Earn achievements to unlock
                 </div>

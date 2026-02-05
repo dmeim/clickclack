@@ -14,6 +14,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useTheme } from "@/hooks/useTheme";
+import type { LegacyTheme } from "@/types/theme";
 import {
   useNotifications,
   getRelativeTime,
@@ -58,11 +59,35 @@ export default function NotificationCenter() {
   const { legacyTheme } = useTheme();
   
   // Fallback theme for when context is loading
-  const theme = legacyTheme ?? {
-    buttonUnselected: "#3cb5ee",
-    surfaceColor: "#2c2e31",
+  const theme: LegacyTheme = legacyTheme ?? {
+    cursor: "#3cb5ee",
     defaultText: "#4b5563",
+    upcomingText: "#4b5563",
     correctText: "#d1d5db",
+    incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
+    buttonUnselected: "#3cb5ee",
+    buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
+    backgroundColor: "#323437",
+    surfaceColor: "#2c2e31",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
   const {
     notifications,
@@ -130,19 +155,19 @@ export default function NotificationCenter() {
           className="w-80 max-h-96 overflow-y-auto"
           style={{
             backgroundColor: theme.surfaceColor,
-            borderColor: `${theme.defaultText}20`,
+            borderColor: theme.borderSubtle,
           }}
         >
           <DropdownMenuLabel
             className="flex items-center justify-between"
-            style={{ color: theme.correctText }}
+            style={{ color: theme.textPrimary }}
           >
             <span>Notifications</span>
             {unreadCount > 0 && (
               <span
                 className="text-xs px-2 py-0.5 rounded-full"
                 style={{
-                  backgroundColor: `${theme.correctText}20`,
+                  backgroundColor: theme.accentMuted,
                   color: theme.correctText,
                 }}
               >
@@ -150,12 +175,12 @@ export default function NotificationCenter() {
               </span>
             )}
           </DropdownMenuLabel>
-          <DropdownMenuSeparator style={{ backgroundColor: `${theme.defaultText}20` }} />
+          <DropdownMenuSeparator style={{ backgroundColor: theme.borderSubtle }} />
 
           {notifications.length === 0 ? (
             <div
               className="py-8 text-center text-sm"
-              style={{ color: theme.defaultText }}
+              style={{ color: theme.textSecondary }}
             >
               No notifications yet
             </div>
@@ -165,7 +190,7 @@ export default function NotificationCenter() {
                 {unreadCount > 0 && (
                   <button
                     className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded text-xs transition hover:bg-gray-800/50"
-                    style={{ color: theme.defaultText }}
+                    style={{ color: theme.textSecondary }}
                     onClick={(e) => {
                       e.preventDefault();
                       markAllAsRead();
@@ -177,7 +202,7 @@ export default function NotificationCenter() {
                 )}
                 <button
                   className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded text-xs transition hover:bg-gray-800/50"
-                  style={{ color: theme.defaultText }}
+                  style={{ color: theme.textSecondary }}
                   onClick={(e) => {
                     e.preventDefault();
                     clearAll();
@@ -188,7 +213,7 @@ export default function NotificationCenter() {
                 </button>
               </div>
 
-              <DropdownMenuSeparator style={{ backgroundColor: `${theme.defaultText}20` }} />
+              <DropdownMenuSeparator style={{ backgroundColor: theme.borderSubtle }} />
 
               {notifications.slice(0, 20).map((notification) => (
                 <DropdownMenuItem
@@ -197,7 +222,7 @@ export default function NotificationCenter() {
                   style={{
                     backgroundColor: notification.read
                       ? "transparent"
-                      : `${theme.correctText}08`,
+                      : theme.accentSubtle,
                   }}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -205,19 +230,19 @@ export default function NotificationCenter() {
                   <div className="flex-1 min-w-0">
                     <div
                       className="text-sm font-medium truncate"
-                      style={{ color: theme.correctText }}
+                      style={{ color: theme.textPrimary }}
                     >
                       {notification.title}
                     </div>
                     <div
                       className="text-xs mt-0.5 line-clamp-2"
-                      style={{ color: theme.defaultText }}
+                      style={{ color: theme.textSecondary }}
                     >
                       {notification.description}
                     </div>
                     <div
                       className="text-xs mt-1"
-                      style={{ color: `${theme.defaultText}80` }}
+                      style={{ color: theme.textMuted }}
                     >
                       {getRelativeTime(notification.timestamp)}
                     </div>
@@ -225,7 +250,7 @@ export default function NotificationCenter() {
                   <div className="flex items-center gap-1 shrink-0 mt-0.5">
                     <button
                       className="opacity-0 group-hover:opacity-100 p-1 rounded transition-opacity hover:bg-gray-800/50"
-                      style={{ color: theme.defaultText }}
+                      style={{ color: theme.textSecondary }}
                       onClick={(e) => {
                         e.stopPropagation();
                         removeNotification(notification.id);

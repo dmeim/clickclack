@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { SettingsState, Theme } from "@/lib/typing-constants";
+import type { SettingsState } from "@/lib/typing-constants";
+import type { LegacyTheme } from "@/types/theme";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ interface GhostWriterSettingsModalProps {
   onClose: () => void;
   settings: SettingsState;
   onUpdateSettings: (updates: Partial<SettingsState>) => void;
-  theme: Theme;
+  theme: LegacyTheme;
 }
 
 const SPEED_PRESETS = [20, 40, 60, 80, 100, 120];
@@ -38,14 +39,14 @@ export default function GhostWriterSettingsModal({
         className="max-w-md"
         style={{
           backgroundColor: theme.surfaceColor,
-          borderColor: `${theme.defaultText}30`,
+          borderColor: theme.borderSubtle,
         }}
       >
         <DialogHeader>
-          <DialogTitle style={{ color: theme.correctText }}>
+          <DialogTitle style={{ color: theme.textPrimary }}>
             Ghost Writer
           </DialogTitle>
-          <DialogDescription style={{ color: theme.defaultText }}>
+          <DialogDescription style={{ color: theme.textSecondary }}>
             A visual guide that shows where you would be if typing at your target speed.
           </DialogDescription>
         </DialogHeader>
@@ -89,7 +90,7 @@ export default function GhostWriterSettingsModal({
             className={`space-y-4 transition-opacity duration-200 ${!settings.ghostWriterEnabled ? "opacity-50 pointer-events-none" : ""}`}
           >
             <div className="flex flex-col gap-3">
-              <label className="text-sm text-center" style={{ color: theme.defaultText }}>
+              <label className="text-sm text-center" style={{ color: theme.textSecondary }}>
                 Target Speed (WPM)
               </label>
 
@@ -113,7 +114,7 @@ export default function GhostWriterSettingsModal({
 
               {/* Custom Speed Input */}
               <div className="flex items-center justify-center gap-3 mt-2">
-                <span className="text-sm" style={{ color: theme.defaultText }}>Custom:</span>
+                <span className="text-sm" style={{ color: theme.textSecondary }}>Custom:</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -175,7 +176,7 @@ export default function GhostWriterSettingsModal({
                     +
                   </button>
                 </div>
-                <span className="text-sm" style={{ color: theme.defaultText }}>WPM</span>
+                <span className="text-sm" style={{ color: theme.textSecondary }}>WPM</span>
               </div>
             </div>
           </div>

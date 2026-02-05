@@ -3,6 +3,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useTheme } from "@/hooks/useTheme";
+import type { LegacyTheme } from "@/types/theme";
 import { UserButton } from "@/components/auth";
 import NotificationCenter from "@/components/layout/NotificationCenter";
 import { Sun, Moon } from "lucide-react";
@@ -18,9 +19,35 @@ export default function Header({
   const { legacyTheme, mode, toggleMode, supportsLightMode } = useTheme();
   
   // Fallback theme for when context is loading
-  const theme = legacyTheme ?? {
-    buttonUnselected: "#3cb5ee",
+  const theme: LegacyTheme = legacyTheme ?? {
+    cursor: "#3cb5ee",
     defaultText: "#4b5563",
+    upcomingText: "#4b5563",
+    correctText: "#d1d5db",
+    incorrectText: "#ef4444",
+    ghostCursor: "#a855f7",
+    buttonUnselected: "#3cb5ee",
+    buttonSelected: "#0097b2",
+    accentColor: "#a855f7",
+    accentMuted: "rgba(168, 85, 247, 0.3)",
+    accentSubtle: "rgba(168, 85, 247, 0.1)",
+    backgroundColor: "#323437",
+    surfaceColor: "#2c2e31",
+    elevatedColor: "#37383b",
+    overlayColor: "rgba(0, 0, 0, 0.5)",
+    textPrimary: "#d1d5db",
+    textSecondary: "#4b5563",
+    textMuted: "rgba(75, 85, 99, 0.6)",
+    textInverse: "#ffffff",
+    borderDefault: "rgba(75, 85, 99, 0.3)",
+    borderSubtle: "rgba(75, 85, 99, 0.15)",
+    borderFocus: "#3cb5ee",
+    statusSuccess: "#22c55e",
+    statusSuccessMuted: "rgba(34, 197, 94, 0.3)",
+    statusError: "#ef4444",
+    statusErrorMuted: "rgba(239, 68, 68, 0.3)",
+    statusWarning: "#f59e0b",
+    statusWarningMuted: "rgba(245, 158, 11, 0.3)",
   };
   
   // Fetch current user's Convex ID for stats link
@@ -78,7 +105,7 @@ export default function Header({
           className={`flex h-10 w-10 items-center justify-center rounded-lg transition ${
             supportsLightMode ? "hover:bg-gray-800/50 cursor-pointer" : "opacity-40 cursor-not-allowed"
           }`}
-          style={{ color: supportsLightMode ? theme.buttonUnselected : theme.defaultText }}
+          style={{ color: supportsLightMode ? theme.buttonUnselected : theme.textMuted }}
           title={
             supportsLightMode
               ? `Switch to ${mode === "dark" ? "light" : "dark"} mode`

@@ -121,16 +121,46 @@ export type CategoryConfig = {
 
 // Legacy theme type (for backward compatibility during migration)
 export type LegacyTheme = {
+  // Typing-specific colors (keep for typing UI)
   cursor: string;
   defaultText: string;
   upcomingText: string;
   correctText: string;
   incorrectText: string;
+  ghostCursor: string;
+
+  // Interactive colors
   buttonUnselected: string;
   buttonSelected: string;
+  accentColor: string;
+  accentMuted: string;
+  accentSubtle: string;
+
+  // Background colors
   backgroundColor: string;
   surfaceColor: string;
-  ghostCursor: string;
+  elevatedColor: string;
+  overlayColor: string;
+
+  // General UI text (use these for non-typing UI)
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textInverse: string;
+
+  // Borders
+  borderDefault: string;
+  borderSubtle: string;
+  borderFocus: string;
+
+  // Status colors
+  statusSuccess: string;
+  statusSuccessMuted: string;
+  statusError: string;
+  statusErrorMuted: string;
+  statusWarning: string;
+  statusWarningMuted: string;
+
   category?: ThemeCategory;
 };
 
@@ -140,15 +170,44 @@ export type LegacyTheme = {
  */
 export function toLegacyTheme(colors: ThemeColors): LegacyTheme {
   return {
+    // Typing-specific colors
     cursor: colors.typing.cursor,
     defaultText: colors.typing.default,
     upcomingText: colors.typing.upcoming,
     correctText: colors.typing.correct,
     incorrectText: colors.typing.incorrect,
+    ghostCursor: colors.typing.cursorGhost,
+
+    // Interactive colors
     buttonUnselected: colors.interactive.primary.DEFAULT,
     buttonSelected: colors.interactive.secondary.DEFAULT,
+    accentColor: colors.interactive.accent.DEFAULT,
+    accentMuted: colors.interactive.accent.muted,
+    accentSubtle: colors.interactive.accent.subtle,
+
+    // Background colors
     backgroundColor: colors.bg.base,
     surfaceColor: colors.bg.surface,
-    ghostCursor: colors.typing.cursorGhost,
+    elevatedColor: colors.bg.elevated,
+    overlayColor: colors.bg.overlay,
+
+    // General UI text
+    textPrimary: colors.text.primary,
+    textSecondary: colors.text.secondary,
+    textMuted: colors.text.muted,
+    textInverse: colors.text.inverse,
+
+    // Borders
+    borderDefault: colors.border.default,
+    borderSubtle: colors.border.subtle,
+    borderFocus: colors.border.focus,
+
+    // Status colors
+    statusSuccess: colors.status.success.DEFAULT,
+    statusSuccessMuted: colors.status.success.muted,
+    statusError: colors.status.error.DEFAULT,
+    statusErrorMuted: colors.status.error.muted,
+    statusWarning: colors.status.warning.DEFAULT,
+    statusWarningMuted: colors.status.warning.muted,
   };
 }
