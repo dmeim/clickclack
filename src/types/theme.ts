@@ -11,6 +11,7 @@ export type ThemeCategory =
   | "editor"
   | "holiday"
   | "nature"
+  | "animals"
   | "time"
   | "retro"
   | "aesthetic"

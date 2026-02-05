@@ -23,25 +23,27 @@ export const CATEGORY_CONFIG: Record<ThemeCategory, CategoryConfig> = {
   // Design/Visual
   aesthetic: { displayName: "Aesthetic", order: 5 },
   "color-theory": { displayName: "Color Theory", order: 6 },
+  // Animals
+  animals: { displayName: "Animals", order: 7 },
   // Nature/Environment
-  nature: { displayName: "Nature", order: 7 },
-  weather: { displayName: "Weather", order: 8 },
-  space: { displayName: "Space", order: 9 },
-  time: { displayName: "Time of Day", order: 10 },
+  nature: { displayName: "Nature", order: 8 },
+  weather: { displayName: "Weather", order: 9 },
+  space: { displayName: "Space", order: 10 },
+  time: { displayName: "Time of Day", order: 11 },
   // Era/Culture
-  retro: { displayName: "Retro/Tech", order: 11 },
-  cultural: { displayName: "Cultural", order: 12 },
+  retro: { displayName: "Retro/Tech", order: 12 },
+  cultural: { displayName: "Cultural", order: 13 },
   // Entertainment/Media
-  gaming: { displayName: "Gaming", order: 13 },
-  movies: { displayName: "Movies", order: 14 },
-  "tv-shows": { displayName: "TV Shows", order: 15 },
-  anime: { displayName: "Anime", order: 16 },
+  gaming: { displayName: "Gaming", order: 14 },
+  movies: { displayName: "Movies", order: 15 },
+  "tv-shows": { displayName: "TV Shows", order: 16 },
+  anime: { displayName: "Anime", order: 17 },
   // Lifestyle
-  music: { displayName: "Music", order: 17 },
-  sports: { displayName: "Sports", order: 18 },
-  food: { displayName: "Food", order: 19 },
-  fun: { displayName: "Fun", order: 20 },
-  holiday: { displayName: "Holiday", order: 21 },
+  music: { displayName: "Music", order: 18 },
+  sports: { displayName: "Sports", order: 19 },
+  food: { displayName: "Food", order: 20 },
+  fun: { displayName: "Fun", order: 21 },
+  holiday: { displayName: "Holiday", order: 22 },
 };
 
 // Cache for loaded data
@@ -227,6 +229,8 @@ export function groupThemesByCategory(themes: ThemeDefinition[]): GroupedThemes[
     // Design/Visual
     aesthetic: [],
     "color-theory": [],
+    // Animals
+    animals: [],
     // Nature/Environment
     nature: [],
     weather: [],
