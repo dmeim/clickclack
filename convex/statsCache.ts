@@ -78,7 +78,14 @@ export const updateLeaderboardCache = internalMutation({
     const updates: string[] = [];
 
     for (const timeRange of timeRanges) {
-      // Check if user has existing entries for this time range
+      // Compute time cutoff for week/today staleness check
+      let timeCutoff = 0;
+      if (timeRange === "today") {
+        timeCutoff = getStartOfDayET(0);
+      } else if (timeRange === "week") {
+        timeCutoff = getStartOfDayET(7);
+      }
+
       // Use collect() to detect and clean up any duplicates
       const existingEntries = await ctx.db
         .query("leaderboardCache")
@@ -89,7 +96,6 @@ export const updateLeaderboardCache = internalMutation({
 
       // Clean up duplicates: keep only the one with the highest bestWpm
       if (existingEntries.length > 1) {
-        // Sort by bestWpm desc, keep the first (highest), delete the rest
         existingEntries.sort((a, b) => b.bestWpm - a.bestWpm);
         for (let i = 1; i < existingEntries.length; i++) {
           await ctx.db.delete(existingEntries[i]._id);
@@ -100,7 +106,7 @@ export const updateLeaderboardCache = internalMutation({
       const existingEntry = existingEntries[0] ?? null;
 
       if (!existingEntry) {
-        // Create new entry
+        // No entry yet - create one
         await ctx.db.insert("leaderboardCache", {
           userId: args.userId,
           timeRange,
@@ -111,12 +117,47 @@ export const updateLeaderboardCache = internalMutation({
           updatedAt: now,
         });
         updates.push(`created ${timeRange}`);
+      } else if (
+        timeRange !== "all-time" &&
+        existingEntry.bestWpmAt < timeCutoff
+      ) {
+        // Cached entry is stale (best score aged out of the window).
+        // Recalculate the true best for this time range from testResults.
+        const results = await ctx.db
+          .query("testResults")
+          .withIndex("by_user", (q) => q.eq("userId", args.userId))
+          .collect();
+
+        const eligible = results.filter(
+          (r) =>
+            r.accuracy >= 90 &&
+            r.isValid !== false &&
+            r.createdAt >= timeCutoff
+        );
+
+        if (eligible.length === 0) {
+          // No valid results in this window anymore - delete the entry
+          await ctx.db.delete(existingEntry._id);
+          updates.push(`deleted stale ${timeRange}`);
+        } else {
+          const best = eligible.reduce((a, b) =>
+            a.wpm > b.wpm ? a : b
+          );
+          await ctx.db.patch(existingEntry._id, {
+            bestWpm: best.wpm,
+            bestWpmAt: best.createdAt,
+            username: args.username,
+            avatarUrl: args.avatarUrl,
+            updatedAt: now,
+          });
+          updates.push(`recalculated stale ${timeRange}`);
+        }
       } else if (args.wpm > existingEntry.bestWpm) {
-        // Update if new score is better
+        // Entry is fresh and new score beats it - update
         await ctx.db.patch(existingEntry._id, {
           bestWpm: args.wpm,
           bestWpmAt: args.createdAt,
-          username: args.username, // Also update username/avatar in case they changed
+          username: args.username,
           avatarUrl: args.avatarUrl,
           updatedAt: now,
         });
@@ -458,10 +499,11 @@ export const getCachedUserStats = internalQuery({
 });
 
 /**
- * Scheduled job to prune stale leaderboard cache entries.
- * - "today" entries older than midnight today are deleted
- * - "week" entries older than 7 days ago are deleted
- * Run this daily (e.g., at midnight ET) to keep the cache clean.
+ * Scheduled job to refresh stale leaderboard cache entries.
+ * For stale entries (best score aged out of the window), recalculates
+ * the user's actual best from testResults. Deletes the entry only if
+ * the user has no eligible results left in that window.
+ * Run daily at 5 AM ET via cron.
  */
 export const pruneStaleLeaderboardEntries = internalMutation({
   args: {},
@@ -469,9 +511,45 @@ export const pruneStaleLeaderboardEntries = internalMutation({
     const todayCutoff = getStartOfDayET(0);
     const weekCutoff = getStartOfDayET(7);
     let deletedToday = 0;
+    let recalculatedToday = 0;
     let deletedWeek = 0;
+    let recalculatedWeek = 0;
 
-    // Get all "today" entries and delete stale ones
+    // Helper to recalculate a stale entry
+    async function refreshStaleEntry(
+      entry: { _id: typeof todayEntries[0]["_id"]; userId: typeof todayEntries[0]["userId"]; username: string; avatarUrl?: string },
+      cutoff: number
+    ): Promise<"deleted" | "recalculated"> {
+      const results = await ctx.db
+        .query("testResults")
+        .withIndex("by_user", (q) => q.eq("userId", entry.userId))
+        .collect();
+
+      const eligible = results.filter(
+        (r) =>
+          r.accuracy >= 90 &&
+          r.isValid !== false &&
+          r.createdAt >= cutoff
+      );
+
+      if (eligible.length === 0) {
+        await ctx.db.delete(entry._id);
+        return "deleted";
+      }
+
+      const best = eligible.reduce((a, b) => (a.wpm > b.wpm ? a : b));
+      const user = await ctx.db.get(entry.userId);
+      await ctx.db.patch(entry._id, {
+        bestWpm: best.wpm,
+        bestWpmAt: best.createdAt,
+        username: user?.username ?? entry.username,
+        avatarUrl: user?.avatarUrl ?? entry.avatarUrl,
+        updatedAt: Date.now(),
+      });
+      return "recalculated";
+    }
+
+    // Process "today" entries
     const todayEntries = await ctx.db
       .query("leaderboardCache")
       .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", "today"))
@@ -479,12 +557,13 @@ export const pruneStaleLeaderboardEntries = internalMutation({
 
     for (const entry of todayEntries) {
       if (entry.bestWpmAt < todayCutoff) {
-        await ctx.db.delete(entry._id);
-        deletedToday++;
+        const result = await refreshStaleEntry(entry, todayCutoff);
+        if (result === "deleted") deletedToday++;
+        else recalculatedToday++;
       }
     }
 
-    // Get all "week" entries and delete stale ones
+    // Process "week" entries
     const weekEntries = await ctx.db
       .query("leaderboardCache")
       .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", "week"))
@@ -492,12 +571,13 @@ export const pruneStaleLeaderboardEntries = internalMutation({
 
     for (const entry of weekEntries) {
       if (entry.bestWpmAt < weekCutoff) {
-        await ctx.db.delete(entry._id);
-        deletedWeek++;
+        const result = await refreshStaleEntry(entry, weekCutoff);
+        if (result === "deleted") deletedWeek++;
+        else recalculatedWeek++;
       }
     }
 
-    return { deletedToday, deletedWeek };
+    return { deletedToday, recalculatedToday, deletedWeek, recalculatedWeek };
   },
 });
 
