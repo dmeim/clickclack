@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Baby, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
 import type { Quote, SettingsState } from "@/lib/typing-constants";
 import { fetchSoundManifest, getRandomSoundUrl, type SoundManifest } from "@/lib/sounds";
 import { fetchAllThemes, groupThemesByCategory, CATEGORY_CONFIG, type ThemeDefinition, type GroupedThemes, type ThemeCategory } from "@/lib/themes";
@@ -204,6 +206,33 @@ interface TypingPracticeProps {
   setShowThemeModal?: (show: boolean) => void;
   // Callback to notify parent of typing state changes
   onTypingStateChange?: (isTyping: boolean) => void;
+}
+
+// Animated counter display for WPM
+function AnimatedWpmDisplay({ value, color }: { value: number; color: string }) {
+  const animated = useAnimatedCounter(value, 1000, 200);
+  return (
+    <div
+      className="text-6xl md:text-8xl font-black tabular-nums leading-none tracking-tight"
+      style={{ color }}
+    >
+      {animated}
+    </div>
+  );
+}
+
+// Animated counter display for Accuracy
+function AnimatedAccuracyDisplay({ value, color }: { value: number; color: string }) {
+  const animated = useAnimatedCounter(value, 1000, 300);
+  return (
+    <div
+      className="text-6xl md:text-8xl font-black tabular-nums leading-none tracking-tight"
+      style={{ color }}
+    >
+      {animated}
+      <span className="text-2xl md:text-4xl align-top ml-1 opacity-50">%</span>
+    </div>
+  );
 }
 
 export default function TypingPractice({
@@ -832,10 +861,20 @@ export default function TypingPractice({
               },
             });
 
-            // Show toast notification
+            // Show toast notification with bounce animation on icon
             toast.success(achievement.title, {
               description: achievement.description,
-              icon: <span style={{ fontSize: "1.75rem" }}>{achievement.icon}</span>,
+              icon: (
+                <span
+                  style={{
+                    fontSize: "1.75rem",
+                    display: "inline-block",
+                    animation: "achievement-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  }}
+                >
+                  {achievement.icon}
+                </span>
+              ),
               duration: 5000,
               style: {
                 borderLeft: `5px solid ${tierColor}`,
@@ -844,6 +883,8 @@ export default function TypingPractice({
                 borderBottom: `2px solid ${tierColor}40`,
                 backgroundColor: theme.surfaceColor,
                 color: theme.textPrimary,
+                boxShadow: `0 0 20px ${tierColor}30`,
+                animation: "achievement-glow 2s ease-in-out",
               },
               descriptionClassName: "!text-current opacity-70",
               action: {
@@ -1942,56 +1983,56 @@ export default function TypingPractice({
           </div>
         ) : (
           // Results Screen
-          <div className="w-full max-w-4xl mx-auto animate-fade-in">
+          <div className="w-full max-w-4xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               {/* WPM */}
-              <div
+              <motion.div
                 className="relative overflow-hidden rounded-2xl p-6 md:p-10 flex flex-col items-center justify-center group transition-colors"
                 style={{ backgroundColor: theme.surfaceColor, borderWidth: 1, borderColor: theme.borderSubtle }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               >
                 <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: theme.textSecondary }}>
                   Words Per Minute
                 </div>
-                <div
-                  className="text-6xl md:text-8xl font-black tabular-nums leading-none tracking-tight"
-                  style={{ color: theme.buttonSelected }}
-                >
-                  {Math.round(wpm)}
-                </div>
+                <AnimatedWpmDisplay value={Math.round(wpm)} color={theme.buttonSelected} />
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity" style={{ color: theme.textPrimary }}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Accuracy */}
-              <div
+              <motion.div
                 className="relative overflow-hidden rounded-2xl p-6 md:p-10 flex flex-col items-center justify-center group transition-colors"
                 style={{ backgroundColor: theme.surfaceColor, borderWidth: 1, borderColor: theme.borderSubtle }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
               >
                 <div className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: theme.textSecondary }}>
                   Accuracy
                 </div>
-                <div
-                  className="text-6xl md:text-8xl font-black tabular-nums leading-none tracking-tight"
-                  style={{ color: theme.buttonSelected }}
-                >
-                  {Math.round(accuracy)}
-                  <span className="text-2xl md:text-4xl align-top ml-1 opacity-50">%</span>
-                </div>
+                <AnimatedAccuracyDisplay value={Math.round(accuracy)} color={theme.buttonSelected} />
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity" style={{ color: theme.textPrimary }}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Secondary Stats - Grouped by Words and Characters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-12">
+            <motion.div
+              className="flex flex-col md:flex-row gap-4 mb-12"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+            >
               {/* Words Group */}
               <div className="flex-1 rounded-xl p-4" style={{ backgroundColor: `${theme.surfaceColor}80`, borderWidth: 1, borderColor: theme.borderSubtle }}>
                 <div className="text-xs font-semibold uppercase tracking-wide text-center mb-3" style={{ color: theme.textSecondary }}>Words</div>
@@ -2090,7 +2131,7 @@ export default function TypingPractice({
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Quote Attribution */}
             {settings.mode === "quote" && currentQuote && (
@@ -2148,7 +2189,12 @@ export default function TypingPractice({
             )}
 
             {/* Actions */}
-            <div className="flex gap-4 justify-center">
+            <motion.div
+              className="flex gap-4 justify-center"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+            >
               {/* Save Results Button */}
               {!connectMode && (
                 <button
@@ -2288,9 +2334,15 @@ export default function TypingPractice({
                   Leave Room
                 </button>
               )}
-            </div>
+            </motion.div>
 
-            <div className="mt-6 text-center text-sm" style={{ color: theme.textSecondary }}>
+            <motion.div
+              className="mt-6 text-center text-sm"
+              style={{ color: theme.textSecondary }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.7 }}
+            >
               <div>
                 {lastResultIsValid !== false && (
                   <>
@@ -2303,7 +2355,7 @@ export default function TypingPractice({
               <div className="mt-1">
                 Press <kbd className="px-1.5 py-0.5 rounded font-sans" style={{ backgroundColor: theme.surfaceColor, color: theme.textPrimary }}>Tab</kbd> to repeat this test
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
       </div>

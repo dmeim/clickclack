@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useTheme } from "@/hooks/useTheme";
 import type { LegacyTheme } from "@/types/theme";
+import { motion } from "framer-motion";
 
 // Local type alias for components
 type Theme = LegacyTheme;
@@ -85,15 +86,22 @@ function getUsernameFontSize(username: string): string {
 }
 
 function PodiumCard({ entry, theme, height }: PodiumCardProps) {
+  // Stagger delay: 3rd -> 2nd -> 1st (award ceremony style)
+  const revealOrder = entry.rank === 3 ? 0 : entry.rank === 2 ? 1 : 2;
+  const delay = revealOrder * 0.3;
+
   return (
-    <div
+    <motion.div
       className="w-36 min-w-0 flex flex-col items-center rounded-t-xl pt-4 pb-3 px-2"
       style={{
         backgroundColor: `${theme.backgroundColor}90`,
-        height: `${height}px`,
         border: `1px solid ${theme.borderSubtle}`,
         borderBottom: "none",
+        overflow: "hidden",
       }}
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: `${height}px`, opacity: 1 }}
+      transition={{ delay, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
     >
       {/* Row 1: Avatar + Medal */}
       <div className="flex items-center gap-1.5 mb-2">
@@ -143,7 +151,7 @@ function PodiumCard({ entry, theme, height }: PodiumCardProps) {
       >
         {formatDate(entry.createdAt)}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -245,14 +253,17 @@ function LeaderboardColumn({
 
               {/* List Body - Scrollable */}
               <div className="flex-1 overflow-y-auto">
-                {remaining.map((entry) => (
-                  <div
+                {remaining.map((entry, index) => (
+                  <motion.div
                     key={`${entry.username}-${entry.rank}`}
                     className="grid gap-2 px-3 py-1.5 border-b last:border-b-0 items-center"
                     style={{
                       borderColor: theme.borderSubtle,
                       gridTemplateColumns: "28px 28px 1fr 50px",
                     }}
+                    initial={{ opacity: 0, x: -15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.9 + index * 0.04, duration: 0.25 }}
                   >
                     {/* Rank */}
                     <div
@@ -298,7 +309,7 @@ function LeaderboardColumn({
                     >
                       {entry.wpm}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>

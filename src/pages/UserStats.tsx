@@ -7,6 +7,8 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { useTheme } from "@/hooks/useTheme";
 import type { LegacyTheme } from "@/types/theme";
 import AchievementsCategoryGrid from "@/components/auth/AchievementsCategoryGrid";
+import { motion } from "framer-motion";
+import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
 
 // Helper type for components that receive theme
 type Theme = LegacyTheme;
@@ -484,33 +486,75 @@ function TestDetailModal({
   );
 }
 
+// Animated stat value display
+function AnimatedStatValue({
+  value,
+  color,
+  delay,
+}: {
+  value: string | number;
+  color: string;
+  delay: number;
+}) {
+  // Extract numeric portion for animation
+  const strValue = String(value);
+  const numMatch = strValue.match(/^([\d,]+)/);
+
+  const numPart = numMatch ? parseInt(numMatch[1].replace(/,/g, ""), 10) : 0;
+  const suffix = numMatch ? strValue.slice(numMatch[1].length) : "";
+  const hasCommas = numMatch ? numMatch[1].includes(",") : false;
+  const isNumeric = numMatch !== null;
+
+  // Always call hook unconditionally
+  const animated = useAnimatedCounter(numPart, 1000, delay);
+
+  if (isNumeric) {
+    const display = hasCommas ? animated.toLocaleString() : String(animated);
+    return (
+      <div className="text-2xl font-bold" style={{ color }}>
+        {display}{suffix}
+      </div>
+    );
+  }
+
+  // Non-numeric value (e.g. "5h 23m") - just display it
+  return (
+    <div className="text-2xl font-bold" style={{ color }}>
+      {value}
+    </div>
+  );
+}
+
 // Stat Card Component
 function StatCard({
   label,
   value,
   theme,
   color = "buttonSelected",
+  index = 0,
 }: {
   label: string;
   value: string | number;
   theme: Theme;
   color?: "buttonSelected" | "correctText";
+  index?: number;
 }) {
   return (
-    <div
+    <motion.div
       className="p-4 rounded-xl flex flex-col justify-center"
       style={{ 
         backgroundColor: theme.surfaceColor,
         border: `1px solid ${theme.defaultText}20`
       }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.08, ease: "easeOut" }}
     >
       <div className="text-sm font-semibold uppercase tracking-wide mb-1.5" style={{ color: theme.textSecondary }}>
         {label}
       </div>
-      <div className="text-2xl font-bold" style={{ color: theme[color] }}>
-        {value}
-      </div>
-    </div>
+      <AnimatedStatValue value={value} color={theme[color]} delay={200 + index * 80} />
+    </motion.div>
   );
 }
 
@@ -689,30 +733,36 @@ export default function UserStats() {
         <div className="flex-1 flex flex-col min-h-0 px-4 pb-4 md:px-6 md:pb-6 gap-4">
           {/* Top Row - 6 Stat Cards */}
           <div className="shrink-0 grid grid-cols-3 md:grid-cols-6 gap-3">
-            <StatCard label="Typing Time" value={formatDuration(stats.totalTimeTyped)} theme={theme} />
-            <StatCard label="Best WPM" value={stats.bestWpm} theme={theme} />
-            <StatCard label="Avg WPM" value={stats.averageWpm} theme={theme} color="correctText" />
-            <StatCard label="Avg Accuracy" value={`${stats.averageAccuracy}%`} theme={theme} color="correctText" />
-            <StatCard label="Words Typed" value={stats.totalWordsTyped.toLocaleString()} theme={theme} />
-            <StatCard label="Characters" value={stats.totalCharactersTyped.toLocaleString()} theme={theme} />
+            <StatCard label="Typing Time" value={formatDuration(stats.totalTimeTyped)} theme={theme} index={0} />
+            <StatCard label="Best WPM" value={stats.bestWpm} theme={theme} index={1} />
+            <StatCard label="Avg WPM" value={stats.averageWpm} theme={theme} color="correctText" index={2} />
+            <StatCard label="Avg Accuracy" value={`${stats.averageAccuracy}%`} theme={theme} color="correctText" index={3} />
+            <StatCard label="Words Typed" value={stats.totalWordsTyped.toLocaleString()} theme={theme} index={4} />
+            <StatCard label="Characters" value={stats.totalCharactersTyped.toLocaleString()} theme={theme} index={5} />
           </div>
 
           {/* Two Column Layout */}
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
             {/* Left Column - Achievements */}
-            <div
+            <motion.div
               className="rounded-xl p-4 flex flex-col min-h-0 overflow-auto"
               style={{ backgroundColor: theme.surfaceColor }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
             >
               <AchievementsCategoryGrid
                 earnedAchievements={achievements ?? {}}
               />
-            </div>
+            </motion.div>
 
             {/* Right Column - Test History */}
-            <div
+            <motion.div
               className="rounded-xl flex flex-col min-h-0 overflow-hidden"
               style={{ backgroundColor: theme.surfaceColor }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.6, ease: "easeOut" }}
             >
               {/* Table Header */}
               <div
@@ -790,7 +840,7 @@ export default function UserStats() {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       )}

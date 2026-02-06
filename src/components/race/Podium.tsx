@@ -2,6 +2,7 @@
 // Podium display for race results
 import type { LegacyTheme } from "@/types/theme";
 import { Trophy, Medal, Award } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface RaceRanking {
   sessionId: string;
@@ -91,45 +92,63 @@ export default function Podium({
           const styles = getPodiumStyles(racer.position);
           const Icon = styles.icon;
           const isCurrentUser = racer.sessionId === currentSessionId;
+          // Stagger: 3rd (index 0 or 2), then 2nd, then 1st
+          // podiumOrder is [2nd, 1st, 3rd], reveal order: 3rd -> 2nd -> 1st
+          const revealOrder = racer.position === 3 ? 0 : racer.position === 2 ? 1 : 2;
+          const delay = revealOrder * 0.35;
 
           return (
-            <div
+            <motion.div
               key={racer.sessionId}
               className="flex flex-col items-center"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay, duration: 0.5, ease: "easeOut" }}
             >
               {/* Racer info */}
-              <div
+              <motion.div
                 className="mb-3 text-4xl"
                 style={{
                   filter: isCurrentUser ? "drop-shadow(0 0 10px currentColor)" : "none",
                 }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: delay + 0.3, type: "spring", stiffness: 400, damping: 20 }}
               >
                 {racer.emoji || "🏎️"}
-              </div>
-              <p
+              </motion.div>
+              <motion.p
                 className={`font-bold mb-1 ${racer.position === 1 ? "text-lg" : "text-sm"}`}
                 style={{
                   color: isCurrentUser ? theme.accentColor : theme.textPrimary,
                 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: delay + 0.4, duration: 0.3 }}
               >
                 {racer.name}
-              </p>
-              <p
+              </motion.p>
+              <motion.p
                 className="text-sm font-medium mb-2"
                 style={{ color: styles.color }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: delay + 0.5, duration: 0.3 }}
               >
                 {racer.wpm} WPM
-              </p>
+              </motion.p>
 
-              {/* Podium stand */}
-              <div
-                className="w-28 rounded-t-lg flex flex-col items-center justify-center transition-all duration-500"
+              {/* Podium stand - rises from bottom */}
+              <motion.div
+                className="w-28 rounded-t-lg flex flex-col items-center justify-center overflow-hidden"
                 style={{
-                  height: styles.height,
                   backgroundColor: styles.bgColor,
                   border: `2px solid ${styles.color}`,
                   borderBottom: "none",
                 }}
+                initial={{ height: 0 }}
+                animate={{ height: styles.height }}
+                transition={{ delay, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
               >
                 <Icon
                   size={racer.position === 1 ? 32 : 24}
@@ -142,8 +161,8 @@ export default function Podium({
                 >
                   {styles.label}
                 </span>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           );
         })}
       </div>
@@ -191,8 +210,11 @@ export default function Podium({
               {rankings.map((racer, index) => {
                 const isCurrentUser = racer.sessionId === currentSessionId;
                 return (
-                  <tr
+                  <motion.tr
                     key={racer.sessionId}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.2 + index * 0.08, duration: 0.3 }}
                     style={{
                       backgroundColor: isCurrentUser
                         ? theme.accentSubtle
@@ -257,7 +279,7 @@ export default function Podium({
                     >
                       {racer.didFinish ? formatTime(racer.finishTime) : "DNF"}
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
             </tbody>

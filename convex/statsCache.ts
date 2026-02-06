@@ -78,13 +78,26 @@ export const updateLeaderboardCache = internalMutation({
     const updates: string[] = [];
 
     for (const timeRange of timeRanges) {
-      // Check if user has an existing entry for this time range
-      const existingEntry = await ctx.db
+      // Check if user has existing entries for this time range
+      // Use collect() to detect and clean up any duplicates
+      const existingEntries = await ctx.db
         .query("leaderboardCache")
         .withIndex("by_user_time_range", (q) =>
           q.eq("userId", args.userId).eq("timeRange", timeRange)
         )
-        .first();
+        .collect();
+
+      // Clean up duplicates: keep only the one with the highest bestWpm
+      if (existingEntries.length > 1) {
+        // Sort by bestWpm desc, keep the first (highest), delete the rest
+        existingEntries.sort((a, b) => b.bestWpm - a.bestWpm);
+        for (let i = 1; i < existingEntries.length; i++) {
+          await ctx.db.delete(existingEntries[i]._id);
+        }
+        updates.push(`deduped ${timeRange} (removed ${existingEntries.length - 1})`);
+      }
+
+      const existingEntry = existingEntries[0] ?? null;
 
       if (!existingEntry) {
         // Create new entry
@@ -215,16 +228,27 @@ export const updateLeaderboardCacheAfterDeletion = internalMutation({
     const user = await ctx.db.get(args.userId);
 
     for (const timeRange of timeRanges) {
-      const existingEntry = await ctx.db
+      // Use collect() to handle potential duplicates
+      const existingEntries = await ctx.db
         .query("leaderboardCache")
         .withIndex("by_user_time_range", (q) =>
           q.eq("userId", args.userId).eq("timeRange", timeRange)
         )
-        .first();
+        .collect();
 
-      if (!existingEntry) {
+      if (existingEntries.length === 0) {
         continue;
       }
+
+      // Clean up duplicates first: keep the one with highest bestWpm
+      if (existingEntries.length > 1) {
+        existingEntries.sort((a, b) => b.bestWpm - a.bestWpm);
+        for (let i = 1; i < existingEntries.length; i++) {
+          await ctx.db.delete(existingEntries[i]._id);
+        }
+      }
+
+      const existingEntry = existingEntries[0];
 
       // Check if the deleted result was this user's best for this time range
       if (
@@ -355,17 +379,17 @@ export const rebuildLeaderboardCacheForUser = internalMutation({
       return { skipped: true, reason: "user not found" };
     }
 
-    // Delete existing cache entries for this user
+    // Delete ALL existing cache entries for this user (including duplicates)
     for (const timeRange of timeRanges) {
-      const existingEntry = await ctx.db
+      const existingEntries = await ctx.db
         .query("leaderboardCache")
         .withIndex("by_user_time_range", (q) =>
           q.eq("userId", args.userId).eq("timeRange", timeRange)
         )
-        .first();
+        .collect();
 
-      if (existingEntry) {
-        await ctx.db.delete(existingEntry._id);
+      for (const entry of existingEntries) {
+        await ctx.db.delete(entry._id);
       }
     }
 
@@ -474,6 +498,178 @@ export const pruneStaleLeaderboardEntries = internalMutation({
     }
 
     return { deletedToday, deletedWeek };
+  },
+});
+
+/**
+ * Diagnostic query to inspect the state of the leaderboard cache.
+ * Run from the Convex dashboard to debug leaderboard issues.
+ *
+ * Reports:
+ * - Total cache entries per time range
+ * - Duplicate entries per time range
+ * - Top 10 entries per time range (for comparison)
+ * - Users where all-time best == week best (potential data issue)
+ * - Test results age distribution (how many are >7 days old with acc >= 90%)
+ */
+export const diagnoseLeaderboard = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const timeRanges = ["all-time", "week", "today"] as const;
+    const weekCutoff = getStartOfDayET(7);
+    const todayCutoff = getStartOfDayET(0);
+
+    // 1. Count cache entries per time range and check for duplicates
+    const cacheStats: Record<string, { total: number; duplicateUsers: number }> = {};
+    for (const timeRange of timeRanges) {
+      const entries = await ctx.db
+        .query("leaderboardCache")
+        .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", timeRange))
+        .collect();
+
+      // Check for duplicate user entries
+      const userCounts = new Map<string, number>();
+      for (const entry of entries) {
+        userCounts.set(
+          entry.userId,
+          (userCounts.get(entry.userId) ?? 0) + 1
+        );
+      }
+      const duplicateUsers = [...userCounts.values()].filter((c) => c > 1).length;
+
+      cacheStats[timeRange] = { total: entries.length, duplicateUsers };
+    }
+
+    // 2. Get top 10 for each time range
+    const topEntries: Record<string, Array<{ username: string; wpm: number; achievedAt: string; userId: string }>> = {};
+    for (const timeRange of timeRanges) {
+      const entries = await ctx.db
+        .query("leaderboardCache")
+        .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", timeRange))
+        .order("desc")
+        .take(10);
+
+      topEntries[timeRange] = entries.map((e) => ({
+        username: e.username,
+        wpm: e.bestWpm,
+        achievedAt: new Date(e.bestWpmAt).toISOString(),
+        userId: e.userId as string,
+      }));
+    }
+
+    // 3. Find users where all-time best == week best (suspicious)
+    const allTimeEntries = await ctx.db
+      .query("leaderboardCache")
+      .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", "all-time"))
+      .collect();
+
+    const weekEntries = await ctx.db
+      .query("leaderboardCache")
+      .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", "week"))
+      .collect();
+
+    const weekByUser = new Map(weekEntries.map((e) => [e.userId as string, e]));
+    let matchingCount = 0;
+    let totalCompared = 0;
+    const suspiciousSamples: Array<{
+      username: string;
+      allTimeBest: number;
+      allTimeBestAt: string;
+      weekBest: number;
+      weekBestAt: string;
+    }> = [];
+
+    for (const atEntry of allTimeEntries) {
+      const wEntry = weekByUser.get(atEntry.userId as string);
+      if (wEntry) {
+        totalCompared++;
+        if (atEntry.bestWpm === wEntry.bestWpm) {
+          matchingCount++;
+          if (suspiciousSamples.length < 5) {
+            suspiciousSamples.push({
+              username: atEntry.username,
+              allTimeBest: atEntry.bestWpm,
+              allTimeBestAt: new Date(atEntry.bestWpmAt).toISOString(),
+              weekBest: wEntry.bestWpm,
+              weekBestAt: new Date(wEntry.bestWpmAt).toISOString(),
+            });
+          }
+        }
+      }
+    }
+
+    // 4. Check actual testResults for older data
+    // Sample a few users who appear on the all-time leaderboard to verify
+    // their cache matches their actual best
+    const verificationSamples: Array<{
+      username: string;
+      cachedAllTimeBest: number;
+      actualAllTimeBest: number;
+      actualAllTimeBestAt: string;
+      totalResultsWithAcc90: number;
+      resultsOlderThan7Days: number;
+      match: boolean;
+    }> = [];
+
+    // Check up to 10 users from the all-time leaderboard
+    const topAllTime = await ctx.db
+      .query("leaderboardCache")
+      .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", "all-time"))
+      .order("desc")
+      .take(10);
+
+    for (const cacheEntry of topAllTime) {
+      const allResults = await ctx.db
+        .query("testResults")
+        .withIndex("by_user", (q) => q.eq("userId", cacheEntry.userId))
+        .collect();
+
+      const eligibleResults = allResults.filter(
+        (r) => r.accuracy >= 90 && r.isValid !== false
+      );
+      const olderResults = eligibleResults.filter(
+        (r) => r.createdAt < weekCutoff
+      );
+
+      const actualBest = eligibleResults.length > 0
+        ? eligibleResults.reduce((a, b) => (a.wpm > b.wpm ? a : b))
+        : null;
+
+      verificationSamples.push({
+        username: cacheEntry.username,
+        cachedAllTimeBest: cacheEntry.bestWpm,
+        actualAllTimeBest: actualBest?.wpm ?? 0,
+        actualAllTimeBestAt: actualBest
+          ? new Date(actualBest.createdAt).toISOString()
+          : "N/A",
+        totalResultsWithAcc90: eligibleResults.length,
+        resultsOlderThan7Days: olderResults.length,
+        match: cacheEntry.bestWpm === (actualBest?.wpm ?? 0),
+      });
+    }
+
+    return {
+      cacheStats,
+      topEntries,
+      allTimeVsWeek: {
+        usersWithBothEntries: totalCompared,
+        usersWhereAllTimeEqualsWeek: matchingCount,
+        percentageMatching:
+          totalCompared > 0
+            ? Math.round((matchingCount / totalCompared) * 100)
+            : 0,
+        suspiciousSamples,
+      },
+      cacheVerification: {
+        note: "Compares cached all-time best vs actual best from testResults for top 10 users",
+        samples: verificationSamples,
+      },
+      timestamps: {
+        weekCutoff: new Date(weekCutoff).toISOString(),
+        todayCutoff: new Date(todayCutoff).toISOString(),
+        now: new Date().toISOString(),
+      },
+    };
   },
 });
 

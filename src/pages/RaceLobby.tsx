@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useSessionId } from "@/hooks/useSessionId";
 import type { LegacyTheme } from "@/types/theme";
 import { Copy, Check, Settings, Users, ArrowLeft, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Default theme fallback
 const DEFAULT_THEME: LegacyTheme = {
@@ -423,27 +424,37 @@ export default function RaceLobby() {
 
             {/* Player grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {connectedParticipants.map((participant) => {
-                const isCurrentUser = participant.sessionId === sessionId;
-                const participantIsHost = participant.sessionId === room.hostId;
+              <AnimatePresence mode="popLayout">
+                {connectedParticipants.map((participant) => {
+                  const isCurrentUser = participant.sessionId === sessionId;
+                  const participantIsHost = participant.sessionId === room.hostId;
 
-                return (
-                  <PlayerCard
-                    key={participant._id}
-                    name={participant.name}
-                    emoji={participant.emoji || "🏎️"}
-                    isReady={participant.isReady || false}
-                    isHost={participantIsHost}
-                    isCurrentUser={isCurrentUser}
-                    isCountingDown={countdown !== null}
-                    countdownValue={countdown || undefined}
-                    onReadyToggle={isCurrentUser ? handleReadyToggle : undefined}
-                    onEmojiChange={isCurrentUser ? handleEmojiChange : undefined}
-                    onNameChange={isCurrentUser ? handleNameChange : undefined}
-                    theme={theme}
-                  />
-                );
-              })}
+                  return (
+                    <motion.div
+                      key={participant._id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    >
+                      <PlayerCard
+                        name={participant.name}
+                        emoji={participant.emoji || "🏎️"}
+                        isReady={participant.isReady || false}
+                        isHost={participantIsHost}
+                        isCurrentUser={isCurrentUser}
+                        isCountingDown={countdown !== null}
+                        countdownValue={countdown || undefined}
+                        onReadyToggle={isCurrentUser ? handleReadyToggle : undefined}
+                        onEmojiChange={isCurrentUser ? handleEmojiChange : undefined}
+                        onNameChange={isCurrentUser ? handleNameChange : undefined}
+                        theme={theme}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
 
             {/* Empty state */}
@@ -463,44 +474,61 @@ export default function RaceLobby() {
         </div>
 
         {/* Countdown overlay */}
-        {countdown !== null && countdown > 0 && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ backgroundColor: theme.overlayColor }}
-          >
-            <div
-              className="text-center p-12 rounded-2xl"
-              style={{ backgroundColor: theme.surfaceColor }}
+        <AnimatePresence>
+          {countdown !== null && countdown > 0 && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center"
+              style={{ backgroundColor: theme.overlayColor }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              <p
-                className="text-lg font-medium mb-4"
-                style={{ color: theme.textSecondary }}
+              <motion.div
+                className="text-center p-12 rounded-2xl"
+                style={{ backgroundColor: theme.surfaceColor }}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
               >
-                Race starting in...
-              </p>
-              <div
-                className="text-8xl font-black animate-pulse mb-6"
-                style={{ color: theme.accentColor }}
-              >
-                {countdown}
-              </div>
-              {/* Cancel ready button - visible during countdown */}
-              {currentParticipant?.isReady && (
-                <button
-                  onClick={handleReadyToggle}
-                  className="px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-90"
-                  style={{
-                    backgroundColor: theme.statusErrorMuted,
-                    color: theme.statusError,
-                    border: `1px solid ${theme.statusError}`,
-                  }}
+                <p
+                  className="text-lg font-medium mb-4"
+                  style={{ color: theme.textSecondary }}
                 >
-                  Cancel Ready
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+                  Race starting in...
+                </p>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={countdown}
+                    className="text-8xl font-black mb-6"
+                    style={{ color: theme.accentColor }}
+                    initial={{ scale: 1.4, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.6, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  >
+                    {countdown}
+                  </motion.div>
+                </AnimatePresence>
+                {/* Cancel ready button - visible during countdown */}
+                {currentParticipant?.isReady && (
+                  <button
+                    onClick={handleReadyToggle}
+                    className="px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-90"
+                    style={{
+                      backgroundColor: theme.statusErrorMuted,
+                      color: theme.statusError,
+                      border: `1px solid ${theme.statusError}`,
+                    }}
+                  >
+                    Cancel Ready
+                  </button>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

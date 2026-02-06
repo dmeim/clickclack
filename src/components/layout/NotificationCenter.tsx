@@ -10,6 +10,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -136,17 +137,24 @@ export default function NotificationCenter() {
             title="Notifications"
           >
             <BellIcon className="size-5" />
-            {unreadCount > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold"
-                style={{
-                  backgroundColor: "#EF4444",
-                  color: "#FFFFFF",
-                }}
-              >
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            )}
+            <AnimatePresence>
+              {unreadCount > 0 && (
+                <motion.span
+                  className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold"
+                  style={{
+                    backgroundColor: "#EF4444",
+                    color: "#FFFFFF",
+                  }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                  key="notification-badge"
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </button>
         </DropdownMenuTrigger>
 
