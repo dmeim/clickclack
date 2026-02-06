@@ -97,44 +97,64 @@ export default function RaceLobby() {
   const allReady = connectedParticipants.length > 0 && 
     connectedParticipants.every(p => p.isReady);
 
-  // Check if race has started and navigate
+  // Host triggers startRace immediately when all players are ready
+  const hasStartedRaceRef = useRef(false);
   useEffect(() => {
-    if (room?.status === "active" && room.raceStartTime && !hasNavigatedRef.current) {
-      hasNavigatedRef.current = true;
-      navigate(`/race/${lobbyId}`);
+    if (allReady && connectedParticipants.length >= 1 && isHost && !hasStartedRaceRef.current && lobbyId) {
+      hasStartedRaceRef.current = true;
+      startRace({ roomId: lobbyId as Id<"rooms"> }).catch((err) => {
+        console.error("Failed to start race:", err);
+        hasStartedRaceRef.current = false;
+      });
     }
-  }, [room?.status, room?.raceStartTime, lobbyId, navigate]);
+    // Reset if players become unready
+    if (!allReady) {
+      hasStartedRaceRef.current = false;
+    }
+  }, [allReady, connectedParticipants.length, isHost, lobbyId, startRace]);
 
-  // Handle countdown when all ready
+  // All clients derive countdown from server raceStartTime
   useEffect(() => {
-    // Clear any existing interval
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
 
-    if (allReady && connectedParticipants.length >= 1 && isHost) {
-      // Start countdown
-      setCountdown(5);
-      
-      countdownIntervalRef.current = window.setInterval(() => {
-        setCountdown(prev => {
-          if (prev === null) return null;
-          if (prev <= 1) {
-            // Countdown finished - start race
+    if (room?.raceStartTime && room.status === "active") {
+      // Compute initial countdown
+      const computeCountdown = () => {
+        const secondsLeft = Math.ceil((room.raceStartTime! - Date.now()) / 1000);
+        return Math.max(0, secondsLeft);
+      };
+
+      const initial = computeCountdown();
+      setCountdown(initial > 0 ? initial : null);
+
+      if (initial > 0) {
+        countdownIntervalRef.current = window.setInterval(() => {
+          const remaining = computeCountdown();
+          if (remaining <= 0) {
             if (countdownIntervalRef.current) {
               clearInterval(countdownIntervalRef.current);
               countdownIntervalRef.current = null;
             }
-            // Trigger race start
-            if (lobbyId) {
-              startRace({ roomId: lobbyId as Id<"rooms"> }).catch(console.error);
+            setCountdown(null);
+            // Navigate to race
+            if (!hasNavigatedRef.current) {
+              hasNavigatedRef.current = true;
+              navigate(`/race/${lobbyId}`);
             }
-            return 0;
+          } else {
+            setCountdown(remaining);
           }
-          return prev - 1;
-        });
-      }, 1000);
+        }, 200);
+      } else {
+        // raceStartTime already passed, navigate immediately
+        if (!hasNavigatedRef.current) {
+          hasNavigatedRef.current = true;
+          navigate(`/race/${lobbyId}`);
+        }
+      }
     } else {
       setCountdown(null);
     }
@@ -145,7 +165,7 @@ export default function RaceLobby() {
         countdownIntervalRef.current = null;
       }
     };
-  }, [allReady, connectedParticipants.length, isHost, lobbyId, startRace]);
+  }, [room?.raceStartTime, room?.status, lobbyId, navigate]);
 
   // Copy room code to clipboard
   const handleCopyCode = useCallback(() => {
@@ -266,7 +286,7 @@ export default function RaceLobby() {
     >
       <Header />
 
-      <main className="pt-24 pb-8 px-4 max-w-5xl mx-auto">
+      <main className="pt-24 pb-8 px-4 max-w-6xl mx-auto">
         {/* Header with room code */}
         <div className="flex items-center justify-between mb-8">
           <Link
@@ -423,7 +443,7 @@ export default function RaceLobby() {
             </div>
 
             {/* Player grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               <AnimatePresence mode="popLayout">
                 {connectedParticipants.map((participant) => {
                   const isCurrentUser = participant.sessionId === sessionId;
@@ -511,6 +531,12 @@ export default function RaceLobby() {
                     {countdown}
                   </motion.div>
                 </AnimatePresence>
+                <p
+                  className="text-sm mb-6 max-w-xs mx-auto"
+                  style={{ color: theme.textMuted }}
+                >
+                  All characters must be typed correctly in order to progress in the race.
+                </p>
                 {/* Cancel ready button - visible during countdown */}
                 {currentParticipant?.isReady && (
                   <button

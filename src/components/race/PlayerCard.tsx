@@ -44,7 +44,7 @@ export default function PlayerCard({
 
   return (
     <div
-      className="relative rounded-xl p-6 flex flex-col items-center gap-4 transition-all duration-300"
+      className="relative rounded-xl p-4 flex flex-col items-center gap-3 transition-all duration-300"
       style={{
         backgroundColor: theme.surfaceColor,
         border: `2px solid ${isReady ? theme.statusSuccess : theme.borderDefault}`,
@@ -81,7 +81,7 @@ export default function PlayerCard({
         />
       ) : (
         <div
-          className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
+          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
           style={{ backgroundColor: theme.elevatedColor }}
         >
           {emoji}
@@ -97,7 +97,7 @@ export default function PlayerCard({
             onChange={(e) => setEditedName(e.target.value)}
             onBlur={handleNameSubmit}
             onKeyDown={(e) => e.key === "Enter" && handleNameSubmit()}
-            className="w-full text-center font-bold text-lg rounded px-2 py-1 focus:outline-none"
+            className="w-full text-center font-bold text-base rounded px-2 py-1 focus:outline-none"
             style={{
               backgroundColor: theme.elevatedColor,
               color: theme.textPrimary,
@@ -109,7 +109,7 @@ export default function PlayerCard({
         ) : (
           <button
             onClick={() => setIsEditingName(true)}
-            className="font-bold text-lg hover:opacity-80 transition-opacity"
+            className="font-bold text-base hover:opacity-80 transition-opacity"
             style={{ color: theme.textPrimary }}
             title="Click to edit name"
           >
@@ -118,7 +118,7 @@ export default function PlayerCard({
         )
       ) : (
         <p
-          className="font-bold text-lg"
+          className="font-bold text-base"
           style={{ color: theme.textPrimary }}
         >
           {name}
@@ -130,7 +130,7 @@ export default function PlayerCard({
         isCountingDown && countdownValue !== undefined ? (
           <div className="w-full flex flex-col items-center gap-2">
             <div
-              className="w-full py-3 rounded-lg text-center font-black text-4xl animate-pulse"
+              className="w-full py-2.5 rounded-lg text-center font-black text-3xl animate-pulse"
               style={{
                 backgroundColor: theme.accentMuted,
                 color: theme.accentColor,
@@ -153,7 +153,7 @@ export default function PlayerCard({
         ) : (
           <button
             onClick={onReadyToggle}
-            className="w-full py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2"
             style={{
               backgroundColor: isReady ? theme.statusSuccessMuted : theme.accentColor,
               color: isReady ? theme.statusSuccess : theme.textInverse,

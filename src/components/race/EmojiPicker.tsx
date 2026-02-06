@@ -53,7 +53,7 @@ export default function EmojiPicker({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="w-16 h-16 rounded-full flex items-center justify-center text-3xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
           backgroundColor: theme.elevatedColor,
           border: `2px solid ${isOpen ? theme.accentColor : theme.borderDefault}`,

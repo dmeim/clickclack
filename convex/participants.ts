@@ -239,17 +239,32 @@ export const recordFinish = mutation({
   args: {
     participantId: v.id("participants"),
     finishTime: v.number(), // ms from race start
-    position: v.number(),
   },
   handler: async (ctx, args) => {
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) throw new Error("Participant not found");
+
+    // Atomically compute position server-side by counting already-finished participants
+    const allParticipants = await ctx.db
+      .query("participants")
+      .withIndex("by_room", (q) => q.eq("roomId", participant.roomId))
+      .collect();
+
+    const finishedCount = allParticipants.filter(
+      (p) => p.stats.isFinished && p._id !== args.participantId
+    ).length;
+    const position = finishedCount + 1;
+
     await ctx.db.patch(args.participantId, {
       finishTime: args.finishTime,
-      position: args.position,
+      position,
       stats: {
-        ...(await ctx.db.get(args.participantId))!.stats,
+        ...participant.stats,
         isFinished: true,
       },
     });
+
+    return { position };
   },
 });
 

@@ -65,7 +65,6 @@ export default function RaceActive() {
   
   // Refs
   const hasNavigatedRef = useRef(false);
-  const finishPositionRef = useRef<number | null>(null);
 
   // Convex queries and mutations
   const room = useQuery(
@@ -127,7 +126,6 @@ export default function RaceActive() {
   // Reset local state when race/room changes
   useEffect(() => {
     setHasLocallyFinished(false);
-    finishPositionRef.current = null;
     setLocalProgress(0);
     setLocalWpm(0);
   }, [raceId]);
@@ -250,14 +248,10 @@ export default function RaceActive() {
 
   // Handle finish
   const handleFinish = useCallback(async (_stats: TypingStats) => {
-    if (!currentParticipant || !room?.raceStartTime || finishPositionRef.current !== null) return;
+    if (!currentParticipant || !room?.raceStartTime || hasLocallyFinished) return;
 
     // Set local finish state immediately for instant UI feedback
     setHasLocallyFinished(true);
-
-    // Calculate position
-    const currentPosition = finishedCount + 1;
-    finishPositionRef.current = currentPosition;
 
     // Calculate finish time from race start
     const finishTime = Date.now() - room.raceStartTime;
@@ -266,12 +260,11 @@ export default function RaceActive() {
       await recordFinish({
         participantId: currentParticipant._id,
         finishTime,
-        position: currentPosition,
       });
     } catch (error) {
       console.error("Failed to record finish:", error);
     }
-  }, [currentParticipant, room?.raceStartTime, finishedCount, recordFinish]);
+  }, [currentParticipant, room?.raceStartTime, hasLocallyFinished, recordFinish]);
 
   // Loading state
   if (!room || !participants) {
@@ -423,7 +416,7 @@ export default function RaceActive() {
               You Finished!
             </h2>
             <p style={{ color: theme.textSecondary }}>
-              Position: <span style={{ color: theme.accentColor }}>#{finishPositionRef.current || "?"}</span>
+              Position: <span style={{ color: theme.accentColor }}>#{currentParticipant?.position || "..."}</span>
             </p>
             <p
               className="text-sm mt-4"
