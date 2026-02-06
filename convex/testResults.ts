@@ -386,7 +386,7 @@ export const getUserStatsByUserId = query({
 });
 
 // Get leaderboard data for top WPM scores
-// Now reads from pre-computed leaderboardCache table for efficiency
+// Direct scan of testResults - simple and always correct
 export const getLeaderboard = query({
   args: {
     timeRange: v.union(
@@ -399,9 +399,6 @@ export const getLeaderboard = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
 
-    // For time-based ranges, we need to filter out stale entries
-    // "today" entries older than midnight today are stale
-    // "week" entries older than 7 days ago are stale
     let timeCutoff = 0;
     if (args.timeRange === "today") {
       timeCutoff = getStartOfDayET(0);
@@ -409,31 +406,43 @@ export const getLeaderboard = query({
       timeCutoff = getStartOfDayET(7);
     }
 
-    // Query from the cache table
-    // Note: We query more than limit to account for potentially stale entries
-    const cacheEntries = await ctx.db
-      .query("leaderboardCache")
-      .withIndex("by_time_range_wpm", (q) => q.eq("timeRange", args.timeRange))
-      .order("desc")
-      .take(limit * 2); // Get extra in case some are stale
+    // Get all test results and compute leaderboard directly
+    const allResults = await ctx.db.query("testResults").collect();
 
-    // Filter out stale entries for time-based ranges
-    const validEntries =
-      args.timeRange === "all-time"
-        ? cacheEntries
-        : cacheEntries.filter((entry) => entry.bestWpmAt >= timeCutoff);
+    // Filter: accuracy >= 90%, valid, within time range
+    const eligible = allResults.filter((r) => {
+      if (r.accuracy < 90 || r.isValid === false) return false;
+      if (args.timeRange !== "all-time" && r.createdAt < timeCutoff) return false;
+      return true;
+    });
 
-    // Take the top N valid entries
-    const topEntries = validEntries.slice(0, limit);
+    // Group by user, keep best WPM per user
+    const bestByUser = new Map<Id<"users">, { wpm: number; createdAt: number }>();
+    for (const result of eligible) {
+      const existing = bestByUser.get(result.userId);
+      if (!existing || result.wpm > existing.wpm) {
+        bestByUser.set(result.userId, { wpm: result.wpm, createdAt: result.createdAt });
+      }
+    }
 
-    // Map to leaderboard format
-    const leaderboard = topEntries.map((entry, index) => ({
-      rank: index + 1,
-      username: entry.username,
-      avatarUrl: entry.avatarUrl ?? null,
-      wpm: entry.bestWpm,
-      createdAt: entry.bestWpmAt,
-    }));
+    // Sort by WPM descending, take top N
+    const sorted = [...bestByUser.entries()]
+      .sort((a, b) => b[1].wpm - a[1].wpm)
+      .slice(0, limit);
+
+    // Look up usernames
+    const leaderboard = await Promise.all(
+      sorted.map(async ([userId, data], index) => {
+        const user = await ctx.db.get(userId);
+        return {
+          rank: index + 1,
+          username: user?.username ?? "Unknown",
+          avatarUrl: user?.avatarUrl ?? null,
+          wpm: data.wpm,
+          createdAt: data.createdAt,
+        };
+      })
+    );
 
     return leaderboard;
   },
