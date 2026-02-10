@@ -348,6 +348,52 @@ export default function TypingPractice({
   }, [previewThemeDef]);
   const [themeViewMode, setThemeViewMode] = useState<"all" | "categories">("all");
   const [selectedCategory, setSelectedCategory] = useState<ThemeCategory | null>(null);
+  const [themeSearchQuery, setThemeSearchQuery] = useState("");
+  const normalizedThemeSearchQuery = themeSearchQuery.trim().toLowerCase();
+  const filteredGroupedThemes = useMemo(() => {
+    if (!normalizedThemeSearchQuery) return groupedThemes;
+
+    return groupedThemes
+      .map((group) => ({
+        ...group,
+        themes: (() => {
+          const displayNameMatch = group.displayName.toLowerCase().includes(normalizedThemeSearchQuery);
+          const categoryKeyMatch = group.category.toLowerCase().includes(normalizedThemeSearchQuery);
+
+          if (displayNameMatch || categoryKeyMatch) {
+            return group.themes;
+          }
+
+          return group.themes.filter((themeData) => {
+            const nameMatch = themeData.name.toLowerCase().includes(normalizedThemeSearchQuery);
+            const idMatch = themeData.id.toLowerCase().includes(normalizedThemeSearchQuery);
+            return nameMatch || idMatch;
+          });
+        })(),
+      }))
+      .filter((group) => group.themes.length > 0);
+  }, [groupedThemes, normalizedThemeSearchQuery]);
+  const filteredCategoryGroups = useMemo(() => {
+    if (!normalizedThemeSearchQuery) return groupedThemes;
+
+    return groupedThemes.filter((group) => {
+      const displayNameMatch = group.displayName.toLowerCase().includes(normalizedThemeSearchQuery);
+      const categoryKeyMatch = group.category.toLowerCase().includes(normalizedThemeSearchQuery);
+      return displayNameMatch || categoryKeyMatch;
+    });
+  }, [groupedThemes, normalizedThemeSearchQuery]);
+  const filteredSelectedCategoryThemes = useMemo(() => {
+    if (!selectedCategory) return [];
+
+    const categoryThemes = groupedThemes.find((group) => group.category === selectedCategory)?.themes ?? [];
+    if (!normalizedThemeSearchQuery) return categoryThemes;
+
+    return categoryThemes.filter((themeData) => {
+      const nameMatch = themeData.name.toLowerCase().includes(normalizedThemeSearchQuery);
+      const idMatch = themeData.id.toLowerCase().includes(normalizedThemeSearchQuery);
+      return nameMatch || idMatch;
+    });
+  }, [groupedThemes, selectedCategory, normalizedThemeSearchQuery]);
   const [soundManifest, setSoundManifest] = useState<SoundManifest | null>(null);
   const [wordsManifest, setWordsManifest] = useState<WordsManifest | null>(null);
   const [quotesManifest, setQuotesManifest] = useState<QuotesManifest | null>(null);
@@ -2419,6 +2465,7 @@ export default function TypingPractice({
             setIsCustomThemeOpen(false);
             setPreviewTheme(null);
             setSelectedCategory(null);
+            setThemeSearchQuery("");
           }}
         >
           <div
@@ -2635,6 +2682,7 @@ export default function TypingPractice({
                     setIsCustomThemeOpen(false);
                     setPreviewTheme(null);
                     setSelectedCategory(null);
+                    setThemeSearchQuery("");
                   }}
                   className="hover:opacity-80 transition-opacity"
                   style={{ color: theme.textMuted }}
@@ -2675,12 +2723,39 @@ export default function TypingPractice({
                 </button>
               </div>
 
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={themeSearchQuery}
+                  onChange={(e) => setThemeSearchQuery(e.target.value)}
+                  placeholder={
+                    themeViewMode === "all"
+                      ? "Search themes or categories..."
+                      : selectedCategory
+                        ? `Search ${CATEGORY_CONFIG[selectedCategory].displayName} themes...`
+                        : "Search categories..."
+                  }
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: theme.backgroundColor,
+                    color: theme.textPrimary,
+                    border: `1px solid ${theme.borderSubtle}`,
+                    "--tw-ring-color": theme.buttonSelected,
+                  } as React.CSSProperties}
+                />
+              </div>
+
               {/* Scrollable Content Area */}
               <div className="flex-1 overflow-y-auto pr-2">
                 {/* All Themes View */}
                 {themeViewMode === "all" && (
                   <>
-                    {groupedThemes.map((group) => (
+                    {filteredGroupedThemes.length === 0 && (
+                      <div className="text-sm py-6 text-center" style={{ color: theme.textMuted }}>
+                        No themes found for "{themeSearchQuery.trim()}".
+                      </div>
+                    )}
+                    {filteredGroupedThemes.map((group) => (
                       <div key={group.category} className="mb-6 last:mb-0">
                         <h3 className="text-sm font-medium text-gray-400 mb-3 sticky top-0 py-1" style={{ backgroundColor: theme.surfaceColor }}>
                           {group.displayName}
@@ -2759,7 +2834,7 @@ export default function TypingPractice({
                 {/* Categories View */}
                 {themeViewMode === "categories" && !selectedCategory && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {groupedThemes.map((group) => (
+                    {filteredCategoryGroups.map((group) => (
                       <button
                         key={group.category}
                         onClick={() => setSelectedCategory(group.category)}
@@ -2782,6 +2857,11 @@ export default function TypingPractice({
                         )}
                       </button>
                     ))}
+                    {filteredCategoryGroups.length === 0 && (
+                      <div className="col-span-full text-sm py-6 text-center" style={{ color: theme.textMuted }}>
+                        No categories found for "{themeSearchQuery.trim()}".
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2802,9 +2882,7 @@ export default function TypingPractice({
                       {CATEGORY_CONFIG[selectedCategory].displayName}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                      {groupedThemes
-                        .find((g) => g.category === selectedCategory)
-                        ?.themes.map((themeData) => (
+                      {filteredSelectedCategoryThemes.map((themeData) => (
                           <div
                             key={themeData.name}
                             className={`flex rounded-lg border transition overflow-hidden min-h-[64px] ${
@@ -2868,6 +2946,11 @@ export default function TypingPractice({
                             </div>
                           </div>
                         ))}
+                      {filteredSelectedCategoryThemes.length === 0 && (
+                        <div className="col-span-full text-sm py-6 text-center" style={{ color: theme.textMuted }}>
+                          No themes found for "{themeSearchQuery.trim()}".
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
