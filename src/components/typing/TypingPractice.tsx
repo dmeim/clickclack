@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Baby, Sun, Moon } from "lucide-react";
+import { Baby, Sun, Moon, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
@@ -346,9 +346,21 @@ export default function TypingPractice({
       : previewThemeDef.dark;
     return toLegacyTheme(colors);
   }, [previewThemeDef]);
+  /*
+   * TEMP_DISABLED_CATEGORIES_TAB
+   * Keep categories mode wiring for easy restore; force all-themes mode for now.
+   *
   const [themeViewMode, setThemeViewMode] = useState<"all" | "categories">("all");
+   */
+  const themeViewMode: "all" = "all";
   const [selectedCategory, setSelectedCategory] = useState<ThemeCategory | null>(null);
   const [themeSearchQuery, setThemeSearchQuery] = useState("");
+  // Collapse state for "All Themes" view — all collapsed except "Featured" by default
+  const getDefaultCollapsedCategories = useCallback(() => {
+    const allCategoryKeys = Object.keys(CATEGORY_CONFIG) as ThemeCategory[];
+    return new Set(allCategoryKeys.filter((c) => c !== "default"));
+  }, []);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<ThemeCategory>>(getDefaultCollapsedCategories);
   const normalizedThemeSearchQuery = themeSearchQuery.trim().toLowerCase();
   const filteredGroupedThemes = useMemo(() => {
     if (!normalizedThemeSearchQuery) return groupedThemes;
@@ -373,6 +385,10 @@ export default function TypingPractice({
       }))
       .filter((group) => group.themes.length > 0);
   }, [groupedThemes, normalizedThemeSearchQuery]);
+  /*
+   * TEMP_DISABLED_CATEGORIES_TAB
+   * Keeping category-only filtering logic in place for easy restore later.
+   *
   const filteredCategoryGroups = useMemo(() => {
     if (!normalizedThemeSearchQuery) return groupedThemes;
 
@@ -394,6 +410,7 @@ export default function TypingPractice({
       return nameMatch || idMatch;
     });
   }, [groupedThemes, selectedCategory, normalizedThemeSearchQuery]);
+  */
   const [soundManifest, setSoundManifest] = useState<SoundManifest | null>(null);
   const [wordsManifest, setWordsManifest] = useState<WordsManifest | null>(null);
   const [quotesManifest, setQuotesManifest] = useState<QuotesManifest | null>(null);
@@ -2466,6 +2483,7 @@ export default function TypingPractice({
             setPreviewTheme(null);
             setSelectedCategory(null);
             setThemeSearchQuery("");
+            setCollapsedCategories(getDefaultCollapsedCategories());
           }}
         >
           <div
@@ -2683,6 +2701,7 @@ export default function TypingPractice({
                     setPreviewTheme(null);
                     setSelectedCategory(null);
                     setThemeSearchQuery("");
+                    setCollapsedCategories(getDefaultCollapsedCategories());
                   }}
                   className="hover:opacity-80 transition-opacity"
                   style={{ color: theme.textMuted }}
@@ -2691,39 +2710,9 @@ export default function TypingPractice({
                 </button>
               </div>
 
-              {/* View Mode Toggle */}
-              <div className="flex rounded-lg p-1 mb-4" style={{ backgroundColor: theme.backgroundColor }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setThemeViewMode("all");
-                    setSelectedCategory(null);
-                  }}
-                  className={`flex-1 px-3 py-1.5 rounded text-sm transition ${themeViewMode === "all" ? "font-medium" : ""}`}
-                  style={{ 
-                    color: themeViewMode === "all" ? theme.buttonSelected : theme.buttonUnselected,
-                    backgroundColor: themeViewMode === "all" ? theme.surfaceColor : "transparent"
-                  }}
-                >
-                  All Themes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setThemeViewMode("categories");
-                    setSelectedCategory(null);
-                  }}
-                  className={`flex-1 px-3 py-1.5 rounded text-sm transition ${themeViewMode === "categories" ? "font-medium" : ""}`}
-                  style={{ 
-                    color: themeViewMode === "categories" ? theme.buttonSelected : theme.buttonUnselected,
-                    backgroundColor: themeViewMode === "categories" ? theme.surfaceColor : "transparent"
-                  }}
-                >
-                  Categories
-                </button>
-              </div>
+              {/* TEMP_DISABLED_CATEGORIES_TAB: view mode toggle hidden while only all-themes mode is active */}
 
-              <div className="mb-4">
+              <div className="mb-4 flex items-center gap-2">
                 <input
                   type="text"
                   value={themeSearchQuery}
@@ -2735,7 +2724,7 @@ export default function TypingPractice({
                         ? `Search ${CATEGORY_CONFIG[selectedCategory].displayName} themes...`
                         : "Search categories..."
                   }
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                  className="flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: theme.backgroundColor,
                     color: theme.textPrimary,
@@ -2743,6 +2732,37 @@ export default function TypingPractice({
                     "--tw-ring-color": theme.buttonSelected,
                   } as React.CSSProperties}
                 />
+                {themeViewMode === "all" && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCollapsedCategories(new Set())}
+                      className="px-2.5 py-2 rounded-lg text-xs font-medium transition-colors hover:opacity-80 whitespace-nowrap"
+                      style={{
+                        backgroundColor: theme.backgroundColor,
+                        color: theme.textSecondary,
+                        border: `1px solid ${theme.borderSubtle}`,
+                      }}
+                    >
+                      Expand All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const all = new Set(filteredGroupedThemes.map((g) => g.category));
+                        setCollapsedCategories(all);
+                      }}
+                      className="px-2.5 py-2 rounded-lg text-xs font-medium transition-colors hover:opacity-80 whitespace-nowrap"
+                      style={{
+                        backgroundColor: theme.backgroundColor,
+                        color: theme.textSecondary,
+                        border: `1px solid ${theme.borderSubtle}`,
+                      }}
+                    >
+                      Collapse All
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Scrollable Content Area */}
@@ -2755,83 +2775,132 @@ export default function TypingPractice({
                         No themes found for "{themeSearchQuery.trim()}".
                       </div>
                     )}
-                    {filteredGroupedThemes.map((group) => (
-                      <div key={group.category} className="mb-6 last:mb-0">
-                        <h3 className="text-sm font-medium text-gray-400 mb-3 sticky top-0 py-1" style={{ backgroundColor: theme.surfaceColor }}>
-                          {group.displayName}
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                          {group.themes.map((themeData) => (
-                            <div
-                              key={themeData.name}
-                              className={`flex rounded-lg border transition overflow-hidden min-h-[64px] ${
-                                selectedThemeName.toLowerCase() === themeData.name.toLowerCase()
-                                  ? "border-gray-400 ring-1 ring-gray-400"
-                                  : "border-gray-700 hover:border-gray-500"
-                              }`}
-                              style={{ backgroundColor: themeData.dark.bg.base }}
-                            >
-                              {/* Left column - theme info */}
-                              <button
-                                onClick={() => handleThemeSelect(themeData.name)}
-                                onMouseEnter={() => setPreviewTheme(themeData)}
-                                onMouseLeave={() => setPreviewTheme(null)}
-                                className="flex-1 min-w-0 p-2 text-left"
-                              >
-                                <div className="flex items-center gap-1.5 mb-2">
-                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: themeData.dark.typing.cursor }} />
-                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: themeData.dark.interactive.secondary.DEFAULT }} />
-                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: themeData.dark.typing.correct }} />
-                                </div>
-                                <div className="text-xs whitespace-normal break-words leading-tight" style={{ color: themeData.dark.typing.correct }}>
-                                  {themeData.name}
-                                </div>
-                              </button>
-                              
-                              {/* Right column - mode toggles (fixed width) */}
-                              <div className="w-10 shrink-0 flex flex-col border-l" style={{ borderColor: `${themeData.dark.typing.correct}30` }}>
-                                {/* Light mode button */}
-                                <button
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    if (themeData.light) handleThemeSelect(themeData.name, "light"); 
-                                  }}
-                                  onMouseEnter={() => themeData.light && setPreviewTheme(themeData, "light")}
-                                  onMouseLeave={() => setPreviewTheme(null)}
-                                  disabled={!themeData.light}
-                                  className={`flex-1 flex items-center justify-center transition-colors ${
-                                    !themeData.light 
-                                      ? "opacity-30 cursor-not-allowed" 
-                                      : "hover:bg-white/10 cursor-pointer"
+                    {filteredGroupedThemes.map((group, index) => {
+                      const isSearchActive = normalizedThemeSearchQuery.length > 0;
+                      const isExpanded = isSearchActive || !collapsedCategories.has(group.category);
+                      return (
+                        <div
+                          key={group.category}
+                          className={`last:mb-0 ${index === 0 ? "" : "mt-4 pt-4 border-t"}`}
+                          style={index === 0 ? undefined : { borderColor: theme.borderSubtle }}
+                        >
+                          {/* Collapsible category header */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isSearchActive) return;
+                              setCollapsedCategories((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(group.category)) {
+                                  next.delete(group.category);
+                                } else {
+                                  next.add(group.category);
+                                }
+                                return next;
+                              });
+                            }}
+                            className={`w-full flex items-center justify-between text-sm font-medium py-2 px-2 rounded-md sticky top-0 z-10 transition-colors ${
+                              isSearchActive ? "cursor-default" : "cursor-pointer hover:opacity-80"
+                            }`}
+                            style={{ backgroundColor: theme.surfaceColor, color: theme.textSecondary }}
+                          >
+                            <span className="flex items-center gap-2">
+                              {group.displayName}
+                              <span className="text-xs font-normal" style={{ color: theme.textMuted }}>
+                                ({group.themes.length})
+                              </span>
+                            </span>
+                            {!isSearchActive && (
+                              <ChevronDown
+                                className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`}
+                                style={{ color: theme.textMuted }}
+                              />
+                            )}
+                          </button>
+
+                          {/* Collapsible theme grid */}
+                          <div
+                            className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                              isExpanded ? "max-h-[5000px] opacity-100 mt-2" : "max-h-0 opacity-0"
+                            }`}
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                              {group.themes.map((themeData) => (
+                                <div
+                                  key={themeData.name}
+                                  className={`flex rounded-lg border transition overflow-hidden min-h-[64px] ${
+                                    selectedThemeName.toLowerCase() === themeData.name.toLowerCase()
+                                      ? "border-gray-400 ring-1 ring-gray-400"
+                                      : "border-gray-700 hover:border-gray-500"
                                   }`}
-                                  title={themeData.light ? "Light mode" : "Light mode not available"}
+                                  style={{ backgroundColor: themeData.dark.bg.base }}
                                 >
-                                  <Sun className="w-3 h-3" style={{ color: themeData.dark.typing.correct }} />
-                                </button>
-                                
-                                {/* Dark mode button */}
-                                <button
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    handleThemeSelect(themeData.name, "dark"); 
-                                  }}
-                                  onMouseEnter={() => setPreviewTheme(themeData, "dark")}
-                                  onMouseLeave={() => setPreviewTheme(null)}
-                                  className="flex-1 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors"
-                                  title="Dark mode"
-                                >
-                                  <Moon className="w-3 h-3" style={{ color: themeData.dark.typing.correct }} />
-                                </button>
-                              </div>
+                                  {/* Left column - theme info */}
+                                  <button
+                                    onClick={() => handleThemeSelect(themeData.name)}
+                                    onMouseEnter={() => setPreviewTheme(themeData)}
+                                    onMouseLeave={() => setPreviewTheme(null)}
+                                    className="flex-1 min-w-0 p-2 text-left"
+                                  >
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: themeData.dark.typing.cursor }} />
+                                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: themeData.dark.interactive.secondary.DEFAULT }} />
+                                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: themeData.dark.typing.correct }} />
+                                    </div>
+                                    <div className="text-xs whitespace-normal break-words leading-tight" style={{ color: themeData.dark.typing.correct }}>
+                                      {themeData.name}
+                                    </div>
+                                  </button>
+                                  
+                                  {/* Right column - mode toggles (fixed width) */}
+                                  <div className="w-10 shrink-0 flex flex-col border-l" style={{ borderColor: `${themeData.dark.typing.correct}30` }}>
+                                    {/* Light mode button */}
+                                    <button
+                                      onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if (themeData.light) handleThemeSelect(themeData.name, "light"); 
+                                      }}
+                                      onMouseEnter={() => themeData.light && setPreviewTheme(themeData, "light")}
+                                      onMouseLeave={() => setPreviewTheme(null)}
+                                      disabled={!themeData.light}
+                                      className={`flex-1 flex items-center justify-center transition-colors ${
+                                        !themeData.light 
+                                          ? "opacity-30 cursor-not-allowed" 
+                                          : "hover:bg-white/10 cursor-pointer"
+                                      }`}
+                                      title={themeData.light ? "Light mode" : "Light mode not available"}
+                                    >
+                                      <Sun className="w-3 h-3" style={{ color: themeData.dark.typing.correct }} />
+                                    </button>
+                                    
+                                    {/* Dark mode button */}
+                                    <button
+                                      onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        handleThemeSelect(themeData.name, "dark"); 
+                                      }}
+                                      onMouseEnter={() => setPreviewTheme(themeData, "dark")}
+                                      onMouseLeave={() => setPreviewTheme(null)}
+                                      className="flex-1 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors"
+                                      title="Dark mode"
+                                    >
+                                      <Moon className="w-3 h-3" style={{ color: themeData.dark.typing.correct }} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </>
                 )}
 
-                {/* Categories View */}
+                {/*
+                  TEMP_DISABLED_CATEGORIES_TAB
+
+                Categories View
                 {themeViewMode === "categories" && !selectedCategory && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                     {filteredCategoryGroups.map((group) => (
@@ -2847,7 +2916,6 @@ export default function TypingPractice({
                         <div className="text-xs" style={{ color: theme.textMuted }}>
                           {group.themes.length} theme{group.themes.length !== 1 ? "s" : ""}
                         </div>
-                        {/* Preview colors from first theme in category */}
                         {group.themes[0] && (
                           <div className="flex items-center gap-1 mt-2">
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: group.themes[0].dark.typing.cursor }} />
@@ -2865,7 +2933,7 @@ export default function TypingPractice({
                   </div>
                 )}
 
-                {/* Single Category View */}
+                Single Category View
                 {themeViewMode === "categories" && selectedCategory && (
                   <>
                     <button
@@ -2892,7 +2960,6 @@ export default function TypingPractice({
                             }`}
                             style={{ backgroundColor: themeData.dark.bg.base }}
                           >
-                            {/* Left column - theme info */}
                             <button
                               onClick={() => handleThemeSelect(themeData.name)}
                               onMouseEnter={() => setPreviewTheme(themeData)}
@@ -2908,33 +2975,30 @@ export default function TypingPractice({
                                 {themeData.name}
                               </div>
                             </button>
-                            
-                            {/* Right column - mode toggles (fixed width) */}
+
                             <div className="w-10 shrink-0 flex flex-col border-l" style={{ borderColor: `${themeData.dark.typing.correct}30` }}>
-                              {/* Light mode button */}
                               <button
-                                onClick={(e) => { 
-                                  e.stopPropagation(); 
-                                  if (themeData.light) handleThemeSelect(themeData.name, "light"); 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (themeData.light) handleThemeSelect(themeData.name, "light");
                                 }}
                                 onMouseEnter={() => themeData.light && setPreviewTheme(themeData, "light")}
                                 onMouseLeave={() => setPreviewTheme(null)}
                                 disabled={!themeData.light}
                                 className={`flex-1 flex items-center justify-center transition-colors ${
-                                  !themeData.light 
-                                    ? "opacity-30 cursor-not-allowed" 
+                                  !themeData.light
+                                    ? "opacity-30 cursor-not-allowed"
                                     : "hover:bg-white/10 cursor-pointer"
                                 }`}
                                 title={themeData.light ? "Light mode" : "Light mode not available"}
                               >
                                 <Sun className="w-3 h-3" style={{ color: themeData.dark.typing.correct }} />
                               </button>
-                              
-                              {/* Dark mode button */}
+
                               <button
-                                onClick={(e) => { 
-                                  e.stopPropagation(); 
-                                  handleThemeSelect(themeData.name, "dark"); 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleThemeSelect(themeData.name, "dark");
                                 }}
                                 onMouseEnter={() => setPreviewTheme(themeData, "dark")}
                                 onMouseLeave={() => setPreviewTheme(null)}
@@ -2954,6 +3018,7 @@ export default function TypingPractice({
                     </div>
                   </>
                 )}
+                */}
 
                 {/* Separator */}
                 <div className="border-t border-gray-600 my-4" />
