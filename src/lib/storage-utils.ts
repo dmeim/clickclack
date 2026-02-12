@@ -1,5 +1,6 @@
 import type { SettingsState, Theme } from "@/lib/typing-constants";
 import { DEFAULT_THEME } from "@/lib/typing-constants";
+import { DEFAULT_TYPING_FONT } from "@/lib/typing-fonts";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -20,6 +21,7 @@ export const DEFAULT_SETTINGS: Omit<
   numbers: false,
   capitalization: false,
   typingFontSize: 4,
+  typingFontFamily: DEFAULT_TYPING_FONT,
   iconFontSize: 1,
   helpFontSize: 1,
   difficulty: "beginner",
@@ -67,6 +69,7 @@ export function saveSettings(settings: SettingsState): void {
       numbers: settings.numbers,
       capitalization: settings.capitalization,
       typingFontSize: settings.typingFontSize,
+      typingFontFamily: settings.typingFontFamily,
       iconFontSize: settings.iconFontSize,
       helpFontSize: settings.helpFontSize,
       difficulty: settings.difficulty,

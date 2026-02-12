@@ -15,6 +15,7 @@ import {
   loadSettings,
   saveSettings,
 } from "@/lib/storage-utils";
+import { TYPING_FONT_OPTIONS, DEFAULT_TYPING_FONT, getTypingFontFamily } from "@/lib/typing-fonts";
 import type { Plan, PlanItem, PlanStepResult } from "@/types/plan";
 import PlanBuilderModal from "@/components/plan/PlanBuilderModal";
 import PlanSplash from "@/components/plan/PlanSplash";
@@ -25,6 +26,14 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -50,15 +59,8 @@ const SETTINGS_TABS = [
   { id: "lesson", label: "Lesson" },
 ] as const;
 const TEXT_ALIGN_OPTIONS = ["left", "center", "right", "justify"] as const;
-const FONT_OPTIONS = [
-  { value: "default", label: "Default Sans" },
-  { value: "mono", label: "Classic Mono" },
-  { value: "modern", label: "Modern Grotesk" },
-  { value: "serif", label: "Readable Serif" },
-] as const;
-
+const NONE_SOUND_VALUE = "__none_sound__";
 type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];
-type FontOptionValue = (typeof FONT_OPTIONS)[number]["value"];
 type ModeSelectorOption = (typeof MODE_SELECTOR_OPTIONS)[number];
 
 // Word generation helper
@@ -312,6 +314,7 @@ export default function TypingPractice({
     numbers: false,
     capitalization: false,
     typingFontSize: 3.25,
+    typingFontFamily: DEFAULT_TYPING_FONT,
     iconFontSize: 1,
     helpFontSize: 1,
     difficulty: "beginner",
@@ -340,7 +343,7 @@ export default function TypingPractice({
   const [linePreview, setLinePreview] = useState(3);
   const [maxWordsPerLine, setMaxWordsPerLine] = useState(7);
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTabId>("all");
-  const [selectedFontOption, setSelectedFontOption] = useState<FontOptionValue>("default");
+  // Font option is now stored in settings.typingFontFamily
   const [isCustomThemeOpen, setIsCustomThemeOpen] = useState(false);
   const [availableThemes, setAvailableThemes] = useState<ThemeDefinition[]>([]);
   const [groupedThemes, setGroupedThemes] = useState<GroupedThemes[]>([]);
@@ -666,6 +669,7 @@ export default function TypingPractice({
             ghostWriterEnabled: dbPreferences.ghostWriterEnabled,
             ghostWriterSpeed: dbPreferences.ghostWriterSpeed,
             typingFontSize: dbPreferences.typingFontSize,
+            typingFontFamily: ((dbPreferences as Record<string, unknown>).typingFontFamily as string) ?? DEFAULT_TYPING_FONT,
             iconFontSize: dbPreferences.iconFontSize,
             helpFontSize: dbPreferences.helpFontSize,
             textAlign: dbPreferences.textAlign as typeof prev.textAlign,
@@ -721,6 +725,7 @@ export default function TypingPractice({
             ghostWriterEnabled: settings.ghostWriterEnabled,
             ghostWriterSpeed: settings.ghostWriterSpeed,
             typingFontSize: settings.typingFontSize,
+            typingFontFamily: settings.typingFontFamily,
             iconFontSize: settings.iconFontSize,
             helpFontSize: settings.helpFontSize,
             textAlign: settings.textAlign,
@@ -766,6 +771,7 @@ export default function TypingPractice({
     settings.ghostWriterEnabled,
     settings.ghostWriterSpeed,
     settings.typingFontSize,
+    settings.typingFontFamily,
     settings.iconFontSize,
     settings.helpFontSize,
     settings.textAlign,
@@ -1668,6 +1674,15 @@ export default function TypingPractice({
   const typingSoundOptions = getSoundPackOptions("typing");
   const warningSoundOptions = getSoundPackOptions("warning");
   const errorSoundOptions = getSoundPackOptions("error");
+  const selectedTypingSound = typingSoundOptions.includes(settings.typingSound)
+    ? settings.typingSound
+    : undefined;
+  const selectedWarningSound = warningSoundOptions.includes(settings.warningSound)
+    ? settings.warningSound
+    : undefined;
+  const selectedErrorSound = errorSoundOptions.includes(settings.errorSound)
+    ? settings.errorSound
+    : "";
   const closeSettingsModal = () => {
     setActiveSettingsTab("all");
     setShowSettings(false);
@@ -2125,9 +2140,10 @@ export default function TypingPractice({
 
             <div
               ref={containerRef}
-              className={`cursor-text font-mono overflow-hidden relative transition-all duration-300 ${!isFocused ? "blur-sm opacity-50" : ""}`}
+              className={`cursor-text overflow-hidden relative transition-all duration-300 ${!isFocused ? "blur-sm opacity-50" : ""}`}
               style={{
                 fontSize: `${settings.typingFontSize}rem`,
+                fontFamily: getTypingFontFamily(settings.typingFontFamily),
                 lineHeight: LINE_HEIGHT,
                 maxHeight: `${linePreview * settings.typingFontSize * LINE_HEIGHT}rem`,
                 textAlign: settings.textAlign,
@@ -3288,27 +3304,45 @@ export default function TypingPractice({
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="mb-2 block text-sm" style={{ color: theme.textSecondary }}>
-                          Font
+                          Typing Font
                         </label>
-                        <select
-                          value={selectedFontOption}
-                          onChange={(e) => setSelectedFontOption(e.target.value as FontOptionValue)}
-                          className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                          style={{
-                            backgroundColor: theme.surfaceColor,
-                            borderColor: theme.borderSubtle,
-                            color: theme.textPrimary,
-                            ["--tw-ring-color" as string]: theme.buttonSelected,
-                          }}
+                        <Select
+                          value={settings.typingFontFamily}
+                          onValueChange={(value) => updateSettings({ typingFontFamily: value })}
                         >
-                          {FONT_OPTIONS.map((font) => (
-                            <option key={font.value} value={font.value}>
-                              {font.label}
-                            </option>
-                          ))}
-                        </select>
+                          <SelectTrigger
+                            className="w-full"
+                            style={{
+                              backgroundColor: theme.surfaceColor,
+                              borderColor: theme.borderSubtle,
+                              color: theme.textPrimary,
+                              fontFamily: getTypingFontFamily(settings.typingFontFamily),
+                            }}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent
+                            style={{
+                              backgroundColor: theme.surfaceColor,
+                              borderColor: theme.borderSubtle,
+                            }}
+                          >
+                            {TYPING_FONT_OPTIONS.map((font) => (
+                              <SelectItem
+                                key={font.value}
+                                value={font.value}
+                                style={{
+                                  color: theme.textPrimary,
+                                  fontFamily: font.fontFamily,
+                                }}
+                              >
+                                {font.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>
-                          Font rendering hookup will be wired in a follow-up.
+                          Changes the font used in the typing area only.
                         </p>
                       </div>
 
@@ -3321,15 +3355,18 @@ export default function TypingPractice({
                             {formatRemValue(clampedTextSize)}
                           </span>
                         </div>
-                        <input
-                          type="range"
+                        <Slider
                           min={3}
                           max={6}
                           step={0.25}
-                          value={clampedTextSize}
-                          onChange={(e) => updateSettings({ typingFontSize: parseFloat(e.target.value) || 3 })}
-                          className="w-full cursor-pointer"
-                          style={{ accentColor: theme.buttonSelected }}
+                          value={[clampedTextSize]}
+                          onValueChange={(value) => updateSettings({ typingFontSize: value[0] ?? 3 })}
+                          aria-label="Text Size"
+                          className="w-full [&_[data-slot=slider-range]]:bg-[var(--slider-range)] [&_[data-slot=slider-thumb]]:border-[var(--slider-range)] [&_[data-slot=slider-track]]:bg-[var(--slider-track)]"
+                          style={{
+                            ["--slider-range" as string]: theme.buttonSelected,
+                            ["--slider-track" as string]: theme.surfaceColor,
+                          }}
                         />
                         <p className="mt-1 text-xs" style={{ color: theme.textMuted }}>
                           Range: 3rem to 6rem
@@ -3407,38 +3444,45 @@ export default function TypingPractice({
                           <label className="mb-2 block text-sm" style={{ color: theme.textSecondary }}>
                             Typing Sound
                           </label>
-                          <select
-                            value={settings.typingSound}
-                            onChange={(e) => updateSettings({ typingSound: e.target.value })}
-                            className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                            style={{
-                              backgroundColor: theme.surfaceColor,
-                              borderColor: theme.borderSubtle,
-                              color: theme.textPrimary,
-                              ["--tw-ring-color" as string]: theme.buttonSelected,
-                            }}
+                          <Select
+                            value={selectedTypingSound}
+                            onValueChange={(value) => updateSettings({ typingSound: value })}
+                            disabled={typingSoundOptions.length === 0}
                           >
-                            {typingSoundOptions.length === 0 ? (
-                              <option value={settings.typingSound || ""}>No packs found</option>
-                            ) : (
-                              typingSoundOptions.map((pack) => (
-                                <option key={pack} value={pack}>
+                            <SelectTrigger
+                              className="w-full"
+                              style={{
+                                backgroundColor: theme.surfaceColor,
+                                borderColor: theme.borderSubtle,
+                                color: theme.textPrimary,
+                              }}
+                            >
+                              <SelectValue placeholder={typingSoundOptions.length === 0 ? "No packs found" : "Select typing sound"} />
+                            </SelectTrigger>
+                            <SelectContent
+                              style={{
+                                backgroundColor: theme.surfaceColor,
+                                borderColor: theme.borderSubtle,
+                              }}
+                            >
+                              {typingSoundOptions.map((pack) => (
+                                <SelectItem key={pack} value={pack} style={{ color: theme.textPrimary }}>
                                   {pack.charAt(0).toUpperCase() + pack.slice(1)}
-                                </option>
-                              ))
-                            )}
-                          </select>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <button
                           type="button"
-                          onClick={() => playSettingsSoundPreview("typing", settings.typingSound)}
+                          onClick={() => selectedTypingSound && playSettingsSoundPreview("typing", selectedTypingSound)}
                           className="rounded-md border px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
                           style={{
                             color: theme.textPrimary,
                             backgroundColor: theme.surfaceColor,
                             borderColor: theme.borderSubtle,
                           }}
-                          disabled={!settings.typingSound || typingSoundOptions.length === 0}
+                          disabled={!selectedTypingSound || typingSoundOptions.length === 0}
                         >
                           Preview
                         </button>
@@ -3449,38 +3493,45 @@ export default function TypingPractice({
                           <label className="mb-2 block text-sm" style={{ color: theme.textSecondary }}>
                             Warning Sound
                           </label>
-                          <select
-                            value={settings.warningSound}
-                            onChange={(e) => updateSettings({ warningSound: e.target.value })}
-                            className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                            style={{
-                              backgroundColor: theme.surfaceColor,
-                              borderColor: theme.borderSubtle,
-                              color: theme.textPrimary,
-                              ["--tw-ring-color" as string]: theme.buttonSelected,
-                            }}
+                          <Select
+                            value={selectedWarningSound}
+                            onValueChange={(value) => updateSettings({ warningSound: value })}
+                            disabled={warningSoundOptions.length === 0}
                           >
-                            {warningSoundOptions.length === 0 ? (
-                              <option value={settings.warningSound || ""}>No packs found</option>
-                            ) : (
-                              warningSoundOptions.map((pack) => (
-                                <option key={pack} value={pack}>
+                            <SelectTrigger
+                              className="w-full"
+                              style={{
+                                backgroundColor: theme.surfaceColor,
+                                borderColor: theme.borderSubtle,
+                                color: theme.textPrimary,
+                              }}
+                            >
+                              <SelectValue placeholder={warningSoundOptions.length === 0 ? "No packs found" : "Select warning sound"} />
+                            </SelectTrigger>
+                            <SelectContent
+                              style={{
+                                backgroundColor: theme.surfaceColor,
+                                borderColor: theme.borderSubtle,
+                              }}
+                            >
+                              {warningSoundOptions.map((pack) => (
+                                <SelectItem key={pack} value={pack} style={{ color: theme.textPrimary }}>
                                   {pack.charAt(0).toUpperCase() + pack.slice(1)}
-                                </option>
-                              ))
-                            )}
-                          </select>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <button
                           type="button"
-                          onClick={() => playSettingsSoundPreview("warning", settings.warningSound)}
+                          onClick={() => selectedWarningSound && playSettingsSoundPreview("warning", selectedWarningSound)}
                           className="rounded-md border px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
                           style={{
                             color: theme.textPrimary,
                             backgroundColor: theme.surfaceColor,
                             borderColor: theme.borderSubtle,
                           }}
-                          disabled={!settings.warningSound || warningSoundOptions.length === 0}
+                          disabled={!selectedWarningSound || warningSoundOptions.length === 0}
                         >
                           Preview
                         </button>
@@ -3491,35 +3542,49 @@ export default function TypingPractice({
                           <label className="mb-2 block text-sm" style={{ color: theme.textSecondary }}>
                             Error Sound
                           </label>
-                          <select
-                            value={settings.errorSound}
-                            onChange={(e) => updateSettings({ errorSound: e.target.value })}
-                            className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                            style={{
-                              backgroundColor: theme.surfaceColor,
-                              borderColor: theme.borderSubtle,
-                              color: theme.textPrimary,
-                              ["--tw-ring-color" as string]: theme.buttonSelected,
-                            }}
+                          <Select
+                            value={selectedErrorSound || NONE_SOUND_VALUE}
+                            onValueChange={(value) =>
+                              updateSettings({ errorSound: value === NONE_SOUND_VALUE ? "" : value })
+                            }
                           >
-                            <option value="">None</option>
-                            {errorSoundOptions.map((pack) => (
-                              <option key={pack} value={pack}>
-                                {pack.charAt(0).toUpperCase() + pack.slice(1)}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger
+                              className="w-full"
+                              style={{
+                                backgroundColor: theme.surfaceColor,
+                                borderColor: theme.borderSubtle,
+                                color: theme.textPrimary,
+                              }}
+                            >
+                              <SelectValue placeholder="None" />
+                            </SelectTrigger>
+                            <SelectContent
+                              style={{
+                                backgroundColor: theme.surfaceColor,
+                                borderColor: theme.borderSubtle,
+                              }}
+                            >
+                              <SelectItem value={NONE_SOUND_VALUE} style={{ color: theme.textPrimary }}>
+                                None
+                              </SelectItem>
+                              {errorSoundOptions.map((pack) => (
+                                <SelectItem key={pack} value={pack} style={{ color: theme.textPrimary }}>
+                                  {pack.charAt(0).toUpperCase() + pack.slice(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <button
                           type="button"
-                          onClick={() => playSettingsSoundPreview("error", settings.errorSound)}
+                          onClick={() => selectedErrorSound && playSettingsSoundPreview("error", selectedErrorSound)}
                           className="rounded-md border px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
                           style={{
                             color: theme.textPrimary,
                             backgroundColor: theme.surfaceColor,
                             borderColor: theme.borderSubtle,
                           }}
-                          disabled={!settings.errorSound || errorSoundOptions.length === 0}
+                          disabled={!selectedErrorSound || errorSoundOptions.length === 0}
                         >
                           Preview
                         </button>
@@ -3566,19 +3631,22 @@ export default function TypingPractice({
                           {Math.max(1, Math.min(200, settings.ghostWriterSpeed))} WPM
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <Slider
                         min={1}
                         max={200}
                         step={1}
-                        value={Math.max(1, Math.min(200, settings.ghostWriterSpeed))}
-                        onChange={(e) =>
+                        value={[Math.max(1, Math.min(200, settings.ghostWriterSpeed))]}
+                        onValueChange={(value) =>
                           updateSettings({
-                            ghostWriterSpeed: parseInt(e.target.value, 10) || 1,
+                            ghostWriterSpeed: Math.round(value[0] ?? 1),
                           })
                         }
-                        className="w-full cursor-pointer"
-                        style={{ accentColor: theme.buttonSelected }}
+                        aria-label="Target Speed"
+                        className="w-full [&_[data-slot=slider-range]]:bg-[var(--slider-range)] [&_[data-slot=slider-thumb]]:border-[var(--slider-range)] [&_[data-slot=slider-track]]:bg-[var(--slider-track)]"
+                        style={{
+                          ["--slider-range" as string]: theme.buttonSelected,
+                          ["--slider-track" as string]: theme.surfaceColor,
+                        }}
                       />
                     </div>
                   </section>
@@ -3610,15 +3678,18 @@ export default function TypingPractice({
                           {clampedLinePreview}
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <Slider
                         min={1}
                         max={6}
                         step={1}
-                        value={clampedLinePreview}
-                        onChange={(e) => setLinePreview(parseInt(e.target.value, 10) || 1)}
-                        className="w-full cursor-pointer"
-                        style={{ accentColor: theme.buttonSelected }}
+                        value={[clampedLinePreview]}
+                        onValueChange={(value) => setLinePreview(Math.round(value[0] ?? 1))}
+                        aria-label="Preview Lines"
+                        className="w-full [&_[data-slot=slider-range]]:bg-[var(--slider-range)] [&_[data-slot=slider-thumb]]:border-[var(--slider-range)] [&_[data-slot=slider-track]]:bg-[var(--slider-track)]"
+                        style={{
+                          ["--slider-range" as string]: theme.buttonSelected,
+                          ["--slider-track" as string]: theme.surfaceColor,
+                        }}
                       />
                     </div>
 
@@ -3631,15 +3702,18 @@ export default function TypingPractice({
                           {clampedMaxWordsPerLine}
                         </span>
                       </div>
-                      <input
-                        type="range"
+                      <Slider
                         min={1}
                         max={10}
                         step={1}
-                        value={clampedMaxWordsPerLine}
-                        onChange={(e) => setMaxWordsPerLine(parseInt(e.target.value, 10) || 1)}
-                        className="w-full cursor-pointer"
-                        style={{ accentColor: theme.buttonSelected }}
+                        value={[clampedMaxWordsPerLine]}
+                        onValueChange={(value) => setMaxWordsPerLine(Math.round(value[0] ?? 1))}
+                        aria-label="Max Words Per Line"
+                        className="w-full [&_[data-slot=slider-range]]:bg-[var(--slider-range)] [&_[data-slot=slider-thumb]]:border-[var(--slider-range)] [&_[data-slot=slider-track]]:bg-[var(--slider-track)]"
+                        style={{
+                          ["--slider-range" as string]: theme.buttonSelected,
+                          ["--slider-track" as string]: theme.surfaceColor,
+                        }}
                       />
                     </div>
                   </div>

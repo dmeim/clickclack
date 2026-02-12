@@ -36,6 +36,7 @@ export type SettingsState = {
   numbers: boolean;
   capitalization: boolean;
   typingFontSize: number;
+  typingFontFamily: string;
   iconFontSize: number;
   helpFontSize: number;
   difficulty: Difficulty;

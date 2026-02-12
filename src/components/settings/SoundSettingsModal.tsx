@@ -9,6 +9,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const NONE_SOUND_VALUE = "__none_sound__";
 
 interface SoundSettingsModalProps {
   isOpen: boolean;
@@ -44,6 +53,19 @@ export default function SoundSettingsModal({
     if (!soundManifest) return [];
     return soundManifest[category] ? Object.keys(soundManifest[category]) : [];
   };
+
+  const typingPacks = getPacks("typing");
+  const warningPacks = getPacks("warning");
+  const errorPacks = getPacks("error");
+  const selectedTypingSound = typingPacks.includes(settings.typingSound)
+    ? settings.typingSound
+    : undefined;
+  const selectedWarningSound = warningPacks.includes(settings.warningSound)
+    ? settings.warningSound
+    : undefined;
+  const selectedErrorSound = errorPacks.includes(settings.errorSound)
+    ? settings.errorSound
+    : "";
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -105,30 +127,41 @@ export default function SoundSettingsModal({
             <div className="flex flex-col gap-2">
               <label className="text-sm" style={{ color: theme.textSecondary }}>Typing Sound</label>
               <div className="flex items-center gap-2">
-                <select
-                  value={settings.typingSound}
-                  onChange={(e) =>
-                    onUpdateSettings({ typingSound: e.target.value })
-                  }
-                  className="w-full rounded px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                  style={{
-                    backgroundColor: `${theme.backgroundColor}80`,
-                    color: theme.correctText,
-                    ["--tw-ring-color" as string]: theme.buttonSelected,
-                  }}
+                <Select
+                  value={selectedTypingSound}
+                  onValueChange={(value) => onUpdateSettings({ typingSound: value })}
+                  disabled={typingPacks.length === 0}
                 >
-                  {getPacks("typing").map((pack) => (
-                    <option key={pack} value={pack}>
-                      {pack.charAt(0).toUpperCase() + pack.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    className="w-full"
+                    style={{
+                      backgroundColor: `${theme.backgroundColor}80`,
+                      borderColor: theme.borderSubtle,
+                      color: theme.correctText,
+                    }}
+                  >
+                    <SelectValue placeholder={typingPacks.length === 0 ? "No packs found" : "Select typing sound"} />
+                  </SelectTrigger>
+                  <SelectContent
+                    style={{
+                      backgroundColor: theme.surfaceColor,
+                      borderColor: theme.borderSubtle,
+                    }}
+                  >
+                    {typingPacks.map((pack) => (
+                      <SelectItem key={pack} value={pack} style={{ color: theme.correctText }}>
+                        {pack.charAt(0).toUpperCase() + pack.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <button
                   type="button"
-                  onClick={() => playPreview("typing", settings.typingSound)}
+                  onClick={() => selectedTypingSound && playPreview("typing", selectedTypingSound)}
                   className="p-2 rounded hover:opacity-75 transition"
                   style={{ color: theme.textSecondary }}
                   title="Preview sound"
+                  disabled={!selectedTypingSound || typingPacks.length === 0}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -152,30 +185,41 @@ export default function SoundSettingsModal({
             <div className="flex flex-col gap-2">
               <label className="text-sm" style={{ color: theme.textSecondary }}>Warning Sound</label>
               <div className="flex items-center gap-2">
-                <select
-                  value={settings.warningSound}
-                  onChange={(e) =>
-                    onUpdateSettings({ warningSound: e.target.value })
-                  }
-                  className="w-full rounded px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                  style={{
-                    backgroundColor: `${theme.backgroundColor}80`,
-                    color: theme.correctText,
-                    ["--tw-ring-color" as string]: theme.buttonSelected,
-                  }}
+                <Select
+                  value={selectedWarningSound}
+                  onValueChange={(value) => onUpdateSettings({ warningSound: value })}
+                  disabled={warningPacks.length === 0}
                 >
-                  {getPacks("warning").map((pack) => (
-                    <option key={pack} value={pack}>
-                      {pack.charAt(0).toUpperCase() + pack.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    className="w-full"
+                    style={{
+                      backgroundColor: `${theme.backgroundColor}80`,
+                      borderColor: theme.borderSubtle,
+                      color: theme.correctText,
+                    }}
+                  >
+                    <SelectValue placeholder={warningPacks.length === 0 ? "No packs found" : "Select warning sound"} />
+                  </SelectTrigger>
+                  <SelectContent
+                    style={{
+                      backgroundColor: theme.surfaceColor,
+                      borderColor: theme.borderSubtle,
+                    }}
+                  >
+                    {warningPacks.map((pack) => (
+                      <SelectItem key={pack} value={pack} style={{ color: theme.correctText }}>
+                        {pack.charAt(0).toUpperCase() + pack.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <button
                   type="button"
-                  onClick={() => playPreview("warning", settings.warningSound)}
+                  onClick={() => selectedWarningSound && playPreview("warning", selectedWarningSound)}
                   className="p-2 rounded hover:opacity-75 transition"
                   style={{ color: theme.textSecondary }}
                   title="Preview sound"
+                  disabled={!selectedWarningSound || warningPacks.length === 0}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -199,36 +243,48 @@ export default function SoundSettingsModal({
             <div className="flex flex-col gap-2">
               <label className="text-sm" style={{ color: theme.textSecondary }}>Error Sound</label>
               <div className="flex items-center gap-2">
-                <select
-                  value={settings.errorSound}
-                  onChange={(e) =>
-                    onUpdateSettings({ errorSound: e.target.value })
+                <Select
+                  value={selectedErrorSound || NONE_SOUND_VALUE}
+                  onValueChange={(value) =>
+                    onUpdateSettings({ errorSound: value === NONE_SOUND_VALUE ? "" : value })
                   }
-                  className="w-full rounded px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                  style={{
-                    backgroundColor: `${theme.backgroundColor}80`,
-                    color: theme.correctText,
-                    ["--tw-ring-color" as string]: theme.buttonSelected,
-                  }}
-                  disabled={getPacks("error").length === 0}
                 >
-                  <option value="">None</option>
-                  {getPacks("error").map((pack) => (
-                    <option key={pack} value={pack}>
-                      {pack.charAt(0).toUpperCase() + pack.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    className="w-full"
+                    style={{
+                      backgroundColor: `${theme.backgroundColor}80`,
+                      borderColor: theme.borderSubtle,
+                      color: theme.correctText,
+                    }}
+                  >
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent
+                    style={{
+                      backgroundColor: theme.surfaceColor,
+                      borderColor: theme.borderSubtle,
+                    }}
+                  >
+                    <SelectItem value={NONE_SOUND_VALUE} style={{ color: theme.correctText }}>
+                      None
+                    </SelectItem>
+                    {errorPacks.map((pack) => (
+                      <SelectItem key={pack} value={pack} style={{ color: theme.correctText }}>
+                        {pack.charAt(0).toUpperCase() + pack.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <button
                   type="button"
                   onClick={() =>
-                    settings.errorSound &&
-                    playPreview("error", settings.errorSound)
+                    selectedErrorSound &&
+                    playPreview("error", selectedErrorSound)
                   }
-                  className={`p-2 rounded hover:opacity-75 transition ${!settings.errorSound ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`p-2 rounded hover:opacity-75 transition ${!selectedErrorSound ? "opacity-50 cursor-not-allowed" : ""}`}
                   style={{ color: theme.textSecondary }}
                   title="Preview sound"
-                  disabled={!settings.errorSound}
+                  disabled={!selectedErrorSound || errorPacks.length === 0}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

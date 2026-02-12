@@ -167,6 +167,7 @@ export default defineSchema({
 
     // Display settings
     typingFontSize: v.number(),
+    typingFontFamily: v.optional(v.string()),
     iconFontSize: v.number(),
     helpFontSize: v.number(),
     textAlign: v.string(),

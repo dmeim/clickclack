@@ -5,6 +5,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import type { LegacyTheme } from "@/types/theme";
+import { getTypingFontFamily } from "@/lib/typing-fonts";
+import { loadSettings } from "@/lib/storage-utils";
 
 // --- Types ---
 export interface TypingStats {
@@ -53,6 +55,8 @@ export interface TypingAreaProps {
   className?: string;
   /** Text alignment */
   textAlign?: "left" | "center" | "right";
+  /** Font family key from typing-fonts (reads from localStorage if not provided) */
+  typingFontFamily?: string;
 }
 
 // --- Helper Functions ---
@@ -177,10 +181,18 @@ export default function TypingArea({
   autoFocus = true,
   className = "",
   textAlign = "left",
+  typingFontFamily: typingFontFamilyProp,
 }: TypingAreaProps) {
   // Theme
   const { legacyTheme } = useTheme();
   const theme: LegacyTheme = legacyTheme ?? DEFAULT_THEME;
+
+  // Resolve typing font: use prop if provided, else read from persisted settings
+  const resolvedFontFamily = useMemo(() => {
+    if (typingFontFamilyProp) return getTypingFontFamily(typingFontFamilyProp);
+    const stored = loadSettings();
+    return getTypingFontFamily(stored?.typingFontFamily);
+  }, [typingFontFamilyProp]);
 
   // State
   const [typedText, setTypedText] = useState(initialTypedText);
@@ -620,6 +632,7 @@ export default function TypingArea({
             className="whitespace-nowrap transition-transform duration-100 ease-out relative"
             style={{
               fontSize: `${fontSize}rem`,
+              fontFamily: resolvedFontFamily,
               lineHeight: LINE_HEIGHT,
               transform: `translateX(-${tapeOffset}px)`,
               // 50% padding ensures cursor can be centered at start and end
@@ -658,6 +671,7 @@ export default function TypingArea({
           className="overflow-hidden relative"
           style={{
             fontSize: `${fontSize}rem`,
+            fontFamily: resolvedFontFamily,
             lineHeight: LINE_HEIGHT,
             height: containerHeight,
             textAlign,
