@@ -143,3 +143,97 @@ export const backfillAllCaches = internalAction({
     };
   },
 });
+
+/**
+ * Audit and optionally repair leaderboard username/avatar cache entries
+ * for all users.
+ *
+ * Usage from Convex dashboard:
+ *   - Check only: dryRun = true
+ *   - Check + fix: dryRun = false (default)
+ */
+export const checkAndFixLeaderboardIdentity = internalAction({
+  args: {
+    dryRun: v.optional(v.boolean()),
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const batchSize = Math.max(1, Math.min(args.batchSize ?? 50, 200));
+
+    console.log(
+      `Starting leaderboard identity ${dryRun ? "audit" : "audit + repair"}...`
+    );
+
+    let cursor: string | null = null;
+    let usersProcessed = 0;
+    let usersWithMismatches = 0;
+    let cacheEntriesChecked = 0;
+    let cacheEntriesMismatched = 0;
+    let cacheEntriesUpdated = 0;
+    let failures = 0;
+
+    while (true) {
+      const batch: UserIdsBatch = await ctx.runQuery(internal.migrations.getUserIdsBatch, {
+        cursor: cursor ?? undefined,
+        batchSize,
+      });
+
+      if (batch.userIds.length === 0) {
+        break;
+      }
+
+      for (const userId of batch.userIds) {
+        try {
+          const result: {
+            checked: number;
+            mismatched: number;
+            updated: number;
+            dryRun: boolean;
+            skipped: boolean;
+          } = await ctx.runMutation(internal.statsCache.syncLeaderboardIdentityFromUser, {
+            userId,
+            dryRun,
+          });
+
+          usersProcessed++;
+          cacheEntriesChecked += result.checked;
+          cacheEntriesMismatched += result.mismatched;
+          cacheEntriesUpdated += result.updated;
+          if (result.mismatched > 0) {
+            usersWithMismatches++;
+          }
+        } catch (e) {
+          failures++;
+          console.error(
+            `  Failed leaderboard identity sync for user ${userId}:`,
+            e
+          );
+        }
+      }
+
+      console.log(
+        `  Processed ${batch.userIds.length} users (total: ${usersProcessed}, mismatched entries: ${cacheEntriesMismatched}, updated entries: ${cacheEntriesUpdated}, failures: ${failures})`
+      );
+
+      if (!batch.nextCursor) {
+        break;
+      }
+      cursor = batch.nextCursor;
+    }
+
+    const summary = {
+      mode: dryRun ? "check-only" : "check-and-fix",
+      usersProcessed,
+      usersWithMismatches,
+      cacheEntriesChecked,
+      cacheEntriesMismatched,
+      cacheEntriesUpdated,
+      failures,
+    };
+
+    console.log("Leaderboard identity audit complete:", summary);
+
+    return summary;
+  },
+});

@@ -107,6 +107,107 @@ export const updateLeaderboardCache = internalMutation({
   },
 });
 
+export const syncLeaderboardIdentity = internalMutation({
+  args: {
+    userId: v.id("users"),
+    username: v.string(),
+    avatarUrl: v.optional(v.string()),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const dryRun = args.dryRun ?? false;
+    const now = Date.now();
+    const timeRanges = ["all-time", "week", "today"] as const;
+    let checked = 0;
+    let mismatched = 0;
+    let updated = 0;
+
+    for (const timeRange of timeRanges) {
+      const entries = await ctx.db
+        .query("leaderboardCache")
+        .withIndex("by_user_time_range", (q) =>
+          q.eq("userId", args.userId).eq("timeRange", timeRange)
+        )
+        .collect();
+
+      for (const entry of entries) {
+        checked++;
+        if (
+          entry.username !== args.username ||
+          entry.avatarUrl !== args.avatarUrl
+        ) {
+          mismatched++;
+          if (!dryRun) {
+            await ctx.db.patch(entry._id, {
+              username: args.username,
+              avatarUrl: args.avatarUrl,
+              updatedAt: now,
+            });
+            updated++;
+          }
+        }
+      }
+    }
+
+    return { checked, mismatched, updated, dryRun };
+  },
+});
+
+export const syncLeaderboardIdentityFromUser = internalMutation({
+  args: {
+    userId: v.id("users"),
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return {
+        checked: 0,
+        mismatched: 0,
+        updated: 0,
+        dryRun: args.dryRun ?? false,
+        skipped: true,
+      };
+    }
+
+    const dryRun = args.dryRun ?? false;
+    const now = Date.now();
+    const timeRanges = ["all-time", "week", "today"] as const;
+    let checked = 0;
+    let mismatched = 0;
+    let updated = 0;
+
+    for (const timeRange of timeRanges) {
+      const entries = await ctx.db
+        .query("leaderboardCache")
+        .withIndex("by_user_time_range", (q) =>
+          q.eq("userId", args.userId).eq("timeRange", timeRange)
+        )
+        .collect();
+
+      for (const entry of entries) {
+        checked++;
+        if (
+          entry.username !== user.username ||
+          entry.avatarUrl !== user.avatarUrl
+        ) {
+          mismatched++;
+          if (!dryRun) {
+            await ctx.db.patch(entry._id, {
+              username: user.username,
+              avatarUrl: user.avatarUrl,
+              updatedAt: now,
+            });
+            updated++;
+          }
+        }
+      }
+    }
+
+    return { checked, mismatched, updated, dryRun, skipped: false };
+  },
+});
+
 /**
  * Internal mutation to decrement user stats cache after deleting a result.
  * If the deleted result was the user's best WPM, we need to recalculate.

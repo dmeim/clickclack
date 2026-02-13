@@ -16,7 +16,7 @@ export default function UserButton() {
   const { isSignedIn, user, isLoaded } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const getOrCreateUser = useMutation(api.users.getOrCreateUser);
-  const syncedUserIdRef = useRef<string | null>(null);
+  const lastSyncedKeyRef = useRef<string | null>(null);
   const { legacyTheme } = useTheme();
 
   // Fallback theme for when context is loading
@@ -53,23 +53,32 @@ export default function UserButton() {
 
   // Sync user to Convex when they sign in
   useEffect(() => {
-    if (isSignedIn && user && syncedUserIdRef.current !== user.id) {
+    if (isSignedIn && user) {
+      const email = user.primaryEmailAddress?.emailAddress ?? "";
+      const username = user.username ?? user.firstName ?? "User";
+      const avatarUrl = user.imageUrl;
+      const syncKey = `${user.id}:${email}:${username}:${avatarUrl}`;
+
+      if (lastSyncedKeyRef.current === syncKey) {
+        return;
+      }
+
       const syncUser = async () => {
         try {
           await getOrCreateUser({
             clerkId: user.id,
-            email: user.primaryEmailAddress?.emailAddress ?? "",
-            username: user.username ?? user.firstName ?? "User",
-            avatarUrl: user.imageUrl,
+            email,
+            username,
+            avatarUrl,
           });
-          syncedUserIdRef.current = user.id;
+          lastSyncedKeyRef.current = syncKey;
         } catch (error) {
           console.error("Failed to sync user to Convex:", error);
         }
       };
       syncUser();
     } else if (!isSignedIn) {
-      syncedUserIdRef.current = null;
+      lastSyncedKeyRef.current = null;
     }
   }, [isSignedIn, user, getOrCreateUser]);
 

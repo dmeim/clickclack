@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // Get or create a user when they sign in with Clerk
 export const getOrCreateUser = mutation({
@@ -17,17 +18,30 @@ export const getOrCreateUser = mutation({
       .first();
 
     if (existingUser) {
-      // Update the user's info if it has changed (e.g., avatar from OAuth)
+      const usernameChanged = existingUser.username !== args.username;
+      const avatarChanged = existingUser.avatarUrl !== args.avatarUrl;
+
       if (
         existingUser.email !== args.email ||
-        existingUser.avatarUrl !== args.avatarUrl
+        usernameChanged ||
+        avatarChanged
       ) {
         await ctx.db.patch(existingUser._id, {
           email: args.email,
+          username: args.username,
           avatarUrl: args.avatarUrl,
           updatedAt: Date.now(),
         });
       }
+
+      if (usernameChanged || avatarChanged) {
+        await ctx.runMutation(internal.statsCache.syncLeaderboardIdentity, {
+          userId: existingUser._id,
+          username: args.username,
+          avatarUrl: args.avatarUrl,
+        });
+      }
+
       return existingUser._id;
     }
 
@@ -91,6 +105,11 @@ export const updateProfile = mutation({
       updatedAt: Date.now(),
     };
 
+    const nextUsername = args.username ?? user.username;
+    const nextAvatarUrl = args.avatarUrl ?? user.avatarUrl;
+    const usernameChanged = nextUsername !== user.username;
+    const avatarChanged = nextAvatarUrl !== user.avatarUrl;
+
     if (args.username !== undefined) {
       updates.username = args.username;
     }
@@ -100,6 +119,14 @@ export const updateProfile = mutation({
     }
 
     await ctx.db.patch(user._id, updates);
+
+    if (usernameChanged || avatarChanged) {
+      await ctx.runMutation(internal.statsCache.syncLeaderboardIdentity, {
+        userId: user._id,
+        username: nextUsername,
+        avatarUrl: nextAvatarUrl,
+      });
+    }
 
     return user._id;
   },
