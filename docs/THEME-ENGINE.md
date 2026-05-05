@@ -155,4 +155,6 @@ const { colors } = useTheme();
 
 ## Categories
 
-Themes are organized into ~40 categories (gaming, anime, books, editor, nature, etc.). Category display order and names are defined in `CATEGORY_CONFIG` in `src/lib/themes.ts`. The theme picker UI groups and sorts themes by category.
+Themes are organized into ~40 categories (gaming, anime, books, editor, nature, sports, sports-teams, etc.). Category display order and names are defined in `CATEGORY_CONFIG` in `src/lib/themes.ts`. The theme picker UI groups and sorts themes by category.
+
+`Sports` is reserved for general sport-name themes such as `football`, `basketball`, `hockey`, and `soccer`. Team/franchise themes belong in `Sports Teams` (`sports-teams`) so future team additions do not clutter the general sports list. Sports-team variants should represent visually distinct jersey eras, home/away uniforms, alternates, throwbacks, City Connect/reverse-retro designs, or named kits.

@@ -36,6 +36,7 @@ export type ThemeCategory =
   | "food"
   | "space"
   | "sports"
+  | "sports-teams"
   | "tv-shows"
   | "movies"
   | "anime"

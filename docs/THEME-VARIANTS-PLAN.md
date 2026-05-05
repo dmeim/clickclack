@@ -10,7 +10,9 @@ Category → Theme → Variant
 
 **Example:** Music Bands → AC/DC → Back in Black
 
-Not all themes support variants. A variant makes sense only when there's a natural, recognizable 3rd level that produces meaningfully different color palettes. Planets don't need variants (Mars is Mars). But a band naturally maps to albums, a franchise maps to sequels, and an anime maps to arcs.
+**Example:** Sports Teams → Philadelphia Eagles → 1996 Home — Midnight Green
+
+Not all themes support variants. A variant makes sense only when there's a natural, recognizable 3rd level that produces meaningfully different color palettes. Planets don't need variants (Mars is Mars). But a band naturally maps to albums, a franchise maps to sequels, an anime maps to arcs, and a sports team maps to jersey eras/kits.
 
 ## Already Completed
 
@@ -18,10 +20,47 @@ Not all themes support variants. A variant makes sense only when there's a natur
 |----------|--------|-------------|--------|
 | music-bands | 99 | Albums | Done |
 | music-artists | 61 | Albums | Done |
+| sports-teams | 5 | Jersey eras / kits | In progress — Philadelphia teams seeded |
 
 ---
 
 ## Categories That Support Variants
+
+### Sports Teams (5 themes seeded)
+
+Sports teams live in the separate `sports-teams` category, not `sports`. Keep `sports` reserved for general sport-name themes like `football`, `basketball`, `hockey`, and `soccer`; use `sports-teams` for clubs/franchises so the general Sports category does not become cluttered as more teams are added.
+
+Variant type: jersey eras, home/away uniforms, alternates, throwbacks, and named kits. Add variants only when a uniform change is visually meaningful enough to produce a distinct palette.
+
+Current seeded Philadelphia teams:
+
+| Theme | Variant Type | Current Variants |
+|-------|-------------|------------------|
+| philadelphia-eagles | NFL jersey eras | 1933 home/away blue-yellow, 1948 home/away kelly-silver, 1974 home/away kelly, 1996 home/away midnight green, 2003 black alternate, 2023 home/away kelly throwback |
+| philadelphia-76ers | NBA jersey eras | 1963 home/away red-blue, 1971 home/away script, 1977 home/away stars, 1997 home/away black-gold, 2009 home/away classic, 2015 home/away current classic |
+| philadelphia-flyers | NHL jersey eras | 1967 home/away orange-white, 1982 home/away Cooperalls era, 1997 home black / away white-orange, 2010 home/away classic, 2023 home/away new orange |
+| philadelphia-union | MLS kit eras | 2010 home navy-gold, 2011 away white-gold, 2014 home navy-gold, 2015 away white-light-blue, 2018 Bethlehem Steel tribute, 2019 away white/gold, 2020 Forever Faithful, 2021 By U, 2022 For U, 2023 Volt, 2024 primary, 2025 secondary |
+| philadelphia-phillies | MLB uniform eras | 1950 home/away Whiz Kids, 1970 home maroon / away powder blue, 1979 Saturday Night Special, 1992 home/away red-blue, 2008 cream alternate, 2018 powder blue throwback, 2024 City Connect |
+
+#### Research checklist for adding sports teams
+
+1. Confirm the franchise/team id and use `public/themes/<city-or-region>-<team-name>.json`.
+2. Set `category` to `"sports-teams"`.
+3. Research actual jersey or kit design change years from reliable visual references before choosing variants.
+4. Prefer stable era labels over every single season unless the uniform changes are visually distinct.
+5. Include home and away variants when both are visually distinct; include alternates, throwbacks, City Connect, reverse retro, or named kits when they have recognizable palettes.
+6. Use variant ids that combine year + uniform role/style, e.g. `1996-home-midnight-green`, `1970-away-powder-blue-maroon`, `2024-city-connect`.
+7. Use variant labels that read well in the picker, e.g. `1996 Home — Midnight Green`.
+8. Approximate palettes from jersey fabric, trim, numbers, pants/shorts/socks, helmet/cap, and major sponsor or badge colors where relevant.
+9. Avoid adding unsupported historical years or minor manufacturer/template changes that do not materially alter the palette.
+10. Run `bun run test:run -- tests/unit/themes.test.ts` after adding files.
+
+Future candidates:
+
+- More Philadelphia-area teams: `philadelphia-wings`, `philadelphia-soul`, `temple-owls`, `villanova-wildcats`, `lehigh-valley-phantoms`, `reading-fightin-phils`, `lehigh-valley-ironpigs`, `delaware-blue-coats`.
+- Other city sets can follow the same pattern, e.g. `los-angeles-lakers`, `new-york-yankees`, `boston-celtics`, etc.
+
+---
 
 ### TV Shows (22 themes)
 
@@ -283,7 +322,7 @@ These categories are naturally flat — each theme is already specific enough an
 | plants | 25 | Each plant is specific |
 | productivity | 28 | Work-state concepts with no sub-modes |
 | space | 37 | Already very granular (individual planets/phenomena) |
-| sports | 29 | Team-level variants would be a massive separate project |
+| sports | 29 | General sport-name themes stay flat; team-specific variants belong in `sports-teams` |
 | subject | 27 | Academic subjects don't have color sub-disciplines |
 | textiles | 12 | Each material is atomic |
 | time | 11 | Specific time-of-day slices |
@@ -299,6 +338,7 @@ These categories are naturally flat — each theme is already specific enough an
 | Status | Categories | Themes with Variants | Total Variants |
 |--------|-----------|---------------------|----------------|
 | Done | music-bands, music-artists | 160 | ~640 |
+| In progress | sports-teams | 5 | 55 |
 | Planned | tv-shows | 22 | ~74 |
 | Planned | movies | 24 | ~80 |
 | Planned | gaming | 44 | ~156 |
@@ -312,3 +352,4 @@ These categories are naturally flat — each theme is already specific enough an
 | Planned | cities | 5 | ~10 |
 | **No variants** | 27 categories | — | — |
 | **Total planned** | 12 categories | **136 themes** | **~439 variants** |
+| **Sports-team expansion seeded** | 1 category | **5 themes** | **55 variants** |
