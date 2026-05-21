@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 import { CATEGORY_CONFIG, groupThemesByCategory } from "@/lib/themes";
 import type { ThemeColors, ThemeDefinition } from "@/types/theme";
@@ -72,6 +73,13 @@ const createTheme = (id: string, category: ThemeDefinition["category"]): ThemeDe
   light: null,
 });
 
+const readThemeVariantIds = (themeId: string) => {
+  const theme = JSON.parse(readFileSync(`public/themes/${themeId}.json`, "utf8")) as {
+    variants: Record<string, unknown>;
+  };
+  return Object.keys(theme.variants);
+};
+
 describe("theme categories", () => {
   it("includes new categories in CATEGORY_CONFIG", () => {
     expect(CATEGORY_CONFIG.books.displayName).toBe("Books");
@@ -114,5 +122,45 @@ describe("theme categories", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].category).toBe("default");
     expect(groups[0].themes[0].id).toBe("malformed");
+  });
+
+  it("includes the requested music release variants", () => {
+    expect(readThemeVariantIds("my-chemical-romance")).toEqual(
+      expect.arrayContaining([
+        "i-brought-you-my-bullets",
+        "three-cheers-for-sweet-revenge",
+        "the-black-parade",
+        "danger-days",
+      ])
+    );
+
+    expect(readThemeVariantIds("fall-out-boy")).toEqual(
+      expect.arrayContaining([
+        "an-evening-out-with-your-girlfriend",
+        "take-this-to-your-grave",
+        "from-under-the-cork-tree",
+        "infinity-on-high",
+        "folie-a-deux",
+        "american-beauty-american-psycho",
+        "mania",
+        "so-much-for-stardust",
+      ])
+    );
+
+    expect(readThemeVariantIds("cobra-starship")).toEqual(
+      expect.arrayContaining([
+        "viva-la-cobra",
+        "hot-mess",
+        "night-shades",
+        "while-the-city-sleeps",
+      ])
+    );
+
+    expect(readThemeVariantIds("panic-at-the-disco")).toEqual(
+      expect.arrayContaining([
+        "a-fever",
+        "pretty-odd",
+      ])
+    );
   });
 });

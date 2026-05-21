@@ -73,6 +73,25 @@ const NONE_SOUND_VALUE = "__none_sound__";
 type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];
 type ModeSelectorOption = (typeof MODE_SELECTOR_OPTIONS)[number];
 
+const normalizeThemeSearchText = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+const themeSearchMatches = (value: string, normalizedQuery: string) => {
+  if (!normalizedQuery) return true;
+
+  const normalizedValue = normalizeThemeSearchText(value);
+  return (
+    normalizedValue.includes(normalizedQuery) ||
+    normalizedValue.replace(/\s/g, "").includes(normalizedQuery.replace(/\s/g, ""))
+  );
+};
+
 // Word generation helper
 const generateWords = (
   count: number,
@@ -574,7 +593,7 @@ export default function TypingPractice({
     return new Set(allCategoryKeys.filter((c) => c !== "default"));
   }, []);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<ThemeCategory>>(getDefaultCollapsedCategories);
-  const normalizedThemeSearchQuery = themeSearchQuery.trim().toLowerCase();
+  const normalizedThemeSearchQuery = normalizeThemeSearchText(themeSearchQuery);
   const filteredGroupedThemes = useMemo(() => {
     if (!normalizedThemeSearchQuery) return groupedThemes;
 
@@ -582,19 +601,19 @@ export default function TypingPractice({
       .map((group) => ({
         ...group,
         themes: (() => {
-          const displayNameMatch = group.displayName.toLowerCase().includes(normalizedThemeSearchQuery);
-          const categoryKeyMatch = group.category.toLowerCase().includes(normalizedThemeSearchQuery);
+          const displayNameMatch = themeSearchMatches(group.displayName, normalizedThemeSearchQuery);
+          const categoryKeyMatch = themeSearchMatches(group.category, normalizedThemeSearchQuery);
 
           if (displayNameMatch || categoryKeyMatch) {
             return group.themes;
           }
 
           return group.themes.filter((themeData) => {
-            const nameMatch = themeData.name.toLowerCase().includes(normalizedThemeSearchQuery);
-            const idMatch = themeData.id.toLowerCase().includes(normalizedThemeSearchQuery);
+            const nameMatch = themeSearchMatches(themeData.name, normalizedThemeSearchQuery);
+            const idMatch = themeSearchMatches(themeData.id, normalizedThemeSearchQuery);
             const variantMatch = themeData.variants.some(v =>
-              v.id.toLowerCase().includes(normalizedThemeSearchQuery) ||
-              v.label.toLowerCase().includes(normalizedThemeSearchQuery)
+              themeSearchMatches(v.id, normalizedThemeSearchQuery) ||
+              themeSearchMatches(v.label, normalizedThemeSearchQuery)
             );
             return nameMatch || idMatch || variantMatch;
           });
@@ -3284,8 +3303,8 @@ export default function TypingPractice({
                                   const defaultVariant = themeData.variants.find(v => v.id === themeData.defaultVariantId) || themeData.variants[0];
                                   const matchingVariants = normalizedThemeSearchQuery
                                     ? themeData.variants.filter(v =>
-                                        v.id.toLowerCase().includes(normalizedThemeSearchQuery) ||
-                                        v.label.toLowerCase().includes(normalizedThemeSearchQuery)
+                                        themeSearchMatches(v.id, normalizedThemeSearchQuery) ||
+                                        themeSearchMatches(v.label, normalizedThemeSearchQuery)
                                       )
                                     : themeData.variants;
 
@@ -3332,8 +3351,8 @@ export default function TypingPractice({
                                   if (idx === drawerAfterIndex && expandedThemeData) {
                                     const expandedMatchingVariants = normalizedThemeSearchQuery
                                       ? expandedThemeData.variants.filter(v =>
-                                          v.id.toLowerCase().includes(normalizedThemeSearchQuery) ||
-                                          v.label.toLowerCase().includes(normalizedThemeSearchQuery)
+                                          themeSearchMatches(v.id, normalizedThemeSearchQuery) ||
+                                          themeSearchMatches(v.label, normalizedThemeSearchQuery)
                                         )
                                       : expandedThemeData.variants;
                                     const displayedVariants = normalizedThemeSearchQuery && expandedMatchingVariants.length > 0
