@@ -80,6 +80,14 @@ const readThemeVariantIds = (themeId: string) => {
   return Object.keys(theme.variants);
 };
 
+const readThemeCategoryAndVariantCount = (themeId: string) => {
+  const theme = JSON.parse(readFileSync(`public/themes/${themeId}.json`, "utf8")) as {
+    category: string;
+    variants: Record<string, unknown>;
+  };
+  return { category: theme.category, variantCount: Object.keys(theme.variants).length };
+};
+
 describe("theme categories", () => {
   it("includes new categories in CATEGORY_CONFIG", () => {
     expect(CATEGORY_CONFIG.books.displayName).toBe("Books");
@@ -122,6 +130,73 @@ describe("theme categories", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].category).toBe("default");
     expect(groups[0].themes[0].id).toBe("malformed");
+  });
+
+  it("adds character variants to media themes", () => {
+    const mediaThemes = [
+      "attack-on-titan",
+      "chainsaw-man",
+      "barbie",
+      "the-lion-king",
+      "adventure-time",
+      "the-office",
+    ];
+
+    for (const themeId of mediaThemes) {
+      const theme = readThemeCategoryAndVariantCount(themeId);
+      expect(["anime", "movies", "tv-shows"]).toContain(theme.category);
+      expect(theme.variantCount).toBeGreaterThan(1);
+    }
+  });
+
+  it("includes requested characters as variants on their source anime themes", () => {
+    expect(readThemeVariantIds("demon-slayer")).toEqual(
+      expect.arrayContaining([
+        "mitsuri-kanroji",
+        "gyomei-himejima",
+        "giyu-tomioka",
+        "kyojuro-rengoku",
+        "muichiro-tokito",
+        "shinobu-kocho",
+      ])
+    );
+
+    expect(readThemeVariantIds("jujutsu-kaisen")).toEqual(
+      expect.arrayContaining([
+        "satoru-gojo",
+        "maki-zenin",
+        "choso",
+        "toge-inumaki",
+        "kirara-hoshi",
+        "kinji-hakari",
+        "hiromi-higuruma",
+      ])
+    );
+
+    expect(readThemeVariantIds("gachiakuta")).toEqual(
+      expect.arrayContaining([
+        "rudo-surebrec",
+        "zanka-nijiku",
+        "riyo-reaper",
+        "jabber-wonger",
+        "tamsy-caines",
+        "fu-orostor",
+        "amo",
+      ])
+    );
+
+    expect(readThemeVariantIds("danganronpa")).toEqual(
+      expect.arrayContaining([
+        "celestia-ludenberg",
+        "gundham-tanaka",
+        "kokichi-oma",
+        "kazuichi-soda",
+      ])
+    );
+
+    expect(readThemeVariantIds("my-hero-academia")).toEqual(
+      expect.arrayContaining(["tenya-iida"])
+    );
   });
 
   it("includes the requested music release variants", () => {
