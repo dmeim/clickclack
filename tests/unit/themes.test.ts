@@ -149,6 +149,55 @@ describe("theme categories", () => {
     }
   });
 
+  it("includes pivotal plot point variants for media themes", () => {
+    expect(readThemeVariantIds("attack-on-titan")).toEqual(
+      expect.arrayContaining(["fall-of-shiganshina", "basement-reveal", "the-rumbling"])
+    );
+    expect(readThemeVariantIds("star-wars")).toEqual(
+      expect.arrayContaining(["binary-sunset", "death-star-trench-run", "order-66"])
+    );
+    expect(readThemeVariantIds("the-office")).toEqual(
+      expect.arrayContaining(["dundies", "dinner-party", "goodbye-michael"])
+    );
+    expect(readThemeVariantIds("inception")).toEqual(
+      expect.arrayContaining(["dream-heist", "hotel-kick", "spinning-top"])
+    );
+  });
+
+  it("includes requested anime themes with show point and character variants", () => {
+    const requestedAnimeThemes = [
+      "baki",
+      "berserk",
+      "death-note",
+      "hunter-x-hunter",
+      "one-punch-man",
+      "pantheon",
+      "invincible",
+      "seven-deadly-sins",
+      "solo-leveling",
+      "vinland-saga",
+    ];
+
+    for (const themeId of requestedAnimeThemes) {
+      const theme = readThemeCategoryAndVariantCount(themeId);
+      expect(theme.category).toBe("anime");
+      expect(theme.variantCount).toBeGreaterThan(2);
+    }
+
+    expect(readThemeVariantIds("baki")).toEqual(
+      expect.arrayContaining(["baki-hanma", "yujiro-hanma", "son-of-ogre"])
+    );
+    expect(readThemeVariantIds("pantheon")).toEqual(
+      expect.arrayContaining(["maddie-kim", "caspian-keyes", "uploaded-intelligence"])
+    );
+    expect(readThemeVariantIds("invincible")).toEqual(
+      expect.arrayContaining(["mark-grayson", "omni-man", "atom-eve"])
+    );
+    expect(readThemeVariantIds("seven-deadly-sins")).toEqual(
+      expect.arrayContaining(["meliodas", "ban", "escanor"])
+    );
+  });
+
   it("includes requested characters as variants on their source anime themes", () => {
     expect(readThemeVariantIds("demon-slayer")).toEqual(
       expect.arrayContaining([
