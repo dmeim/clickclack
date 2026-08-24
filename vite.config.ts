@@ -1,14 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import { autoManifestPlugin } from "./vite-plugin-auto-manifest";
+import { autoManifestPlugin } from "./vite-plugin-auto-manifest.ts";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), autoManifestPlugin()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   server: {

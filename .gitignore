@@ -17,6 +17,10 @@
 # env files
 .env*
 
+# Wrangler local state and local secrets (never commit)
+.wrangler/
+.dev.vars
+
 # typescript
 *.tsbuildinfo
 

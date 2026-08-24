@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "typesetgo",
+  "main": "./worker/index.ts",
+  // Today's date; nodejs_compat is default for dates on/after 2026-08-04.
+  "compatibility_date": "2026-08-24",
+  // Preview on *.workers.dev only — do not attach a custom domain.
+  "workers_dev": true,
+  // Empty required list so Wrangler does not infer Vite/.env.local keys as Worker secrets.
+  "secrets": {
+    "required": []
+  },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    }
+  }
+}

@@ -16,8 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Path aliases */
-    "baseUrl": ".",
+    /* Path aliases (baseUrl was removed in TypeScript 7) */
     "paths": {
       "@/*": ["./src/*"]
     },
