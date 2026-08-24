@@ -24,10 +24,10 @@ export const login = action({
   handler: async (ctx, args): Promise<{ token: string }> => {
     await ctx.runMutation(internal.sessionCleanup.consumeAdminLoginRateLimit, {});
 
+    const adminPassword = convexEnv("ADMIN_PASSWORD");
     const configured =
-      typeof process.env.ADMIN_PASSWORD === "string" &&
-      process.env.ADMIN_PASSWORD.length > 0;
-    const expected = configured ? process.env.ADMIN_PASSWORD! : "unconfigured";
+      typeof adminPassword === "string" && adminPassword.length > 0;
+    const expected = configured ? adminPassword : "unconfigured";
     const matches = await timingSafeEqualString(args.password, expected);
 
     if (!configured) {
@@ -48,6 +48,13 @@ export const login = action({
     return { token };
   },
 });
+
+/** Vite `tsc -b` has no Node `process` types; Convex still injects env at runtime. */
+function convexEnv(name: string): string | undefined {
+  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } })
+    .process;
+  return proc?.env?.[name];
+}
 
 async function requireAdminSession(
   ctx: QueryCtx | MutationCtx,
