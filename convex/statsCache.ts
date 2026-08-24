@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { getStartOfDayUTC } from "./lib/utc";
+import { isLeaderboardEligible } from "./lib/leaderboardEligibility";
 
 /**
  * Internal mutation to update a user's stats cache after a new test result.
@@ -62,17 +64,36 @@ export const updateUserStatsCache = internalMutation({
 /**
  * Internal mutation to update the leaderboard cache after a new test result.
  * Only called if accuracy >= 90% (leaderboard requirement).
- * Called from testResults.saveResult.
+ * Called from typingSessions.finalizeSession (ranked path).
+ * saveResult must not write the leaderboard cache.
  */
 export const updateLeaderboardCache = internalMutation({
   args: {
     userId: v.id("users"),
     wpm: v.number(),
+    accuracy: v.number(),
+    duration: v.number(),
+    wordsCorrect: v.optional(v.number()),
+    isValid: v.optional(v.boolean()),
+    rankedEligible: v.optional(v.boolean()),
     createdAt: v.number(),
     username: v.string(),
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (
+      !isLeaderboardEligible({
+        isValid: args.isValid,
+        rankedEligible: args.rankedEligible,
+        accuracy: args.accuracy,
+        wpm: args.wpm,
+        duration: args.duration,
+        wordsCorrect: args.wordsCorrect,
+      })
+    ) {
+      return null;
+    }
+
     const now = Date.now();
     const timeRanges = ["all-time", "week", "today"] as const;
 
@@ -293,10 +314,23 @@ export const updateLeaderboardCacheAfterDeletion = internalMutation({
     userId: v.id("users"),
     deletedWpm: v.number(),
     deletedAccuracy: v.number(),
+    deletedDuration: v.number(),
+    deletedWordsCorrect: v.optional(v.number()),
+    deletedIsValid: v.optional(v.boolean()),
+    deletedRankedEligible: v.optional(v.boolean()),
     deletedCreatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    if (args.deletedAccuracy < 90) {
+    if (
+      !isLeaderboardEligible({
+        isValid: args.deletedIsValid,
+        rankedEligible: args.deletedRankedEligible,
+        accuracy: args.deletedAccuracy,
+        wpm: args.deletedWpm,
+        duration: args.deletedDuration,
+        wordsCorrect: args.deletedWordsCorrect,
+      })
+    ) {
       return null;
     }
 
@@ -320,8 +354,8 @@ export const updateLeaderboardCacheAfterDeletion = internalMutation({
         existing.bestWpmAt === args.deletedCreatedAt
       ) {
         let timeCutoff = 0;
-        if (timeRange === "today") timeCutoff = getStartOfDayET(0);
-        else if (timeRange === "week") timeCutoff = getStartOfDayET(7);
+        if (timeRange === "today") timeCutoff = getStartOfDayUTC(0);
+        else if (timeRange === "week") timeCutoff = getStartOfDayUTC(7);
 
         const results = await ctx.db
           .query("testResults")
@@ -330,8 +364,14 @@ export const updateLeaderboardCacheAfterDeletion = internalMutation({
 
         const eligible = results.filter(
           (r) =>
-            r.accuracy >= 90 &&
-            r.isValid !== false &&
+            isLeaderboardEligible({
+              isValid: r.isValid,
+              rankedEligible: r.rankedEligible,
+              accuracy: r.accuracy,
+              wpm: r.wpm,
+              duration: r.duration,
+              wordsCorrect: r.wordsCorrect,
+            }) &&
             (timeRange === "all-time" || r.createdAt >= timeCutoff)
         );
 
@@ -457,16 +497,24 @@ export const rebuildLeaderboardCacheForUser = internalMutation({
       // Filter by time range and accuracy
       let timeCutoff = 0;
       if (timeRange === "today") {
-        timeCutoff = getStartOfDayET(0);
+        timeCutoff = getStartOfDayUTC(0);
       } else if (timeRange === "week") {
-        timeCutoff = getStartOfDayET(7);
+        timeCutoff = getStartOfDayUTC(7);
       }
 
       const eligibleResults = allResults.filter((r) => {
-        const meetsAccuracy = r.accuracy >= 90;
         const meetsTimeRange = timeRange === "all-time" || r.createdAt >= timeCutoff;
-        const isValid = r.isValid !== false;
-        return meetsAccuracy && meetsTimeRange && isValid;
+        return (
+          meetsTimeRange &&
+          isLeaderboardEligible({
+            isValid: r.isValid,
+            rankedEligible: r.rankedEligible,
+            accuracy: r.accuracy,
+            wpm: r.wpm,
+            duration: r.duration,
+            wordsCorrect: r.wordsCorrect,
+          })
+        );
       });
 
       if (eligibleResults.length === 0) {
@@ -518,8 +566,8 @@ export const getCachedUserStats = internalQuery({
 export const pruneStaleLeaderboardEntries = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const todayCutoff = getStartOfDayET(0);
-    const weekCutoff = getStartOfDayET(7);
+    const todayCutoff = getStartOfDayUTC(0);
+    const weekCutoff = getStartOfDayUTC(7);
     let deletedToday = 0;
     let deletedWeek = 0;
 
@@ -566,8 +614,8 @@ export const diagnoseLeaderboard = internalQuery({
   args: {},
   handler: async (ctx) => {
     const timeRanges = ["all-time", "week", "today"] as const;
-    const weekCutoff = getStartOfDayET(7);
-    const todayCutoff = getStartOfDayET(0);
+    const weekCutoff = getStartOfDayUTC(7);
+    const todayCutoff = getStartOfDayUTC(0);
 
     // 1. Count cache entries per time range and check for duplicates
     const cacheStats: Record<string, { total: number; duplicateUsers: number }> = {};
@@ -674,8 +722,15 @@ export const diagnoseLeaderboard = internalQuery({
         .withIndex("by_user", (q) => q.eq("userId", cacheEntry.userId))
         .collect();
 
-      const eligibleResults = allResults.filter(
-        (r) => r.accuracy >= 90 && r.isValid !== false
+      const eligibleResults = allResults.filter((r) =>
+        isLeaderboardEligible({
+          isValid: r.isValid,
+          rankedEligible: r.rankedEligible,
+          accuracy: r.accuracy,
+          wpm: r.wpm,
+          duration: r.duration,
+          wordsCorrect: r.wordsCorrect,
+        })
       );
       const olderResults = eligibleResults.filter(
         (r) => r.createdAt < weekCutoff
@@ -722,35 +777,3 @@ export const diagnoseLeaderboard = internalQuery({
     };
   },
 });
-
-// ==============================================================================
-// Helper functions (copied from testResults.ts for timezone handling)
-// ==============================================================================
-
-const TIMEZONE = "America/New_York";
-
-function getTimezoneOffset(date: Date): number {
-  const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-  const tzDate = new Date(date.toLocaleString("en-US", { timeZone: TIMEZONE }));
-  return utcDate.getTime() - tzDate.getTime();
-}
-
-function getStartOfDayET(daysAgo: number = 0): number {
-  const now = new Date();
-
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  });
-  const parts = formatter.formatToParts(now);
-  const year = parseInt(parts.find((p) => p.type === "year")!.value);
-  const month = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
-  const day = parseInt(parts.find((p) => p.type === "day")!.value) - daysAgo;
-
-  const midnightUTC = Date.UTC(year, month, day, 0, 0, 0, 0);
-  const offset = getTimezoneOffset(new Date(midnightUTC));
-
-  return midnightUTC + offset;
-}

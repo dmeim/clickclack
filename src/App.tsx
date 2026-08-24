@@ -14,6 +14,7 @@ import RaceLobby from "./pages/RaceLobby";
 import RaceActive from "./pages/RaceActive";
 import RaceResults from "./pages/RaceResults";
 import Lessons from "./pages/Lessons";
+import Admin from "./pages/Admin";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/about" element={<About />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/tos" element={<TermsOfService />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </ThemeProvider>
   );

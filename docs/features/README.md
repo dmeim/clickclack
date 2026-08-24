@@ -6,6 +6,7 @@ Technical documentation for TypeSetGo's core features.
 
 - **[Core Typing Engine](./Core_Typing_Engine.md)** — Modes, statistics calculation, input handling, and architecture
 - **[Content Management](./Content_Management.md)** — Word lists, quotes, JSON structure, and adding new content
+- **[Solo Anti-Cheat](./Solo_Anti_Cheat.md)** — Solo-home validation, ranking gates, sessions, and admin review
 
 ## Planned
 

@@ -5,6 +5,7 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { Toaster } from "@/components/ui/sonner";
 import { NotificationProvider } from "@/lib/notification-store";
+import { ConvexClerkProvider } from "./ConvexClerkProvider.tsx";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -22,23 +23,23 @@ if (!CLERK_PUBLISHABLE_KEY) {
   console.warn("Missing VITE_CLERK_PUBLISHABLE_KEY. Auth features will be disabled.");
 }
 
+const appTree = (
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
+);
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ConvexProvider client={convex}>
-      <NotificationProvider>
-        {CLERK_PUBLISHABLE_KEY ? (
-          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </ClerkProvider>
-        ) : (
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        )}
-        <Toaster position="top-center" richColors />
-      </NotificationProvider>
-    </ConvexProvider>
+    <NotificationProvider>
+      {CLERK_PUBLISHABLE_KEY ? (
+        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+          <ConvexClerkProvider client={convex}>{appTree}</ConvexClerkProvider>
+        </ClerkProvider>
+      ) : (
+        <ConvexProvider client={convex}>{appTree}</ConvexProvider>
+      )}
+      <Toaster position="top-center" richColors />
+    </NotificationProvider>
   </StrictMode>
 );

@@ -385,7 +385,8 @@ export default function Leaderboard() {
           className="text-xs text-center"
           style={{ color: tv.text.secondary }}
         >
-          Requires 90%+ accuracy and at least 30 seconds or 50 words to qualify
+          Requires 90%+ accuracy and at least 30 seconds or 50 correct words.
+          15-second tests do not rank. The WPM cap is 300; 170–200 WPM is allowed.
         </p>
       </div>
 

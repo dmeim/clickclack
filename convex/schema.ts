@@ -35,10 +35,15 @@ export default defineSchema({
     // Anti-cheat validity fields
     isValid: v.optional(v.boolean()), // undefined = legacy (treated as valid)
     invalidReason: v.optional(v.string()), // For debugging/admin review
+    // Ranked path marker. false = saveResult (never ranks). true = finalizeSession.
+    // omitted = legacy rows (keep prior eligibility; do not backfill).
+    rankedEligible: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_and_date", ["userId", "createdAt"]),
+    .index("by_user_and_date", ["userId", "createdAt"])
+    .index("by_wpm", ["wpm"])
+    .index("by_validity", ["isValid"]),
 
   // Typing sessions for anti-cheat validation
   typingSessions: defineTable({
@@ -54,7 +59,7 @@ export default defineSchema({
     }),
     targetText: v.string(),
     createdAt: v.number(),
-    startedAt: v.optional(v.number()), // Set on first recordProgress
+    startedAt: v.optional(v.number()), // Set on first recordProgress (not at insert)
     lastEventAt: v.number(),
     eventCount: v.number(),
     lastTypedLength: v.number(), // For monotonic validation
@@ -265,4 +270,19 @@ export default defineSchema({
     totalRacers: v.number(),
     createdAt: v.number(),
   }).index("by_race", ["raceId"]),
+
+  // Per-key write throttles (finalizeSession, saveResult, admin login)
+  rateLimits: defineTable({
+    key: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+    lastAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  // Admin review sessions (token is stored hashed; never put ADMIN_PASSWORD in git)
+  adminSessions: defineTable({
+    tokenHash: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_token_hash", ["tokenHash"]),
 });

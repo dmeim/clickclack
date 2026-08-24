@@ -1,61 +1,12 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { getQualifyingAchievementIds } from "./achievementThresholds";
-import { qualifiesForAchievement } from "./streaks";
+import { selectAwardableAchievements } from "./lib/achievementGate";
 
 // Achievement checking logic
 // Note: Achievement definitions are in src/lib/achievement-definitions.ts
 // This file handles the backend checking and awarding
 // Uses tier-based IDs from achievementThresholds.ts for DB stability
-
-// Achievements that are EXEMPT from the test qualification requirements
-// (90%+ accuracy AND 30s duration OR 50 words)
-// These are "conflicting" achievements where restrictions would be unfair:
-// - Quirky: exact WPM targets where users may need to end early
-// - Special: time-of-day based or first-time achievements
-// - Explorer: just about trying features/modes
-// - Time-based: specific times/dates
-const EXEMPT_ACHIEVEMENTS = new Set([
-  // Quirky achievements (exact WPM targets)
-  "quirky-67",
-  "quirky-lucky-7",
-  "quirky-100-exact",
-  "quirky-palindrome",
-  "quirky-42",
-  "quirky-123",
-  "quirky-pi",
-  
-  // Special moments (first-time / time-of-day based)
-  "special-first-test",
-  "special-night-owl",
-  "special-early-bird",
-  "special-weekend-warrior",
-  
-  // Explorer (just about trying features)
-  "explorer-time-mode",
-  "explorer-words-mode",
-  "explorer-quote-mode",
-  "explorer-preset-mode",
-  "explorer-punctuation",
-  "explorer-numbers",
-  "explorer-all-difficulties",
-  
-  // Time-based (specific times/dates)
-  "timebased-lunch",
-  "timebased-midnight",
-  "timebased-new-year",
-  "timebased-friday",
-  "timebased-monday",
-  "timebased-holiday",
-  "timebased-all-weekdays",
-  "timebased-all-weekend",
-  
-  // Endurance duration/word achievements (inherently require long tests, not gaming)
-  "special-marathon",       // 120+ seconds
-  "endurance-180s-test",    // 180+ seconds
-  "endurance-300s-test",    // 300+ seconds (5 min)
-  "endurance-500-words-test", // 500+ words
-]);
 
 interface TestResultData {
   wpm: number;
@@ -125,6 +76,8 @@ interface AchievementCheckContext {
   
   // Collection
   totalAchievementsCount: number;
+  /** false = saveResult: exempt badges only */
+  rankedEligible?: boolean;
 }
 
 /**
@@ -133,14 +86,6 @@ interface AchievementCheckContext {
 function checkAchievements(ctx: AchievementCheckContext): string[] {
   const newAchievements: string[] = [];
   const { testResult } = ctx;
-
-  // Check if this test qualifies for non-exempt achievements
-  // Requirements: 90%+ accuracy AND (30s+ duration OR 50+ words)
-  const testQualifies = qualifiesForAchievement(
-    testResult.duration,
-    testResult.wordsCorrect,
-    testResult.accuracy
-  );
 
   // === SPEED ACHIEVEMENTS (WPM milestones) ===
   // Uses tier-based IDs: speed-copper-1, speed-silver-5, etc.
@@ -457,13 +402,15 @@ function checkAchievements(ctx: AchievementCheckContext): string[] {
   
   // Category master is complex - skip for now as it requires checking complete categories
 
-  // If the test doesn't qualify (low accuracy or too short/few words),
-  // only award exempt achievements (quirky, special, explorer, time-based)
-  if (!testQualifies) {
-    return newAchievements.filter(id => EXEMPT_ACHIEVEMENTS.has(id));
-  }
-
-  return newAchievements;
+  // isValid is enforced by the caller (skip this mutation on invalid tests).
+  // Non-exempt IDs still require qualifiesForAchievement; exempt IDs do not.
+  return selectAwardableAchievements(newAchievements, {
+    isValid: true,
+    duration: testResult.duration,
+    wordsCorrect: testResult.wordsCorrect,
+    accuracy: testResult.accuracy,
+    rankedEligible: ctx.rankedEligible,
+  });
 }
 
 /**
@@ -493,11 +440,26 @@ export const checkAndAwardAchievements = internalMutation({
     dayOfWeek: v.number(), // 0-6 (Sunday-Saturday)
     month: v.number(), // 0-11
     day: v.number(), // 1-31
+    isValid: v.optional(v.boolean()),
+    rankedEligible: v.optional(v.boolean()),
   },
   handler: async (
     ctx,
     args
   ): Promise<{ newAchievements: string[]; totalAchievements: number }> => {
+    if (args.isValid === false) {
+      const existing = await ctx.db
+        .query("userAchievements")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .first();
+      return {
+        newAchievements: [],
+        totalAchievements: existing
+          ? Object.keys(existing.achievements).length
+          : 0,
+      };
+    }
+
     // Get all test results for this user to compute aggregate stats
     // Filter to valid results only (isValid !== false includes legacy data)
     const allResultsRaw = await ctx.db
@@ -712,6 +674,7 @@ export const checkAndAwardAchievements = internalMutation({
       weekdaysCovered,
       weekendDaysCovered,
       totalAchievementsCount,
+      rankedEligible: args.rankedEligible,
     };
 
     const potentialAchievements = checkAchievements(checkContext);

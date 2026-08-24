@@ -44,6 +44,7 @@ import { Slider } from "@/components/ui/slider";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { useNotifications } from "@/lib/notification-store";
 import { getAchievementById, TIER_COLORS } from "@/lib/achievement-definitions";
 
@@ -473,6 +474,19 @@ function AnimatedAccuracyDisplay({ value, color }: { value: number; color: strin
   );
 }
 
+function getLocalCalendarFields() {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  return {
+    localDate: now.toISOString().split("T")[0],
+    localHour: now.getHours(),
+    isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+    dayOfWeek,
+    month: now.getMonth(),
+    day: now.getDate(),
+  };
+}
+
 export default function TypingPractice({
   connectMode = false,
   fitToParentHeight = false,
@@ -737,11 +751,32 @@ export default function TypingPractice({
   const { openSignIn } = useClerk();
   const saveResultMutation = useMutation(api.testResults.saveResult);
   const getOrCreateUser = useMutation(api.users.getOrCreateUser);
+  const startSessionMutation = useMutation(api.typingSessions.startSession);
+  const recordProgressMutation = useMutation(api.typingSessions.recordProgress);
+  const finalizeSessionMutation = useMutation(api.typingSessions.finalizeSession);
+  const cancelSessionMutation = useMutation(api.typingSessions.cancelSession);
+
+  const sessionIdRef = useRef<Id<"typingSessions"> | null>(null);
+  const startingSessionRef = useRef(false);
+  const pendingTypedLengthRef = useRef(0);
+  const finalizedRef = useRef(false);
+  const savingRef = useRef(false);
+  const sessionEpochRef = useRef(0);
+  const [sessionEpoch, setSessionEpoch] = useState(0);
+  const userRef = useRef(user);
+  const connectModeRef = useRef(connectMode);
+  const settingsRef = useRef(settings);
+  const isFinishedRef = useRef(isFinished);
+  const isSignedInRef = useRef(isSignedIn);
+
+  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => { connectModeRef.current = connectMode; }, [connectMode]);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+  useEffect(() => { isFinishedRef.current = isFinished; }, [isFinished]);
+  useEffect(() => { isSignedInRef.current = isSignedIn; }, [isSignedIn]);
 
   // Notification store for achievement toasts
   const { addNotification } = useNotifications();
-
-  // TODO: Anti-cheat will be re-implemented in a future update with a local-first approach
 
   // Preferences sync
   const dbPreferences = useQuery(
@@ -1104,6 +1139,18 @@ export default function TypingPractice({
   }, [settings.duration, settings.mode, settings.wordTarget]);
 
   const resetSession = useCallback((isRepeat = false) => {
+    const existingSessionId = sessionIdRef.current;
+    sessionIdRef.current = null;
+    pendingTypedLengthRef.current = 0;
+    finalizedRef.current = false;
+    savingRef.current = false;
+    isFinishedRef.current = false;
+    if (existingSessionId) {
+      void cancelSessionMutation({ sessionId: existingSessionId });
+    }
+    sessionEpochRef.current += 1;
+    setSessionEpoch(sessionEpochRef.current);
+
     setTypedText("");
     setIsRunning(false);
     setIsFinished(false);
@@ -1119,7 +1166,7 @@ export default function TypingPractice({
     setLastResultIsValid(null);
     setLastResultInvalidReason(undefined);
     inputRef.current?.focus();
-  }, []);
+  }, [cancelSessionMutation]);
 
   // Ref to store pending plan result
   const pendingPlanResultRef = useRef<{
@@ -1129,6 +1176,7 @@ export default function TypingPractice({
 
   const finishSession = useCallback(() => {
     if (isFinished) return;
+    isFinishedRef.current = true;
 
     const currentTypedText = typedTextRef.current;
     const currentWords = wordsRef.current;
@@ -1202,8 +1250,10 @@ export default function TypingPractice({
     }
   }, [settings.soundEnabled, settings.warningSound, soundManifest]);
 
-  // Save results to Convex (using session-based flow when available)
+  // Save results to Convex via typingSessions.finalizeSession for ranked solo saves.
   const saveResults = useCallback(async (resultData?: typeof pendingResultRef.current) => {
+    if (connectMode) return;
+
     const dataToSave = resultData || {
       wpm: Math.round(wpm),
       accuracy: Math.round(accuracy * 10) / 10,
@@ -1221,15 +1271,24 @@ export default function TypingPractice({
     };
 
     if (!user) {
-      // Store result and open sign-in
       pendingResultRef.current = dataToSave;
       openSignIn();
       return;
     }
 
+    if (savingRef.current || (finalizedRef.current && saveState === "saved")) {
+      return;
+    }
+
+    const sessionId = sessionIdRef.current;
+    if (!sessionId && startingSessionRef.current) {
+      setSaveState("saving");
+      return;
+    }
+
+    savingRef.current = true;
     setSaveState("saving");
     try {
-      // Ensure user exists in Convex
       await getOrCreateUser({
         clerkId: user.id,
         email: user.primaryEmailAddress?.emailAddress ?? "",
@@ -1237,23 +1296,14 @@ export default function TypingPractice({
         avatarUrl: user.imageUrl,
       });
 
-      // Get local date/time info for streak and achievement tracking
-      const now = new Date();
-      const localDate = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
-      const localHour = now.getHours(); // 0-23
-      const dayOfWeek = now.getDay(); // 0-6 (Sunday-Saturday)
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
-      const month = now.getMonth(); // 0-11
-      const day = now.getDate(); // 1-31
+      const calendar = getLocalCalendarFields();
 
-      // Helper function to show toasts for new achievements
       const showAchievementToasts = (achievementIds: string[]) => {
         for (const achievementId of achievementIds) {
           const achievement = getAchievementById(achievementId);
           if (achievement) {
             const tierColor = TIER_COLORS[achievement.tier]?.bg || "#FFD700";
-            
-            // Add to notification store
+
             addNotification({
               type: "achievement",
               title: achievement.title,
@@ -1264,7 +1314,6 @@ export default function TypingPractice({
               },
             });
 
-            // Show toast notification with bounce animation on icon
             toast.success(achievement.title, {
               description: achievement.description,
               icon: (
@@ -1293,7 +1342,7 @@ export default function TypingPractice({
               action: {
                 label: "Ok",
                 onClick: () => {
-                  // Just dismisses the toast - user can view achievement details from notification tray
+                  // Dismisses the toast; details stay in the notification tray
                 },
               },
             });
@@ -1301,29 +1350,67 @@ export default function TypingPractice({
         }
       };
 
-      // TODO: Anti-cheat validation will be re-implemented in a future update
-      // For now, all results are saved directly without server-side session validation
-      const result = await saveResultMutation({
-        clerkId: user.id,
-        ...dataToSave,
-        localDate,
-        localHour,
-        isWeekend,
-        dayOfWeek,
-        month,
-        day,
-      });
-      setSaveState("saved");
-      pendingResultRef.current = null;
+      if (sessionId) {
+        try {
+          await recordProgressMutation({
+            sessionId,
+            typedLength: typedTextRef.current.length,
+          });
+        } catch {
+          // Still finalize; progress is best-effort.
+        }
 
-      if (result.newAchievements && result.newAchievements.length > 0) {
-        showAchievementToasts(result.newAchievements);
+        const result = await finalizeSessionMutation({
+          sessionId,
+          typedText: typedTextRef.current,
+          clientElapsedMs: elapsedMsRef.current,
+          localDate: calendar.localDate,
+          localHour: calendar.localHour,
+          dayOfWeek: calendar.dayOfWeek,
+          month: calendar.month,
+          day: calendar.day,
+        });
+
+        finalizedRef.current = true;
+        sessionIdRef.current = null;
+        setLastResultIsValid(result.isValid);
+        setLastResultInvalidReason(result.invalidReason);
+        setSaveState("saved");
+        pendingResultRef.current = null;
+
+        if (result.newAchievements && result.newAchievements.length > 0) {
+          showAchievementToasts(result.newAchievements);
+        }
+        return;
       }
+
+      // Guest-then-sign-in has no session: history-only saveResult (not ranked).
+      if (resultData) {
+        const result = await saveResultMutation({
+          clerkId: user.id,
+          ...dataToSave,
+          ...calendar,
+        });
+        setLastResultIsValid(null);
+        setSaveState("saved");
+        pendingResultRef.current = null;
+
+        if (result.newAchievements && result.newAchievements.length > 0) {
+          showAchievementToasts(result.newAchievements);
+        }
+        return;
+      }
+
+      setLastResultIsValid(false);
+      setLastResultInvalidReason("Session was not established");
+      setSaveState("error");
     } catch (error) {
       console.error("Failed to save result:", error);
       setSaveState("error");
+    } finally {
+      savingRef.current = false;
     }
-  }, [user, wpm, accuracy, settings.mode, settings.difficulty, settings.punctuation, settings.numbers, settings.capitalization, elapsedMs, typedText, wordResults, stats, openSignIn, getOrCreateUser, saveResultMutation, addNotification]);
+  }, [connectMode, user, wpm, accuracy, settings.mode, settings.difficulty, settings.punctuation, settings.numbers, settings.capitalization, elapsedMs, typedText, wordResults, stats, openSignIn, getOrCreateUser, saveResultMutation, finalizeSessionMutation, recordProgressMutation, addNotification, saveState]);
 
   // Effect to save pending result after sign-in
   useEffect(() => {
@@ -1333,6 +1420,108 @@ export default function TypingPractice({
       saveResults(pending);
     }
   }, [isSignedIn, user, saveResults]);
+
+  const saveResultsRef = useRef(saveResults);
+  useEffect(() => { saveResultsRef.current = saveResults; }, [saveResults]);
+
+  const ensureSoloSessionStarted = useCallback((targetText?: string) => {
+    if (connectModeRef.current) return;
+    const currentUser = userRef.current;
+    if (!currentUser || !isSignedInRef.current) return;
+    if (sessionIdRef.current || startingSessionRef.current || finalizedRef.current) return;
+
+    const s = settingsRef.current;
+    const needsClientPrompt = s.mode === "quote" || s.mode === "preset";
+    const text = targetText || wordsRef.current;
+    if (needsClientPrompt && !text) return;
+
+    startingSessionRef.current = true;
+    const epoch = sessionEpochRef.current;
+
+    void getOrCreateUser({
+      clerkId: currentUser.id,
+      email: currentUser.primaryEmailAddress?.emailAddress ?? "",
+      username: currentUser.username ?? currentUser.firstName ?? "User",
+      avatarUrl: currentUser.imageUrl,
+    })
+      .then(() =>
+        startSessionMutation({
+          clerkId: currentUser.id,
+          mode: s.mode,
+          duration: s.duration,
+          wordTarget: s.wordTarget,
+          difficulty: s.difficulty,
+          punctuation: s.punctuation,
+          numbers: s.numbers,
+          capitalization: s.capitalization,
+          settings: {
+            mode: s.mode,
+            duration: s.duration,
+            wordTarget: s.wordTarget,
+            difficulty: s.difficulty,
+            punctuation: s.punctuation,
+            numbers: s.numbers,
+            capitalization: s.capitalization,
+          },
+          ...(needsClientPrompt ? { targetText: text } : {}),
+        })
+      )
+      .then((res) => {
+        if (!res?.sessionId) return;
+        if (sessionEpochRef.current !== epoch) {
+          void cancelSessionMutation({ sessionId: res.sessionId });
+          return;
+        }
+        sessionIdRef.current = res.sessionId;
+        if (res.targetText && typedTextRef.current.length === 0) {
+          wordsRef.current = res.targetText;
+          setWords(res.targetText);
+        }
+        const len = Math.max(
+          typedTextRef.current.length,
+          pendingTypedLengthRef.current
+        );
+        if (len > 0) {
+          pendingTypedLengthRef.current = 0;
+          void recordProgressMutation({
+            sessionId: res.sessionId,
+            typedLength: len,
+          });
+        }
+        if (isFinishedRef.current && !finalizedRef.current) {
+          void saveResultsRef.current();
+        }
+      })
+      .catch((error) => {
+        console.warn("Failed to start typing session:", error);
+      })
+      .finally(() => {
+        startingSessionRef.current = false;
+        if (isFinishedRef.current && !finalizedRef.current && !sessionIdRef.current) {
+          void saveResultsRef.current();
+        }
+      });
+  }, [getOrCreateUser, startSessionMutation, cancelSessionMutation, recordProgressMutation]);
+
+  const reportSoloProgress = useCallback((typedLength: number) => {
+    if (connectModeRef.current) return;
+    pendingTypedLengthRef.current = typedLength;
+    const sessionId = sessionIdRef.current;
+    if (!sessionId) return;
+    pendingTypedLengthRef.current = 0;
+    void recordProgressMutation({ sessionId, typedLength });
+  }, [recordProgressMutation]);
+
+  useEffect(() => {
+    if (connectMode || !isSignedIn || !user || !words) return;
+    ensureSoloSessionStarted(words);
+  }, [sessionEpoch, connectMode, isSignedIn, user, words, ensureSoloSessionStarted]);
+
+  useEffect(() => {
+    if (!isFinished || connectMode || !isSignedIn) return;
+    if (finalizedRef.current) return;
+    void saveResults();
+  }, [isFinished, connectMode, isSignedIn, saveResults]);
 
   const generateTest = useCallback(() => {
     if (settings.mode === "quote") {
@@ -1598,6 +1787,13 @@ export default function TypingPractice({
     if (!isRunning) {
       setIsRunning(true);
       setStartTime(Date.now());
+    }
+
+    if (!connectMode) {
+      typedTextRef.current = sanitized;
+      pendingTypedLengthRef.current = sanitized.length;
+      ensureSoloSessionStarted();
+      reportSoloProgress(sanitized.length);
     }
 
     setTypedText(sanitized);
@@ -2449,6 +2645,11 @@ export default function TypingPractice({
               type="text"
               value={typedText}
               onChange={(e) => handleInput(e.target.value)}
+              onPaste={(e) => {
+                if (!connectMode) {
+                  e.preventDefault();
+                }
+              }}
               onKeyDown={handleKeyDown}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
@@ -2709,15 +2910,17 @@ export default function TypingPractice({
                       Unverified
                     </span>
                     <span className="text-sm ml-2" style={{ color: tv.text.secondary }}>
-                      {lastResultInvalidReason?.includes("progress events")
-                        ? "Not enough typing activity detected (need 3+ check-ins)"
+                      {lastResultInvalidReason?.includes("progress")
+                        ? "Not enough typing activity reached the server"
                         : lastResultInvalidReason?.includes("WPM exceeds")
-                          ? "Speed exceeded human limits (max 300 WPM)"
-                          : lastResultInvalidReason?.includes("Burst chars")
-                            ? "Text appeared too quickly (max 50 chars at once)"
+                          ? "Speed exceeded the 300 WPM cap"
+                          : lastResultInvalidReason?.includes("Burst") || lastResultInvalidReason?.includes("paste")
+                            ? "Input appeared faster than allowed"
                             : lastResultInvalidReason?.includes("too fast")
                               ? "Test completed too quickly (need full duration)"
-                              : "Could not verify real-time typing"}
+                              : lastResultInvalidReason?.includes("Session was not established")
+                                ? "Could not verify this test with a server session"
+                              : "Could not verify this test"}
                     </span>
                   </div>
                 </div>
@@ -2880,7 +3083,13 @@ export default function TypingPractice({
               transition={{ duration: 0.4, delay: 0.7 }}
             >
               <div>
-                {lastResultIsValid !== false && (
+                {lastResultIsValid === true && (
+                  <>
+                    Verified
+                    {" · "}
+                  </>
+                )}
+                {lastResultIsValid !== false && saveState !== "saved" && saveState !== "saving" && (
                   <>
                     Press <kbd className="px-1.5 py-0.5 rounded font-sans" style={{ backgroundColor: tv.bg.surface, color: tv.text.primary }}>Space</kbd> to save
                     {" · "}

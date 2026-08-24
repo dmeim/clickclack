@@ -10,10 +10,23 @@
 
 import type * as achievementThresholds from "../achievementThresholds.js";
 import type * as achievements from "../achievements.js";
+import type * as admin from "../admin.js";
 import type * as crons from "../crons.js";
+import type * as lib_achievementGate from "../lib/achievementGate.js";
 import type * as lib_antiCheatConstants from "../lib/antiCheatConstants.js";
+import type * as lib_burst from "../lib/burst.js";
 import type * as lib_computeStats from "../lib/computeStats.js";
+import type * as lib_consumeRateLimit from "../lib/consumeRateLimit.js";
+import type * as lib_crypto from "../lib/crypto.js";
+import type * as lib_finalizeLength from "../lib/finalizeLength.js";
+import type * as lib_identity from "../lib/identity.js";
+import type * as lib_leaderboardEligibility from "../lib/leaderboardEligibility.js";
+import type * as lib_qualification from "../lib/qualification.js";
 import type * as lib_raceWords from "../lib/raceWords.js";
+import type * as lib_rateLimit from "../lib/rateLimit.js";
+import type * as lib_soloPrompt from "../lib/soloPrompt.js";
+import type * as lib_utc from "../lib/utc.js";
+import type * as lib_validateSession from "../lib/validateSession.js";
 import type * as migrations from "../migrations.js";
 import type * as participants from "../participants.js";
 import type * as preferences from "../preferences.js";
@@ -35,10 +48,23 @@ import type {
 declare const fullApi: ApiFromModules<{
   achievementThresholds: typeof achievementThresholds;
   achievements: typeof achievements;
+  admin: typeof admin;
   crons: typeof crons;
+  "lib/achievementGate": typeof lib_achievementGate;
   "lib/antiCheatConstants": typeof lib_antiCheatConstants;
+  "lib/burst": typeof lib_burst;
   "lib/computeStats": typeof lib_computeStats;
+  "lib/consumeRateLimit": typeof lib_consumeRateLimit;
+  "lib/crypto": typeof lib_crypto;
+  "lib/finalizeLength": typeof lib_finalizeLength;
+  "lib/identity": typeof lib_identity;
+  "lib/leaderboardEligibility": typeof lib_leaderboardEligibility;
+  "lib/qualification": typeof lib_qualification;
   "lib/raceWords": typeof lib_raceWords;
+  "lib/rateLimit": typeof lib_rateLimit;
+  "lib/soloPrompt": typeof lib_soloPrompt;
+  "lib/utc": typeof lib_utc;
+  "lib/validateSession": typeof lib_validateSession;
   migrations: typeof migrations;
   participants: typeof participants;
   preferences: typeof preferences;

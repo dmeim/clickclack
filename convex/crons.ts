@@ -10,6 +10,12 @@ crons.interval(
   internal.sessionCleanup.cleanupExpiredSessions
 );
 
+crons.interval(
+  "cleanupExpiredAdminSessions",
+  { hours: 1 },
+  internal.sessionCleanup.cleanupExpiredAdminSessions
+);
+
 // Prune stale leaderboard cache entries daily at 5:00 AM ET
 // This cleans up "today" and "week" entries that have aged out
 crons.daily(

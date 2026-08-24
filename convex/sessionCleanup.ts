@@ -1,5 +1,8 @@
+import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { SESSION_TTL_MS } from "./lib/antiCheatConstants";
+import { consumeRateLimit } from "./lib/consumeRateLimit";
+import { ADMIN_LOGIN_RATE_LIMIT } from "./lib/rateLimit";
 
 /**
  * Clean up expired typing sessions
@@ -31,5 +34,46 @@ export const cleanupExpiredSessions = internalMutation({
     }
 
     return { deleted };
+  },
+});
+
+/**
+ * Clean up expired admin review sessions
+ */
+export const cleanupExpiredAdminSessions = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const sessions = await ctx.db.query("adminSessions").collect();
+    let deleted = 0;
+    for (const session of sessions) {
+      if (session.expiresAt < now) {
+        await ctx.db.delete(session._id);
+        deleted++;
+      }
+    }
+    return { deleted };
+  },
+});
+
+export const consumeAdminLoginRateLimit = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    await consumeRateLimit(ctx, "admin_login", ADMIN_LOGIN_RATE_LIMIT);
+  },
+});
+
+export const createAdminSession = internalMutation({
+  args: {
+    tokenHash: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("adminSessions", {
+      tokenHash: args.tokenHash,
+      createdAt: args.createdAt,
+      expiresAt: args.expiresAt,
+    });
   },
 });

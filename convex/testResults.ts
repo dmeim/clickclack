@@ -2,46 +2,21 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { getStartOfDayUTC } from "./lib/utc";
+import {
+  isLeaderboardEligible,
+  validityForUnrankedSave,
+} from "./lib/leaderboardEligibility";
+import { requireAuthedUser } from "./lib/identity";
+import { consumeRateLimit } from "./lib/consumeRateLimit";
+import { RESULT_WRITE_RATE_LIMIT } from "./lib/rateLimit";
 
-const TIMEZONE = "America/New_York";
-
-// Helper to get timezone offset in milliseconds (positive = timezone behind UTC)
-function getTimezoneOffset(date: Date): number {
-  const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-  const tzDate = new Date(date.toLocaleString("en-US", { timeZone: TIMEZONE }));
-  return utcDate.getTime() - tzDate.getTime();
-}
-
-// Get start of day (midnight) in ET, optionally daysAgo
-function getStartOfDayET(daysAgo: number = 0): number {
-  const now = new Date();
-
-  // Get today's date in ET
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  });
-  const parts = formatter.formatToParts(now);
-  const year = parseInt(parts.find((p) => p.type === "year")!.value);
-  const month = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
-  const day = parseInt(parts.find((p) => p.type === "day")!.value) - daysAgo;
-
-  // Midnight UTC for the target date
-  const midnightUTC = Date.UTC(year, month, day, 0, 0, 0, 0);
-
-  // Get timezone offset at that time
-  const offset = getTimezoneOffset(new Date(midnightUTC));
-
-  // Midnight in ET as UTC timestamp
-  return midnightUTC + offset;
-}
-
-// Save a test result
+// Save a test result (history / PBs / exempt achievements only — not ranked).
+// Ranked path is typingSessions.finalizeSession. Guests must sign in.
+// clerkId is ignored when present; identity comes from ctx.auth.
 export const saveResult = mutation({
   args: {
-    clerkId: v.string(),
+    clerkId: v.optional(v.string()),
     wpm: v.number(),
     accuracy: v.number(),
     mode: v.string(),
@@ -51,34 +26,25 @@ export const saveResult = mutation({
     punctuation: v.boolean(),
     numbers: v.boolean(),
     capitalization: v.optional(v.boolean()),
-    // Additional stats
     wordsCorrect: v.number(),
     wordsIncorrect: v.number(),
     charsMissed: v.number(),
     charsExtra: v.number(),
-    // For streak and achievement tracking
-    localDate: v.string(), // "YYYY-MM-DD" in user's local time
-    localHour: v.number(), // 0-23, user's local hour
-    isWeekend: v.boolean(), // Whether it's Saturday or Sunday
-    // New time-based fields for achievements
-    dayOfWeek: v.number(), // 0-6 (Sunday-Saturday)
-    month: v.number(), // 0-11
-    day: v.number(), // 1-31
+    localDate: v.string(),
+    localHour: v.number(),
+    isWeekend: v.boolean(),
+    dayOfWeek: v.number(),
+    month: v.number(),
+    day: v.number(),
   },
   handler: async (ctx, args): Promise<{ resultId: Id<"testResults">; newAchievements: string[] }> => {
-    // Find the user by Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await requireAuthedUser(ctx);
 
-    if (!user) {
-      throw new Error("User not found. Please sign in first.");
-    }
+    await consumeRateLimit(ctx, `saveResult:${user._id}`, RESULT_WRITE_RATE_LIMIT);
 
     const createdAt = Date.now();
+    const validity = validityForUnrankedSave(args.wpm);
 
-    // Insert the test result
     const resultId = await ctx.db.insert("testResults", {
       userId: user._id,
       wpm: args.wpm,
@@ -94,10 +60,16 @@ export const saveResult = mutation({
       wordsIncorrect: args.wordsIncorrect,
       charsMissed: args.charsMissed,
       charsExtra: args.charsExtra,
+      isValid: validity.isValid,
+      invalidReason: validity.invalidReason,
+      rankedEligible: false,
       createdAt,
     });
 
-    // Update streak (runs in same transaction)
+    if (!validity.isValid) {
+      return { resultId, newAchievements: [] };
+    }
+
     await ctx.runMutation(internal.streaks.updateStreak, {
       userId: user._id,
       localDate: args.localDate,
@@ -105,7 +77,6 @@ export const saveResult = mutation({
       wordsCorrect: args.wordsCorrect,
     });
 
-    // Check and award achievements (runs in same transaction)
     const achievementResult: { newAchievements: string[]; totalAchievements: number } = await ctx.runMutation(
       internal.achievements.checkAndAwardAchievements,
       {
@@ -129,29 +100,19 @@ export const saveResult = mutation({
         dayOfWeek: args.dayOfWeek,
         month: args.month,
         day: args.day,
+        isValid: true,
+        rankedEligible: false,
       }
     );
 
-    // Update user stats cache (always, for valid results)
     await ctx.runMutation(internal.statsCache.updateUserStatsCache, {
       userId: user._id,
       wpm: args.wpm,
       accuracy: args.accuracy,
       duration: args.duration,
       wordCount: args.wordCount,
-      isValid: true, // New results are valid by default
+      isValid: true,
     });
-
-    // Update leaderboard cache (only if accuracy >= 90%)
-    if (args.accuracy >= 90) {
-      await ctx.runMutation(internal.statsCache.updateLeaderboardCache, {
-        userId: user._id,
-        wpm: args.wpm,
-        createdAt,
-        username: user.username,
-        avatarUrl: user.avatarUrl,
-      });
-    }
 
     return {
       resultId,
@@ -159,6 +120,7 @@ export const saveResult = mutation({
     };
   },
 });
+
 
 // Delete a test result
 export const deleteResult = mutation({
@@ -221,6 +183,10 @@ export const deleteResult = mutation({
       userId: user._id,
       deletedWpm: result.wpm,
       deletedAccuracy: result.accuracy,
+      deletedDuration: result.duration,
+      deletedWordsCorrect: result.wordsCorrect,
+      deletedIsValid: result.isValid,
+      deletedRankedEligible: result.rankedEligible,
       deletedCreatedAt: result.createdAt,
     });
 
@@ -402,9 +368,9 @@ export const getLeaderboard = query({
 
     let timeCutoff = 0;
     if (args.timeRange === "today") {
-      timeCutoff = getStartOfDayET(0);
+      timeCutoff = getStartOfDayUTC(0);
     } else if (args.timeRange === "week") {
-      timeCutoff = getStartOfDayET(7);
+      timeCutoff = getStartOfDayUTC(7);
     }
 
     const users = await ctx.db.query("users").collect();
@@ -430,11 +396,21 @@ export const getLeaderboard = query({
               .withIndex("by_user", (q) => q.eq("userId", user._id))
               .collect();
 
-      // Find best eligible result (accuracy >= 90%, valid)
+      // Find best eligible result (valid, 90%+, WPM cap, 30s or 50 wordsCorrect)
       let bestWpm = 0;
       let bestCreatedAt = 0;
       for (const r of results) {
-        if (r.accuracy >= 90 && r.isValid !== false && r.wpm > bestWpm) {
+        if (
+          isLeaderboardEligible({
+            isValid: r.isValid,
+            rankedEligible: r.rankedEligible,
+            accuracy: r.accuracy,
+            wpm: r.wpm,
+            duration: r.duration,
+            wordsCorrect: r.wordsCorrect,
+          }) &&
+          r.wpm > bestWpm
+        ) {
           bestWpm = r.wpm;
           bestCreatedAt = r.createdAt;
         }

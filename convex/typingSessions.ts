@@ -1,123 +1,106 @@
+/**
+ * Solo typing session API (frontend teammate should match these names).
+ *
+ * api.typingSessions.startSession
+ *   Preferred: mode, duration?, wordTarget?, difficulty, punctuation, numbers,
+ *         capitalization?, quoteId?, presetId?, targetText?
+ *   Also accepts the live TypingPractice shape: { clerkId?, settings, targetText }
+ *   returns: { sessionId, targetText }
+ *   Auth: ctx.auth (ConvexProviderWithClerk). clerkId is ignored. startedAt is
+ *   set on first recordProgress.
+ *   Time/words/zen: client targetText is ignored; server always generateSoloPrompt.
+ *   Quote/preset require targetText.
+ *
+ * api.typingSessions.recordProgress
+ *   args: sessionId, typedLength
+ *
+ * api.typingSessions.finalizeSession
+ *   args: sessionId, typedText, clientElapsedMs, localDate, localHour,
+ *         dayOfWeek, month, day
+ *   returns: { resultId, isValid, invalidReason?, wpm, accuracy, duration, ... }
+ *   Ranked WPM/duration from server elapsed + computeStats/calculateWpm.
+ *   clientElapsedMs is accepted but not stored as ranked WPM.
+ *
+ * api.typingSessions.cancelSession
+ *   args: sessionId
+ */
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { Id, Doc } from "./_generated/dataModel";
-import {
-  MAX_WPM,
-  MAX_BURST_CHARS,
-  MIN_PROGRESS_EVENTS,
-  getTimeModeTolerance,
-  SESSION_RESUME_GRACE_MS,
-} from "./lib/antiCheatConstants";
+import type { Id } from "./_generated/dataModel";
+import { SESSION_RESUME_GRACE_MS } from "./lib/antiCheatConstants";
+import { burstCharsPerSecond } from "./lib/burst";
 import {
   computeStats,
   computeWordResults,
   calculateAccuracy,
   calculateWpm,
 } from "./lib/computeStats";
+import { validateTypingSession } from "./lib/validateSession";
+import { isLeaderboardEligible } from "./lib/leaderboardEligibility";
+import { requireAuthedUser, getAuthedUser } from "./lib/identity";
+import { resolveSessionTargetText } from "./lib/soloPrompt";
+import {
+  allowedFinalizeLengthJump,
+  finalizeIntervalBurstCps,
+  isFinalizeLengthJumpInvalid,
+} from "./lib/finalizeLength";
+import { consumeRateLimit } from "./lib/consumeRateLimit";
+import { RESULT_WRITE_RATE_LIMIT } from "./lib/rateLimit";
 
-/**
- * Validate a session and determine if the test result should be marked valid
- */
-interface ValidationResult {
-  isValid: boolean;
-  invalidReason: string | undefined;
-}
-
-function validateSession(
-  session: Doc<"typingSessions">,
-  serverElapsed: number,
-  computedWpm: number,
-  typedText: string
-): ValidationResult {
-  const reasons: string[] = [];
-  const { mode, duration, wordTarget } = session.settings;
-
-  // 1. Check minimum progress events (skip for time mode - duration check is sufficient)
-  if (mode !== "time") {
-    if (session.eventCount < MIN_PROGRESS_EVENTS) {
-      reasons.push(`Too few progress events: ${session.eventCount} < ${MIN_PROGRESS_EVENTS}`);
-    }
-  }
-
-  // 2. Check WPM ceiling
-  if (computedWpm > MAX_WPM) {
-    reasons.push(`WPM exceeds maximum: ${Math.round(computedWpm)} > ${MAX_WPM}`);
-  }
-
-  // 3. Check burst characters (paste detection)
-  if (session.maxBurstChars > MAX_BURST_CHARS) {
-    reasons.push(`Burst chars exceeded: ${session.maxBurstChars} > ${MAX_BURST_CHARS}`);
-  }
-
-  // 4. Mode-specific validation
-  if (mode === "time" && duration) {
-    const expectedMs = duration * 1000;
-    // Use dynamic tolerance based on test duration
-    // Short tests (15s, 30s) need more tolerance due to session setup latency being a larger %
-    const toleranceMs = getTimeModeTolerance(duration) * 1000;
-    if (serverElapsed < expectedMs - toleranceMs) {
-      reasons.push(
-        `Time mode completed too fast: ${serverElapsed}ms < ${expectedMs - toleranceMs}ms`
-      );
-    }
-  }
-
-  if (mode === "words" && wordTarget) {
-    const wordCount = typedText.trim().split(/\s+/).length;
-    if (wordCount < wordTarget) {
-      reasons.push(`Word count insufficient: ${wordCount} < ${wordTarget}`);
-    }
-  }
-
-  if (
-    (mode === "quote" || mode === "preset") &&
-    typedText.length < session.targetText.length
-  ) {
-    reasons.push(
-      `Text incomplete: ${typedText.length} < ${session.targetText.length}`
-    );
-  }
-
-  return {
-    isValid: reasons.length === 0,
-    invalidReason: reasons.length > 0 ? reasons.join("; ") : undefined,
-  };
-}
-
-/**
- * Start a new typing session
- * Returns existing session if one exists and is within grace period (for page refresh)
- * AND the targetText matches (to prevent using stale sessions after test reset)
- */
 export const startSession = mutation({
   args: {
-    clerkId: v.string(),
-    settings: v.object({
-      mode: v.string(),
-      duration: v.optional(v.number()),
-      wordTarget: v.optional(v.number()),
-      difficulty: v.string(),
-      punctuation: v.boolean(),
-      numbers: v.boolean(),
-      capitalization: v.optional(v.boolean()),
-    }),
-    targetText: v.string(),
+    mode: v.optional(v.string()),
+    duration: v.optional(v.number()),
+    wordTarget: v.optional(v.number()),
+    difficulty: v.optional(v.string()),
+    punctuation: v.optional(v.boolean()),
+    numbers: v.optional(v.boolean()),
+    capitalization: v.optional(v.boolean()),
+    quoteId: v.optional(v.string()),
+    presetId: v.optional(v.string()),
+    targetText: v.optional(v.string()),
+    // Ignored; identity comes from ctx.auth. Kept so current frontend calls typecheck.
+    clerkId: v.optional(v.string()),
+    settings: v.optional(
+      v.object({
+        mode: v.string(),
+        duration: v.optional(v.number()),
+        wordTarget: v.optional(v.number()),
+        difficulty: v.string(),
+        punctuation: v.boolean(),
+        numbers: v.boolean(),
+        capitalization: v.optional(v.boolean()),
+      })
+    ),
   },
-  handler: async (ctx, args): Promise<{ sessionId: Id<"typingSessions"> }> => {
-    // Find the user
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+  handler: async (ctx, args): Promise<{ sessionId: Id<"typingSessions">; targetText: string }> => {
+    const user = await requireAuthedUser(ctx);
+    const now = Date.now();
+    const mode = args.settings?.mode ?? args.mode;
+    const difficulty = args.settings?.difficulty ?? args.difficulty;
+    const punctuation = args.settings?.punctuation ?? args.punctuation ?? false;
+    const numbers = args.settings?.numbers ?? args.numbers ?? false;
+    const capitalization =
+      args.settings?.capitalization ?? args.capitalization ?? false;
+    const duration = args.settings?.duration ?? args.duration;
+    const wordTarget = args.settings?.wordTarget ?? args.wordTarget;
 
-    if (!user) {
-      throw new Error("User not found. Please sign in first.");
+    if (!mode || !difficulty) {
+      throw new Error("mode and difficulty are required");
     }
 
-    const now = Date.now();
+    const targetText = resolveSessionTargetText({
+      mode,
+      clientTargetText: args.targetText,
+      duration,
+      wordTarget,
+      difficulty,
+      punctuation,
+      numbers,
+      capitalization,
+    });
 
-    // Check for existing session (handle page refresh)
     const existingSession = await ctx.db
       .query("typingSessions")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -125,27 +108,27 @@ export const startSession = mutation({
       .first();
 
     if (existingSession) {
-      // Only resume if session is recent AND has matching targetText
-      // This prevents using stale sessions after test reset where cancel may not have completed
       const isRecent = now - existingSession.createdAt < SESSION_RESUME_GRACE_MS;
-      const sameTargetText = existingSession.targetText === args.targetText;
-      
+      const sameTargetText = existingSession.targetText === targetText;
       if (isRecent && sameTargetText) {
-        return { sessionId: existingSession._id };
+        return { sessionId: existingSession._id, targetText: existingSession.targetText };
       }
-      // Delete old session - either expired or has different targetText (test was reset)
       await ctx.db.delete(existingSession._id);
     }
 
-    // Create new session
-    // Set startedAt immediately to match frontend timer start
-    // This ensures server-side duration validation aligns with frontend timing
     const sessionId = await ctx.db.insert("typingSessions", {
       userId: user._id,
-      settings: args.settings,
-      targetText: args.targetText,
+      settings: {
+        mode,
+        duration,
+        wordTarget,
+        difficulty,
+        punctuation,
+        numbers,
+        capitalization,
+      },
+      targetText,
       createdAt: now,
-      startedAt: now, // Set immediately instead of waiting for first progress event
       lastEventAt: now,
       eventCount: 0,
       lastTypedLength: 0,
@@ -153,53 +136,48 @@ export const startSession = mutation({
       maxBurstChars: 0,
     });
 
-    return { sessionId };
+    return { sessionId, targetText };
   },
 });
 
-/**
- * Record progress during typing session
- * Called periodically to validate real-time typing
- */
 export const recordProgress = mutation({
   args: {
     sessionId: v.id("typingSessions"),
-    typedTextLength: v.number(),
+    typedLength: v.number(),
   },
   handler: async (ctx, args): Promise<{ success: boolean }> => {
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
-      // Session expired or doesn't exist - fail silently
+      return { success: false };
+    }
+
+    const user = await getAuthedUser(ctx);
+    if (!user || session.userId !== user._id) {
       return { success: false };
     }
 
     const now = Date.now();
+    const startedAt = session.startedAt ?? now;
 
-    // Validate monotonic progress: typedTextLength >= lastTypedLength
-    if (args.typedTextLength < session.lastTypedLength) {
-      // Text was deleted (backspace) - that's okay, just don't update burst metrics
+    if (args.typedLength < session.lastTypedLength) {
       await ctx.db.patch(args.sessionId, {
+        startedAt,
         lastEventAt: now,
         eventCount: session.eventCount + 1,
-        lastTypedLength: args.typedTextLength,
+        lastTypedLength: args.typedLength,
       });
       return { success: true };
     }
 
-    // Calculate burst chars (characters typed since last event)
-    const charsDelta = args.typedTextLength - session.lastTypedLength;
+    const charsDelta = args.typedLength - session.lastTypedLength;
     const timeDeltaMs = now - session.lastEventAt;
-    const timeDeltaSec = timeDeltaMs / 1000;
+    const burstCps = burstCharsPerSecond(charsDelta, timeDeltaMs);
 
-    // Calculate chars per second for this burst
-    const burstCps = timeDeltaSec > 0 ? charsDelta / timeDeltaSec : 0;
-
-    // Update session with metrics
-    // Note: startedAt is now set at session creation time for accurate duration tracking
     await ctx.db.patch(args.sessionId, {
+      startedAt,
       lastEventAt: now,
       eventCount: session.eventCount + 1,
-      lastTypedLength: args.typedTextLength,
+      lastTypedLength: args.typedLength,
       maxCharsPerSecond: Math.max(session.maxCharsPerSecond, burstCps),
       maxBurstChars: Math.max(session.maxBurstChars, charsDelta),
     });
@@ -207,23 +185,17 @@ export const recordProgress = mutation({
   },
 });
 
-/**
- * Finalize a typing session and save the result
- * Computes server-side stats and runs anti-cheat validation
- */
 export const finalizeSession = mutation({
   args: {
     sessionId: v.id("typingSessions"),
     typedText: v.string(),
-    // Client-side elapsed time (ms) for accurate WPM calculation
     clientElapsedMs: v.number(),
-    // For streak and achievement tracking
     localDate: v.string(),
     localHour: v.number(),
-    isWeekend: v.boolean(),
     dayOfWeek: v.number(),
     month: v.number(),
     day: v.number(),
+    isWeekend: v.optional(v.boolean()),
   },
   handler: async (
     ctx,
@@ -232,6 +204,7 @@ export const finalizeSession = mutation({
     resultId: Id<"testResults">;
     wpm: number;
     accuracy: number;
+    duration: number;
     isValid: boolean;
     invalidReason: string | undefined;
     wordsCorrect: number;
@@ -245,111 +218,161 @@ export const finalizeSession = mutation({
       throw new Error("Session not found or expired");
     }
 
-    const now = Date.now();
+    const user = await requireAuthedUser(ctx);
+    if (session.userId !== user._id) {
+      throw new Error("Session does not belong to the signed-in user.");
+    }
 
-    // Compute server elapsed time (for anti-cheat validation only)
+    await consumeRateLimit(
+      ctx,
+      `finalize:${user._id}`,
+      RESULT_WRITE_RATE_LIMIT
+    );
+
+    const now = Date.now();
     const serverElapsed = session.startedAt
       ? now - session.startedAt
       : now - session.createdAt;
+    const timeSinceLastProgressMs = now - session.lastEventAt;
+    const typedLength = args.typedText.length;
+    const lengthJumpInvalid = isFinalizeLengthJumpInvalid(
+      typedLength,
+      session.lastTypedLength,
+      timeSinceLastProgressMs
+    );
+    const finalizeBurstCps = finalizeIntervalBurstCps(
+      typedLength,
+      session.lastTypedLength,
+      timeSinceLastProgressMs
+    );
+    const maxCharsPerSecond = Math.max(
+      session.maxCharsPerSecond,
+      finalizeBurstCps
+    );
 
-    // Use client elapsed time for stats (more accurate due to no network latency)
-    // but validate it's reasonable compared to server time
-    const clientElapsed = args.clientElapsedMs;
-
-    // Compute stats server-side using client's elapsed time for accurate WPM
     const stats = computeStats(args.typedText, session.targetText);
     const wordResults = computeWordResults(args.typedText, session.targetText);
     const accuracy = calculateAccuracy(stats, args.typedText.length);
-    const wpm = calculateWpm(args.typedText.length, clientElapsed);
+    const wpm = calculateWpm(args.typedText.length, serverElapsed);
+    const roundedWpm = Math.round(wpm);
+    const roundedAccuracy = Math.round(accuracy * 10) / 10;
+    const wordsCorrect = wordResults.correctWords.length;
 
-    // Run anti-cheat validation using server elapsed time
-    // This ensures we validate against server-measured duration
-    const serverWpm = calculateWpm(args.typedText.length, serverElapsed);
-    const validation = validateSession(session, serverElapsed, serverWpm, args.typedText);
+    const validation = validateTypingSession(
+      {
+        mode: session.settings.mode,
+        duration: session.settings.duration,
+        wordTarget: session.settings.wordTarget,
+        targetText: session.targetText,
+        eventCount: session.eventCount,
+        maxCharsPerSecond,
+      },
+      {
+        serverElapsedMs: serverElapsed,
+        computedWpm: wpm,
+        typedText: args.typedText,
+      }
+    );
 
-    // Get user for saving result
-    const user = await ctx.db.get(session.userId);
-    if (!user) {
-      throw new Error("User not found");
+    let isValid = validation.isValid;
+    let invalidReason = validation.invalidReason;
+    if (lengthJumpInvalid) {
+      isValid = false;
+      const jump = typedLength - session.lastTypedLength;
+      const allowed = allowedFinalizeLengthJump(timeSinceLastProgressMs);
+      const reason = `Typed length jumped ${jump} vs last heartbeat (allowed ${allowed})`;
+      invalidReason = invalidReason ? `${invalidReason}; ${reason}` : reason;
     }
 
-    // Save to testResults with isValid flag
-    // Use client elapsed time for duration (matches displayed results)
     const resultId = await ctx.db.insert("testResults", {
       userId: session.userId,
-      wpm: Math.round(wpm),
-      accuracy: Math.round(accuracy * 10) / 10,
+      wpm: roundedWpm,
+      accuracy: roundedAccuracy,
       mode: session.settings.mode,
-      duration: clientElapsed,
+      duration: serverElapsed,
       wordCount: Math.floor(args.typedText.length / 5),
       difficulty: session.settings.difficulty,
       punctuation: session.settings.punctuation,
       numbers: session.settings.numbers,
       capitalization: session.settings.capitalization,
-      wordsCorrect: wordResults.correctWords.length,
+      wordsCorrect,
       wordsIncorrect: wordResults.incorrectWords.length,
       charsMissed: stats.missed,
       charsExtra: stats.extra,
-      isValid: validation.isValid,
-      invalidReason: validation.invalidReason,
+      isValid,
+      invalidReason,
+      rankedEligible: true,
       createdAt: now,
     });
 
-    // Only update streak and check achievements if valid
     let newAchievements: string[] = [];
-    if (validation.isValid) {
-      // Update streak
+    if (isValid) {
+      const isWeekend =
+        args.isWeekend ?? (args.dayOfWeek === 0 || args.dayOfWeek === 6);
+
       await ctx.runMutation(internal.streaks.updateStreak, {
         userId: session.userId,
         localDate: args.localDate,
-        duration: clientElapsed,
-        wordsCorrect: wordResults.correctWords.length,
+        duration: serverElapsed,
+        wordsCorrect,
       });
 
-      // Check and award achievements
       const achievementResult = await ctx.runMutation(
         internal.achievements.checkAndAwardAchievements,
         {
           userId: session.userId,
           testResult: {
-            wpm: Math.round(wpm),
-            accuracy: Math.round(accuracy * 10) / 10,
+            wpm: roundedWpm,
+            accuracy: roundedAccuracy,
             mode: session.settings.mode,
-            duration: clientElapsed,
+            duration: serverElapsed,
             wordCount: Math.floor(args.typedText.length / 5),
             difficulty: session.settings.difficulty,
             punctuation: session.settings.punctuation,
             numbers: session.settings.numbers,
             capitalization: session.settings.capitalization,
-            wordsCorrect: wordResults.correctWords.length,
+            wordsCorrect,
             wordsIncorrect: wordResults.incorrectWords.length,
             createdAt: now,
           },
           localHour: args.localHour,
-          isWeekend: args.isWeekend,
+          isWeekend,
           dayOfWeek: args.dayOfWeek,
           month: args.month,
           day: args.day,
+          isValid: true,
+          rankedEligible: true,
         }
       );
       newAchievements = achievementResult.newAchievements;
 
-      // Update user stats cache
       await ctx.runMutation(internal.statsCache.updateUserStatsCache, {
         userId: session.userId,
-        wpm: Math.round(wpm),
-        accuracy: Math.round(accuracy * 10) / 10,
-        duration: clientElapsed,
+        wpm: roundedWpm,
+        accuracy: roundedAccuracy,
+        duration: serverElapsed,
         wordCount: Math.floor(args.typedText.length / 5),
         isValid: true,
       });
 
-      // Update leaderboard cache (only if accuracy >= 90%)
-      const roundedAccuracy = Math.round(accuracy * 10) / 10;
-      if (roundedAccuracy >= 90) {
+      if (
+        isLeaderboardEligible({
+          isValid: true,
+          rankedEligible: true,
+          accuracy: roundedAccuracy,
+          wpm: roundedWpm,
+          duration: serverElapsed,
+          wordsCorrect,
+        })
+      ) {
         await ctx.runMutation(internal.statsCache.updateLeaderboardCache, {
           userId: session.userId,
-          wpm: Math.round(wpm),
+          wpm: roundedWpm,
+          accuracy: roundedAccuracy,
+          duration: serverElapsed,
+          wordsCorrect,
+          isValid: true,
+          rankedEligible: true,
           createdAt: now,
           username: user.username,
           avatarUrl: user.avatarUrl,
@@ -357,16 +380,16 @@ export const finalizeSession = mutation({
       }
     }
 
-    // Delete the session
     await ctx.db.delete(args.sessionId);
 
     return {
       resultId,
-      wpm: Math.round(wpm),
-      accuracy: Math.round(accuracy * 10) / 10,
-      isValid: validation.isValid,
-      invalidReason: validation.invalidReason,
-      wordsCorrect: wordResults.correctWords.length,
+      wpm: roundedWpm,
+      accuracy: roundedAccuracy,
+      duration: serverElapsed,
+      isValid,
+      invalidReason,
+      wordsCorrect,
       wordsIncorrect: wordResults.incorrectWords.length,
       charsMissed: stats.missed,
       charsExtra: stats.extra,
@@ -375,46 +398,38 @@ export const finalizeSession = mutation({
   },
 });
 
-/**
- * Get current session for a user (if exists)
- * Used to check if there's an active session on page load
- */
 export const getCurrentSession = query({
-  args: {
-    clerkId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthedUser(ctx);
     if (!user) {
       return null;
     }
 
-    const session = await ctx.db
+    return await ctx.db
       .query("typingSessions")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .first();
-
-    return session;
   },
 });
 
-/**
- * Cancel/delete a session (user abandoned test)
- */
 export const cancelSession = mutation({
   args: {
     sessionId: v.id("typingSessions"),
   },
   handler: async (ctx, args): Promise<{ success: boolean }> => {
     const session = await ctx.db.get(args.sessionId);
-    if (session) {
-      await ctx.db.delete(args.sessionId);
+    if (!session) {
+      return { success: true };
     }
+
+    const user = await getAuthedUser(ctx);
+    if (!user || session.userId !== user._id) {
+      return { success: false };
+    }
+
+    await ctx.db.delete(args.sessionId);
     return { success: true };
   },
 });

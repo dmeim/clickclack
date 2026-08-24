@@ -83,16 +83,48 @@ function TestValidityContent({ colors }: { colors: ThemeColors }) {
           What is Test Validity?
         </h2>
         <p className="mb-3">
-          TypeSetGo uses a server-authoritative validation system to ensure fair
-          competition on leaderboards and accurate achievement tracking. Tests
-          that pass all validation checks are marked as <strong>verified</strong>,
-          while tests that fail any check are marked as <strong>unverified</strong>.
+          Solo practice tests are checked on the server after you finish. Tests
+          that pass are marked <strong>verified</strong>. Tests that fail are
+          still saved to your history as <strong>unverified</strong>, but they
+          do not count toward leaderboards, achievements, or streaks.
         </p>
         <p>
-          Unverified tests are still saved to your history but do not count toward
-          leaderboards, achievements, or streaks. This system helps maintain
-          integrity without penalizing legitimate users.
+          Leaderboard ranking is a separate, server-enforced filter:{" "}
+          <strong>90%+ accuracy</strong> and either <strong>30 seconds</strong> or{" "}
+          <strong>50 correct words</strong>. A verified 15-second test can still
+          count for history, personal bests, and some achievements — it just
+          does not rank.
         </p>
+      </section>
+
+      <section>
+        <h2
+          className="text-xl font-semibold mb-4"
+          style={{ color: tv.text.primary }}
+        >
+          Leaderboard Eligibility
+        </h2>
+        <p className="mb-4">
+          These rules are enforced in the leaderboard query (not only in this
+          page&apos;s copy):
+        </p>
+        <div className="space-y-4">
+          <ValidityItem
+            colors={colors}
+            title="Accuracy and length"
+            description="90% or higher accuracy, and either at least 30 seconds or at least 50 correct words. 15-second tests are valid for history but do not appear on the leaderboard."
+          />
+          <ValidityItem
+            colors={colors}
+            title="WPM cap"
+            description="Scores above 300 WPM are excluded. Speeds of 170–200 WPM are allowed — that range is treated as normal fast typing, not as cheating."
+          />
+          <ValidityItem
+            colors={colors}
+            title="Verified only"
+            description="Only verified tests can rank. You must be signed in for a test to be verified. Unsigned tests cannot appear on the leaderboard."
+          />
+        </div>
       </section>
 
       <section>
@@ -103,23 +135,23 @@ function TestValidityContent({ colors }: { colors: ThemeColors }) {
           Universal Requirements
         </h2>
         <p className="mb-4">
-          These checks apply to all test modes:
+          These checks apply to all solo test modes:
         </p>
         <div className="space-y-4">
           <ValidityItem
             colors={colors}
             title="WPM Ceiling"
-            description="Your typing speed must not exceed 300 WPM. This threshold is well above the world record (~216 WPM sustained) to allow headroom for legitimate fast typists."
+            description="Typing speed must not exceed 300 WPM. That cap is well above sustained world-record pace and is the hard limit — 170–200 WPM is fully allowed."
           />
           <ValidityItem
             colors={colors}
-            title="Burst Character Limit"
-            description="No more than 50 characters can be typed between progress events. This detects copy-paste or automated input while allowing for natural typing bursts."
+            title="Paste blocking"
+            description="Pasting into the solo typing input is blocked. Type normally; the client does not wait on the network between keystrokes."
           />
           <ValidityItem
             colors={colors}
-            title="Session Tracking"
-            description="You must be signed in to have your test verified. Guest tests cannot be validated for leaderboard eligibility."
+            title="Signed-in session"
+            description="Signed-in solo tests open a server session and send progress while you type. Guest tests cannot be verified for ranking."
           />
         </div>
       </section>
@@ -138,45 +170,44 @@ function TestValidityContent({ colors }: { colors: ThemeColors }) {
         <div className="space-y-6">
           <ModeSection colors={colors} mode="Time Mode">
             <p className="mb-3">
-              Time mode tests must run for the full duration (with a 2-second
-              tolerance for network latency). If you select a 30-second test, the
-              server must record at least 28 seconds of elapsed time.
+              Time mode tests must run for the selected duration (with a small
+              tolerance for latency). A 15-second test can still be verified if
+              it passes these checks, but it does not qualify for the
+              leaderboard.
             </p>
             <p>
-              This is the primary validation for time mode — if you want a shorter
-              test, simply select a shorter duration in the settings.
+              If you want a ranked time test, use 30 seconds or longer (or
+              combine with the 50-word ranking path in words mode).
             </p>
           </ModeSection>
 
           <ModeSection colors={colors} mode="Words Mode">
             <p className="mb-3">
-              You must type at least as many words as your selected word target.
-              Additionally, at least 3 progress events must be recorded during
-              your test to prove real-time typing.
+              You must reach your selected word target. Tests with at least 50
+              correct words can rank even if they are shorter than 30 seconds,
+              as long as accuracy is 90%+ and the test is verified.
             </p>
           </ModeSection>
 
           <ModeSection colors={colors} mode="Quote Mode">
             <p className="mb-3">
-              You must complete the entire quote — your typed text length must
-              match or exceed the target quote length. At least 3 progress events
-              are required.
+              You must complete the entire quote. Ranking still requires 90%+
+              accuracy and either 30 seconds or 50 correct words.
             </p>
           </ModeSection>
 
           <ModeSection colors={colors} mode="Preset Mode">
             <p className="mb-3">
-              Similar to quote mode, you must complete the entire preset text.
-              Your typed text length must match or exceed the target text length,
-              and at least 3 progress events are required.
+              You must complete the entire preset text. The same ranking filter
+              applies: 90%+ accuracy and 30 seconds or 50 correct words.
             </p>
           </ModeSection>
 
           <ModeSection colors={colors} mode="Zen Mode">
             <p className="mb-3">
-              Zen mode has relaxed validation — only the universal requirements
-              (WPM ceiling, burst limit) and minimum 3 progress events are checked.
-              Since there&apos;s no set goal, you end the test when you choose.
+              Zen mode uses relaxed validation — the 300 WPM cap still applies,
+              and there is no duration or word-target failure. Zen tests are
+              not a ranked leaderboard mode.
             </p>
           </ModeSection>
         </div>
@@ -194,26 +225,36 @@ function TestValidityContent({ colors }: { colors: ThemeColors }) {
         </p>
         <ul className="list-disc list-inside space-y-2 ml-4">
           <li>
-            <strong>Completed too quickly:</strong> Time mode tests must run for
-            the expected duration.
+            <strong>Speed over 300 WPM:</strong> The hard cap is 300. 170–200
+            WPM is allowed.
           </li>
           <li>
-            <strong>Large text paste detected:</strong> Typing more than 50
-            characters in a short burst triggers the paste detection.
+            <strong>Completed too quickly:</strong> Time mode tests must run
+            for the selected duration.
+          </li>
+          <li>
+            <strong>Paste or instant dump:</strong> Pasting is blocked on solo
+            practice. Unusual instant input can still fail server checks.
           </li>
           <li>
             <strong>Not signed in:</strong> Guest tests cannot be verified for
             leaderboard eligibility.
           </li>
           <li>
-            <strong>Network issues:</strong> If progress events fail to reach the
-            server, the test may not have enough data points for validation.
+            <strong>Session progress missing:</strong> If the server did not
+            receive enough progress during the test, it may not mark the result
+            verified.
           </li>
           <li>
             <strong>Test not completed:</strong> For words, quote, and preset
             modes, you must finish the entire test.
           </li>
         </ul>
+        <p className="mt-4">
+          A short verified test (for example 15 seconds) is not unverified —
+          it simply does not rank. TypeSetGo does not replay keystrokes or
+          provide live human review of each test.
+        </p>
       </section>
 
       <section
@@ -230,11 +271,10 @@ function TestValidityContent({ colors }: { colors: ThemeColors }) {
           Note on False Positives
         </h3>
         <p>
-          The validation system is designed to minimize false positives — legitimate
-          fast typists should never be incorrectly flagged. If you believe your
-          test was incorrectly marked as unverified, the thresholds are intentionally
-          generous (300 WPM ceiling, 50-character burst limit) to accommodate
-          exceptional typists.
+          The checks are meant to stay out of the way of legitimate fast
+          typists. 170–200 WPM is allowed. Only scores above 300 WPM are
+          over the cap. If a test is unverified, it is still in your history;
+          it just will not rank or award achievements and streaks.
         </p>
       </section>
     </div>

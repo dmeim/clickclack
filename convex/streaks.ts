@@ -1,35 +1,11 @@
 import { v } from "convex/values";
 import { query, internalMutation } from "./_generated/server";
+import {
+  qualifiesForStreak,
+  qualifiesForAchievement,
+} from "./lib/qualification";
 
-// Minimum requirements to count towards a streak
-const MIN_DURATION_MS = 30000; // 30 seconds
-const MIN_CORRECT_WORDS = 50;
-
-/**
- * Check if a test qualifies for streak counting
- * Qualification: duration >= 30s OR wordsCorrect >= 50
- */
-export function qualifiesForStreak(
-  duration: number,
-  wordsCorrect: number
-): boolean {
-  return duration >= MIN_DURATION_MS || wordsCorrect >= MIN_CORRECT_WORDS;
-}
-
-/**
- * Check if a test qualifies for achievement counting
- * Qualification: (duration >= 30s OR wordsCorrect >= 50) AND accuracy >= 90%
- * This prevents gaming achievements by ending tests early
- */
-export function qualifiesForAchievement(
-  duration: number,
-  wordsCorrect: number,
-  accuracy: number
-): boolean {
-  const meetsDurationOrWords = duration >= MIN_DURATION_MS || wordsCorrect >= MIN_CORRECT_WORDS;
-  const meetsAccuracy = accuracy >= 90;
-  return meetsDurationOrWords && meetsAccuracy;
-}
+export { qualifiesForStreak, qualifiesForAchievement };
 
 /**
  * Get the next day's date string (YYYY-MM-DD format)

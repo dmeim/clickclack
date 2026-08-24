@@ -38,8 +38,18 @@ export const getTimeModeTolerance = (durationSec: number): number => {
   return TIME_MODE_BASE_TOLERANCE_SEC;
 };
 
-// Max chars between progress events (detects paste)
+// Minimum window when computing burst CPS so a 1-char event in the same
+// millisecond is not treated as infinite CPS (paste dumps still flag).
+export const MIN_BURST_WINDOW_MS = 100;
+
+// Deprecated for solo validation (false-flags 200 WPM on lagged heartbeats).
+// Kept exported so existing imports keep compiling. Use time-scaled CPS instead.
 export const MAX_BURST_CHARS = 50;
+
+// Admin review queue floor (never 150/220)
+export const ADMIN_REVIEW_WPM_FLOOR = 250;
+
+export const ADMIN_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 // Session TTL - 10 minutes, sessions older than this are expired
 export const SESSION_TTL_MS = 600000;
